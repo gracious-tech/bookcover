@@ -3,4 +3,4 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../widget"
 
-node_modules/.bin/vite build
+npx vite build

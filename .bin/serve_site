@@ -3,4 +3,4 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../site"
 
-node_modules/.bin/vite
+npx vite
