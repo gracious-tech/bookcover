@@ -3,10 +3,10 @@
         "family": "Noto Serif",
         "group": "Compatible with most languages",
         "files": [
-            "NotoSerif-Regular.ttf",
             "NotoSerif-Bold.ttf",
+            "NotoSerif-BoldItalic.ttf",
             "NotoSerif-Italic.ttf",
-            "NotoSerif-BoldItalic.ttf"
+            "NotoSerif-Regular.ttf"
         ],
         "preview_file": "NotoSerif-Regular.ttf"
     },
@@ -14,10 +14,10 @@
         "family": "Noto Sans",
         "group": "Compatible with most languages",
         "files": [
-            "NotoSans-Regular.ttf",
             "NotoSans-Bold.ttf",
+            "NotoSans-BoldItalic.ttf",
             "NotoSans-Italic.ttf",
-            "NotoSans-BoldItalic.ttf"
+            "NotoSans-Regular.ttf"
         ],
         "preview_file": "NotoSans-Regular.ttf"
     },
@@ -25,8 +25,8 @@
         "family": "Dancing Script",
         "group": "Styles",
         "files": [
-            "DancingScript-Regular.ttf",
-            "DancingScript-Bold.ttf"
+            "DancingScript-Bold.ttf",
+            "DancingScript-Regular.ttf"
         ],
         "preview_file": "DancingScript-Regular.ttf"
     },
@@ -34,8 +34,8 @@
         "family": "Caveat",
         "group": "Styles",
         "files": [
-            "Caveat-Regular.ttf",
-            "Caveat-Bold.ttf"
+            "Caveat-Bold.ttf",
+            "Caveat-Regular.ttf"
         ],
         "preview_file": "Caveat-Regular.ttf"
     },
@@ -43,8 +43,8 @@
         "family": "Playpen Sans",
         "group": "Styles",
         "files": [
-            "PlaypenSans-Regular.ttf",
-            "PlaypenSans-Bold.ttf"
+            "PlaypenSans-Bold.ttf",
+            "PlaypenSans-Regular.ttf"
         ],
         "preview_file": "PlaypenSans-Regular.ttf"
     },
@@ -52,10 +52,10 @@
         "family": "Raleway",
         "group": "Styles",
         "files": [
-            "Raleway-Regular.ttf",
             "Raleway-Bold.ttf",
+            "Raleway-BoldItalic.ttf",
             "Raleway-Italic.ttf",
-            "Raleway-BoldItalic.ttf"
+            "Raleway-Regular.ttf"
         ],
         "preview_file": "Raleway-Regular.ttf"
     },
@@ -71,8 +71,8 @@
         "family": "Bevan",
         "group": "Styles",
         "files": [
-            "Bevan-Regular.ttf",
-            "Bevan-Italic.ttf"
+            "Bevan-Italic.ttf",
+            "Bevan-Regular.ttf"
         ],
         "preview_file": "Bevan-Regular.ttf"
     },
@@ -80,10 +80,10 @@
         "family": "EB Garamond",
         "group": "Commonly used inside books",
         "files": [
-            "EBGaramond-Regular.ttf",
             "EBGaramond-Bold.ttf",
+            "EBGaramond-BoldItalic.ttf",
             "EBGaramond-Italic.ttf",
-            "EBGaramond-BoldItalic.ttf"
+            "EBGaramond-Regular.ttf"
         ],
         "preview_file": "EBGaramond-Regular.ttf"
     },
@@ -91,10 +91,10 @@
         "family": "Merriweather",
         "group": "Commonly used inside books",
         "files": [
-            "Merriweather-Regular.ttf",
             "Merriweather-Bold.ttf",
+            "Merriweather-BoldItalic.ttf",
             "Merriweather-Italic.ttf",
-            "Merriweather-BoldItalic.ttf"
+            "Merriweather-Regular.ttf"
         ],
         "preview_file": "Merriweather-Regular.ttf"
     },
@@ -102,10 +102,10 @@
         "family": "Crimson Pro",
         "group": "Commonly used inside books",
         "files": [
-            "CrimsonPro-Regular.ttf",
             "CrimsonPro-Bold.ttf",
+            "CrimsonPro-BoldItalic.ttf",
             "CrimsonPro-Italic.ttf",
-            "CrimsonPro-BoldItalic.ttf"
+            "CrimsonPro-Regular.ttf"
         ],
         "preview_file": "CrimsonPro-Regular.ttf"
     },
@@ -113,10 +113,10 @@
         "family": "Libre Baskerville",
         "group": "Commonly used inside books",
         "files": [
-            "LibreBaskerville-Regular.ttf",
             "LibreBaskerville-Bold.ttf",
+            "LibreBaskerville-BoldItalic.ttf",
             "LibreBaskerville-Italic.ttf",
-            "LibreBaskerville-BoldItalic.ttf"
+            "LibreBaskerville-Regular.ttf"
         ],
         "preview_file": "LibreBaskerville-Regular.ttf"
     },
@@ -124,10 +124,10 @@
         "family": "Lora",
         "group": "Commonly used inside books",
         "files": [
-            "Lora-Regular.ttf",
             "Lora-Bold.ttf",
+            "Lora-BoldItalic.ttf",
             "Lora-Italic.ttf",
-            "Lora-BoldItalic.ttf"
+            "Lora-Regular.ttf"
         ],
         "preview_file": "Lora-Regular.ttf"
     }

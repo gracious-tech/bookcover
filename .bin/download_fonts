@@ -4,7 +4,7 @@
 // Uses the Google Fonts download list API to fetch Regular/Bold/Italic/BoldItalic TTFs.
 // After downloading, generates generator/src/font_manifest.json with the font metadata.
 
-import {writeFile, mkdir} from 'node:fs/promises'
+import {writeFile, mkdir, access, readdir} from 'node:fs/promises'
 import {dirname, join, basename} from 'node:path'
 import {fileURLToPath} from 'node:url'
 
@@ -60,6 +60,18 @@ const WEIGHTS = ['Regular', 'Bold', 'Italic', 'BoldItalic']
 // Download a font and return the list of downloaded filenames
 async function download_font(family) {
     const dir = join(FONT_DIR, family)
+    const base = family.replace(/\s+/g, '')
+
+    // Skip if Regular already exists — assume the family was fully downloaded
+    const regular_path = join(dir, `${base}-Regular.ttf`)
+    try {
+        await access(regular_path)
+        const existing = (await readdir(dir)).filter(f => f.endsWith('.ttf'))
+        return existing
+    } catch {
+        // File doesn't exist, proceed with download
+    }
+
     await mkdir(dir, {recursive: true})
 
     // Fetch API response and strip )]}' security prefix
@@ -73,7 +85,6 @@ async function download_font(family) {
     const refs = json.manifest.fileRefs
 
     // Base name = family with spaces removed (Google's filename convention)
-    const base = family.replace(/\s+/g, '')
     const files = []
 
     // Try static files for the 4 core weights
@@ -95,8 +106,13 @@ async function download_font(family) {
 
         if (ref) {
             // Always save with the canonical name so downstream code doesn't need to know about optical sizes
-            const data = await fetch(ref.url)
-            await writeFile(join(dir, `${base}-${suffix}.ttf`), new Uint8Array(await data.arrayBuffer()))
+            const dest = join(dir, `${base}-${suffix}.ttf`)
+            try {
+                await access(dest)
+            } catch {
+                const data = await fetch(ref.url)
+                await writeFile(dest, new Uint8Array(await data.arrayBuffer()))
+            }
             files.push(`${base}-${suffix}.ttf`)
         }
     }
@@ -138,7 +154,7 @@ for (const family of FONTS) {
         const preview_file = pick_preview(files)
         results.push({family, files, preview_file})
         console.log(` ${files.length} files`)
-    } catch (err) {
+    } catch(err) {
         console.log(` FAILED: ${err.message}`)
     }
 }
