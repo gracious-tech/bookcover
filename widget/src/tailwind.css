@@ -1,0 +1,19 @@
+/* WARN Do not add any styles to this file, it is just for imports.
+
+    Tailwind must be imported in vanilla CSS as its complicated plugin system gets messed up
+    when embedded within other pre-processors like sass/sss.
+    Also can't import .sss files in here so must import styles.sss separately.
+*/
+
+@import "tailwindcss";
+@import "@nuxt/ui";  /* Uses tailwind */
+
+
+/* Tailwind removed pointer on buttons for accessibility concerns... */
+@layer base {
+    button,
+    [role="button"] {
+        @apply cursor-pointer;
+        @apply disabled:cursor-not-allowed;
+    }
+}

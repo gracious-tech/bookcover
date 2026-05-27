@@ -1,0 +1,15 @@
+{
+    "private": true,
+    "type": "module",
+    "workspaces": [
+        "generator",
+        "generator-node",
+        "generator-web",
+        "3d",
+        "widget"
+    ],
+    "dependencies": {
+        "@types/node": "^25.5.0",
+        "typescript": "^5.9.3"
+    }
+}

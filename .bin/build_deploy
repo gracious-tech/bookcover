@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Netlify build script — installs all packages in dependency order, then builds
+# Output: widget/dist/
+set -euo pipefail
+
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+BIN="$PROJECT_ROOT/.bin"
+
+echo "📦 Installing generator dependencies..."
+cd "$PROJECT_ROOT/generator"
+npm ci
+
+echo "📦 Installing generator-web dependencies..."
+cd "$PROJECT_ROOT/generator-web"
+npm ci
+
+echo "📦 Installing 3d dependencies..."
+cd "$PROJECT_ROOT/3d"
+npm ci
+
+echo "📦 Installing widget dependencies..."
+cd "$PROJECT_ROOT/widget"
+npm ci
+
+cd "$PROJECT_ROOT"
+
+echo "🔨 Building generator module..."
+"$BIN/build_generator"
+
+echo "🔨 Building generator-web module..."
+"$BIN/build_generator-web"
+
+echo "🔨 Building 3d module..."
+"$BIN/build_3d"
+
+echo "🔨 Building widget..."
+"$BIN/build_widget"
+
+echo "✅ Build complete! Output: widget/dist/"

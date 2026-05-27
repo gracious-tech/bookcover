@@ -1,0 +1,18 @@
+
+{
+    "name": "bookcover-3d",
+    "version": "0.1.0",
+    "license": "MIT-0",
+    "repository": {"type": "git", "url": "https://github.com/gracious-tech/bookcover.git", "directory": "3d"},
+    "homepage": "https://github.com/gracious-tech/bookcover/tree/main/3d#readme",
+    "bugs": "https://github.com/gracious-tech/bookcover/issues",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch"
+    },
+    "devDependencies": {
+    }
+}

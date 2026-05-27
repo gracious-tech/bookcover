@@ -1,0 +1,482 @@
+
+<template lang="pug">
+
+//- Background image
+div(class="flex flex-col gap-1")
+    label(class="text-xs font-semibold tracking-[0.02em] mb-1") Background image
+
+    //- Suggested images and upload/paste buttons
+    div(class="flex gap-1 items-center")
+        UPopover(v-model:open="bg_picker_open")
+            button(type="button" class="flex rounded border border-default overflow-hidden cursor-pointer shrink-0 hover:opacity-80 transition-opacity" aria-label="Choose suggested background")
+                img(
+                    v-if="bg_image_url"
+                    :src="bg_image_url"
+                    alt="Current background"
+                    class="w-12 h-12 object-cover block"
+                )
+                img(
+                    v-else
+                    v-for="bg in PREVIEW_BGS"
+                    :key="bg"
+                    :src="bg_thumb_url(bg)"
+                    :alt="bg"
+                    class="w-12 h-12 object-cover block"
+                )
+            template(#content)
+                div(class="p-2")
+                    div(class="overflow-y-auto" style="max-height: 400px")
+                        div(class="grid gap-1.5" style="grid-template-columns: repeat(2, 160px)")
+                            button(
+                                v-for="bg in BACKGROUNDS"
+                                :key="bg"
+                                type="button"
+                                class="w-[160px] h-[120px] rounded border-2 border-transparent overflow-hidden cursor-pointer touch-manipulation transition-transform duration-100 hover:scale-[1.05]"
+                                @click="select_suggested_bg(bg)"
+                            )
+                                img(:src="bg_thumb_url(bg)" class="w-full h-full object-cover block")
+        label(class="cursor-pointer")
+            input(type="file" accept=".jpg,.jpeg,.png,.webp" class="sr-only" @change="on_image_change")
+            UButton(as="span" color="neutral" variant="outline" size="sm") Upload
+        UButton(type="button" color="neutral" variant="outline" size="sm" @click="on_paste_click") Paste
+        UButton(
+            type="button"
+            color="neutral"
+            variant="ghost"
+            size="md"
+            icon="material-symbols:close"
+            class="ml-2"
+            aria-label="Remove image"
+            @click="form.bg_image = null"
+        )
+
+
+//- Background image coverage
+div(v-if='form.bg_image' class="flex flex-col gap-1")
+    div(class="text-xs font-semibold tracking-[0.02em]") Background position
+    div(v-if='form.bg_image' class="flex mt-3")
+        UButton(
+            type="button"
+            color="neutral"
+            :variant="form.bg_image_coverage === 'full' ? 'solid' : 'outline'"
+            size="sm"
+            class="rounded-r-none w-[50px] justify-center"
+            @click="form.bg_image_coverage = 'full'"
+        ) Full
+        UButton(
+            type="button"
+            color="neutral"
+            :variant="form.bg_image_coverage === 'front' ? 'solid' : 'outline'"
+            size="sm"
+            class="rounded-none w-[50px] justify-center"
+            @click="form.bg_image_coverage = 'front'"
+        ) Front
+        UButton(
+            type="button"
+            color="neutral"
+            :variant="form.bg_image_coverage === 'front_partial' ? 'solid' : 'outline'"
+            size="sm"
+            class="rounded-none"
+            @click="form.bg_image_coverage = 'front_partial'"
+        ) Front 2/3
+        UButton(
+            type="button"
+            color="neutral"
+            :variant="form.bg_image_coverage === 'feature' ? 'solid' : 'outline'"
+            size="sm"
+            class="rounded-none"
+            @click="form.bg_image_coverage = 'feature'"
+        ) Feature
+        UButton(
+            type="button"
+            color="neutral"
+            :variant="form.bg_image_coverage === 'painted' ? 'solid' : 'outline'"
+            size="sm"
+            class="rounded-l-none"
+            @click="form.bg_image_coverage = 'painted'"
+        ) Painted
+
+
+//- Background color
+div(class="flex flex-col gap-1")
+    label(class="text-xs font-semibold tracking-[0.02em] mb-1") Background color
+    div(class="flex items-center gap-[12px]")
+
+        input(
+            type="color"
+            :value="form.bg_color"
+            class="w-[40px] h-[40px] rounded cursor-pointer bg-transparent shrink-0"
+            @input="on_bg_color_input"
+        )
+
+        div(class="flex flex-col gap-[6px]")
+            div(v-for="row in primary_swatch_rows" :key="row[0]" class="flex items-center gap-[6px]")
+                button(
+                    v-for="color in row"
+                    :key="color"
+                    type="button"
+                    class="w-[24px] h-[24px] rounded-full border-2 p-0 cursor-pointer shrink-0 transition-transform duration-100 hover:scale-[1.15] outline-offset-2"
+                    :class="form.bg_color === color ? 'border-(--ui-text)' : 'border-transparent'"
+                    :style="{background: color}"
+                    @click="form.bg_color = color"
+                )
+
+
+//- Background gradient toggle
+div(class="flex items-center gap-2 pt-0.5")
+    UCheckbox(v-model="form.bg_color_gradient" label="Make background color a gradient" :ui="{base: 'border-1 border-gray-400'}")
+
+
+//- Spine color
+div(class="flex flex-col gap-1")
+    ColorPicker(
+        v-model="form.spine_color"
+        label='Spine color'
+        :clearable="true"
+    )
+
+
+//- Pattern
+div(class="flex flex-col gap-1")
+    label(class="text-xs font-semibold tracking-[0.02em] mb-1") Background pattern
+    div(class="flex items-center gap-[5px]")
+        //- Trigger: square swatch showing the selected pattern, or a "+" placeholder
+        UPopover(v-model:open="pattern_picker_open")
+            //- Selected pattern preview square
+            div(
+                v-if="get_selected_pattern()"
+                class="w-10 h-10 rounded cursor-pointer shrink-0"
+                :style="{backgroundImage: get_preview_url(get_selected_pattern(), is_dark ? '#fff': '#000'), backgroundSize: get_preview_size(get_selected_pattern())}"
+            )
+            //- Placeholder when no pattern selected: 4 example swatches + label
+            button(v-else type="button" class="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity" aria-label="Choose a pattern")
+                div(class="flex rounded border border-default overflow-hidden shrink-0 gap-1")
+                    div(
+                        v-for="pat in PREVIEW_PATTERNS"
+                        :key="pat.id"
+                        class="w-10 h-10 shrink-0"
+                        :style="{backgroundImage: get_preview_url(pat, is_dark ? '#fff': '#000'), backgroundSize: get_preview_size(pat)}"
+                    )
+                span(class="text-sm text-muted pl-2") Choose a pattern...
+            //- Popover content: grid of all patterns
+            template(#content)
+                div(class="p-2")
+                    div(class="overflow-y-auto" style="max-height: 320px")
+                        div(class="grid gap-1.5" style="grid-template-columns: repeat(4, 72px)")
+                            button(
+                            v-for="pat in PATTERNS"
+                            :key="pat.id"
+                            type="button"
+                            class="w-18 h-18 cursor-pointer rounded hover:bg-accented"
+                            :class="form.pattern_id === pat.id ? 'border-(--ui-text)' : 'border-default'"
+                            :title="pat.name"
+                            :style="{backgroundImage: get_preview_url(pat, is_dark ? '#fff': '#000'), backgroundSize: get_preview_size(pat)}"
+                            @click="select_pattern(pat.id)"
+                        )
+        //- Color swatch and scale slider — only shown when a pattern is selected
+        template(v-if="form.pattern_id")
+            LogSlider(
+                v-model="form.pattern_scale"
+                :min="0.2"
+                :max="5"
+                log
+                suffix="x"
+                class="flex-1"
+            )
+            ColorSwatch(v-model="form.pattern_color" clearable)
+            //- Clear button (only visible when a pattern is selected)
+            UButton(
+                type="button"
+                color="neutral"
+                variant="ghost"
+                size="md"
+                icon="material-symbols:close"
+                aria-label="Remove pattern"
+                @click="form.pattern_id = null"
+            )
+
+//- Icon
+div(class="flex flex-col gap-1")
+    label(class="text-xs font-semibold tracking-[0.02em]") Front cover icon
+    div(class="flex items-center gap-1.25")
+        //- 4 example thumbnails + text input, both open the same suggestions popover
+        UPopover(v-model:open="icon_picker_open")
+            div(class="flex items-center gap-2 cursor-pointer min-w-0 hover:opacity-80")
+                //- 4 example thumbnails when no icon selected; selected icon preview otherwise
+                div(class="flex overflow-hidden shrink-0 gap-1")
+                    template(v-if="!form.icon_id")
+                        img(
+                            v-for="ic in PREVIEW_ICONS"
+                            :key="ic.id"
+                            :src="ic.url"
+                            :alt="ic.id"
+                            class="w-10 h-10 p-1 shrink-0"
+                            :style="is_dark ? 'filter: brightness(0) invert(1)' : ''"
+                        )
+                    img(
+                        v-else
+                        :src="selected_icon_url"
+                        :alt="form.icon_id"
+                        class="w-10 h-10 p-1 shrink-0"
+                        :style="is_dark ? 'filter: brightness(0) invert(1)' : ''"
+                    )
+                //- Text input — shown when popover is open or a value exists; otherwise shows placeholder text
+                input(
+                    v-if="icon_picker_open"
+                    ref="icon_input_ref"
+                    :value="form.icon_id ?? ''"
+                    type="text"
+                    placeholder="Enter Iconify id..."
+                    class="flex-1 text-xs px-2 py-1.5 border border-default rounded-md bg-default outline-none min-w-0"
+                    @input="on_icon_input"
+                    @focus.stop="icon_picker_open = true"
+                    @click.stop
+                )
+                span(
+                    v-else-if='!form.icon_id'
+                    class="flex-1 text-sm px-2 py-1.5 text-muted cursor-pointer"
+                    @click.stop="icon_picker_open = true"
+                ) Choose an icon...
+            //- Popover content: scrollable grid of all icons
+            template(#content)
+                div(class="p-2 overflow-y-auto overscroll-contain" style="max-height: min(320px, 60dvh)")
+                    div(class="grid gap-1.5" style="grid-template-columns: repeat(6, 48px)")
+                        button(
+                            v-for="ic in ICONS"
+                            :key="ic.id"
+                            type="button"
+                            class="w-12 h-12 rounded border-2 p-1 cursor-pointer touch-manipulation hover:bg-accented"
+                            :class="form.icon_id === ic.id ? 'border-primary' : 'border-none'"
+                            :title="ic.id"
+                            @click="select_icon(ic.id)"
+                        )
+                            img(:src="ic.url" class="w-full h-full" :alt="ic.id" :style="is_dark ? 'filter: brightness(0) invert(1)' : ''")
+                        //- "More" button — opens the Iconify help modal
+                        button(
+                            type="button"
+                            style="grid-column: span 2"
+                            class="h-12 rounded p-1 flex items-center justify-center text-sm font-bold text-primary hover:bg-accented cursor-pointer"
+                            @click.stop="icon_help_open = true"
+                        ) MORE
+        //- Size slider for the icon — only shown when an icon is selected and popover closed
+        LogSlider(
+            v-if="form.icon_id && !icon_picker_open"
+            v-model="form.icon_size"
+            :min="0.4"
+            :max="2"
+            log
+            suffix="x"
+            class="flex-1"
+        )
+        //- Color swatch for the icon — only shown when an icon is selected and popover closed
+        ColorSwatch(v-if="form.icon_id && !icon_picker_open" v-model="form.icon_color" clearable)
+        //- Clear button (only visible when an icon is selected)
+        UButton(
+            v-if="form.icon_id && !icon_picker_open"
+            type="button"
+            color="neutral"
+            variant="ghost"
+            size="md"
+            icon="material-symbols:close"
+            aria-label="Remove icon"
+            @click="form.icon_id = null"
+        )
+
+//- Icon mode toggle
+div(v-if="form.icon_id" class="flex flex-col gap-2")
+    label(class="text-xs font-semibold tracking-[0.02em]") Icon placement
+    div(class="flex")
+        UButton(
+            v-for="m in ICON_MODES"
+            :key="m.value"
+            type="button"
+            color="neutral"
+            :variant="form.icon_mode === m.value ? 'solid' : 'outline'"
+            size="sm"
+            class="flex-1"
+            :class="m.value === 'center' ? 'rounded-r-none' : m.value === 'background' ? 'rounded-l-none' : 'rounded-none'"
+            @click="form.icon_mode = m.value"
+        ) {{ m.label }}
+
+
+//- Iconify help modal — opened by the "more" button in the icon picker
+IconifyHelpModal(v-model:open="icon_help_open")
+
+</template>
+
+<script lang="ts">
+// Module-scoped flag so default bg only loads on first mount
+let bg_loaded = false
+</script>
+
+<script setup lang="ts">
+// Background section — image, icon picker, icon mode, and color controls
+
+import {inject, ref, computed, watch, nextTick, onMounted, onUnmounted} from 'vue'
+import {useDark} from '@vueuse/core'
+import {FORM_KEY} from '../../form_state'
+import type {FormState} from '../../form_state'
+import {suggested_icons} from '../../services/icons'
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+import {PATTERNS, PREVIEW_PATTERNS, get_preview_url, get_preview_size} from '../../services/patterns'
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+import {BACKGROUNDS, PREVIEW_BGS, bg_thumb_url, bg_url} from '../../services/backgrounds'
+import ColorPicker from './ColorPicker.vue'
+import ColorSwatch from './ColorSwatch.vue'
+import LogSlider from '../LogSlider.vue'
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+import IconifyHelpModal from './IconifyHelpModal.vue'
+
+// Inject the shared form state
+const form = inject(FORM_KEY)!
+const is_dark = useDark()
+
+// Available icon swatches — rendered via Iconify SVG API
+const ICONS: {id:string, url:string}[] = suggested_icons.map(id => {
+    const [collection, name] = id.split(':')
+    return {id, url: `https://api.iconify.design/${collection}/${name}.svg`}
+})
+
+// First 4 icons used as preview thumbnails in the trigger area
+const PREVIEW_ICONS = ICONS.slice(0, 4)
+
+// Ref to the icon text input — used to restore focus when popover opens
+const icon_input_ref = ref<HTMLInputElement | null>(null)
+
+// Controls icon popover open state; restores focus to input whenever it opens
+const icon_picker_open = ref(false)
+
+// Controls Iconify help modal open state
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+const icon_help_open = ref(false)
+watch(icon_picker_open, (open) => {
+    if (open) nextTick(() => icon_input_ref.value?.focus())
+})
+
+// Controls suggested background grid popover open state
+const bg_picker_open = ref(false)
+
+// Object URL for current bg_image File — revokes previous URL on change
+const bg_image_url = computed(() => form.bg_image ? URL.createObjectURL(form.bg_image) : '')
+watch(bg_image_url, (_new, old) => { if (old) URL.revokeObjectURL(old) })
+
+// Load a default background on first mount only (module-scoped to survive remounts)
+onMounted(() => {
+    if (!bg_loaded && !form.bg_image) {
+        bg_loaded = true
+        select_suggested_bg('black_beach.jpg')
+    }
+})
+
+/** Fetch a suggested background by filename, convert to File, and apply it */
+async function select_suggested_bg(filename:string): Promise<void> {
+    const res = await fetch(bg_url(filename))
+    const blob = await res.blob()
+    form.bg_image = new File([blob], filename, {type: 'image/jpeg'})
+    bg_picker_open.value = false
+}
+
+// Controls pattern popover open state
+const pattern_picker_open = ref(false)
+
+/** Look up a pattern by the form's pattern_id — returns undefined when none selected */
+function get_selected_pattern() {
+    return form.pattern_id ? PATTERNS.find(p => p.id === form.pattern_id) : undefined
+}
+
+/** Select a pattern and close the popover */
+function select_pattern(id:string): void {
+    form.pattern_id = id
+    pattern_picker_open.value = false
+}
+
+// URL for the selected icon — used in the trigger area preview
+const selected_icon_url = computed(() => {
+    if (!form.icon_id) return ''
+    const [collection, name] = form.icon_id.split(':')
+    return `https://api.iconify.design/${collection}/${name}.svg`
+})
+
+/** Sync icon text input to form, treating empty string as null */
+function on_icon_input(e:Event): void {
+    const val = (e.target as HTMLInputElement).value
+    form.icon_id = val || null
+}
+
+/** Select an icon and close the popover */
+function select_icon(id:string): void {
+    form.icon_id = id
+    icon_picker_open.value = false
+}
+
+// Icon placement mode options
+const ICON_MODES: {label:string, value:FormState['icon_mode']}[] = [
+    {label: 'Center', value: 'center'},
+    {label: 'Offset', value: 'offset'},
+    {label: 'Echo', value: 'echo'},
+    {label: 'Background', value: 'background'},
+]
+
+// Preset primary swatches: row 0 = light colors, row 1 = dark colors
+// Hues are shifted off common primaries for visual interest; all are within CMYK gamut
+const primary_swatch_rows = [
+    ['#e0a898', '#f0c878', '#e8cc98', '#b8d4a0', '#9ecfbf', '#a8b8e0', '#c8b0d8', '#e8a8b8'],
+    ['#8c3825', '#8c6818', '#786018', '#4a6018', '#1a6b60', '#28386b', '#5c2870', '#7a2858'],
+]
+
+// Debounce timer for bg_color input — emit only after 2s of no changes
+let bg_color_timer: ReturnType<typeof setTimeout> | null = null
+
+/** Debounce bg_color input: update form only after 2s of no changes */
+function on_bg_color_input(e:Event): void {
+    const value = (e.target as HTMLInputElement).value
+    if (bg_color_timer !== null) clearTimeout(bg_color_timer)
+    bg_color_timer = setTimeout(() => { form.bg_color = value }, 2000)
+}
+
+
+/** Read the selected file from the file input and store it on the form */
+function on_image_change(event:Event): void {
+    const input = event.target as HTMLInputElement
+    form.bg_image = input.files?.[0] ?? null
+}
+
+/** Extract an image file from a DataTransferItemList, if present */
+function image_from_clipboard(items:DataTransferItemList): File | null {
+    for (const item of items) {
+        if (item.kind === 'file' && item.type.startsWith('image/')) {
+            return item.getAsFile()
+        }
+    }
+    return null
+}
+
+/** Paste button: read image from clipboard API */
+// @ts-ignore TS6133 — used in Pug template
+async function on_paste_click(): Promise<void> {
+    const items = await navigator.clipboard.read()
+    for (const item of items) {
+        const image_type = item.types.find(t => t.startsWith('image/'))
+        if (image_type) {
+            const blob = await item.getType(image_type)
+            form.bg_image = new File([blob], 'pasted', {type: image_type})
+            return
+        }
+    }
+}
+
+/** Global Ctrl+V handler — only applies when no image is set and no text input is focused */
+function on_global_paste(event:ClipboardEvent): void {
+    const active = document.activeElement
+    if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) return
+    if (!event.clipboardData) return
+    const file = image_from_clipboard(event.clipboardData.items)
+    if (file) {
+        event.preventDefault()
+        form.bg_image = file
+    }
+}
+
+onMounted(() => window.addEventListener('paste', on_global_paste))
+onUnmounted(() => window.removeEventListener('paste', on_global_paste))
+</script>

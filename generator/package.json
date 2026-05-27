@@ -1,0 +1,30 @@
+{
+    "name": "bookcover",
+    "version": "0.1.0",
+    "license": "MIT-0",
+    "repository": {"type": "git", "url": "https://github.com/gracious-tech/bookcover.git", "directory": "generator"},
+    "homepage": "https://github.com/gracious-tech/bookcover/tree/main/generator#readme",
+    "bugs": "https://github.com/gracious-tech/bookcover/issues",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist/",
+        "assets/"
+    ],
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch"
+    },
+    "dependencies": {
+        "@types/chroma-js": "^3.1.2",
+        "big.js": "^7.0.1",
+        "bwip-js": "^4.9.0",
+        "chroma-js": "^3.2.0",
+        "printing-services": "^1.5.1",
+        "zod": "^4.3.6"
+    },
+    "devDependencies": {
+        "@types/big.js": "^6.2.2"
+    }
+}

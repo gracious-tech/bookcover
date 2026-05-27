@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Build all library modules in dependency order
+set -euo pipefail
+
+BIN="$(dirname "$0")"
+
+"$BIN/build_generator"
+"$BIN/build_generator-node"
+"$BIN/build_generator-web"
+"$BIN/build_3d"

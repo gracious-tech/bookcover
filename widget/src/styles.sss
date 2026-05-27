@@ -1,0 +1,89 @@
+
+// Generic elements
+label
+    cursor: pointer
+
+
+/* Prevent body from scrolling past viewport */
+body
+    overflow: hidden
+
+
+/* Global app shell — full-height horizontal flex container */
+#app
+    display: flex
+    height: 100vh
+    height: 100dvh
+    overflow: hidden
+
+
+/* PDF iframe fills the entire preview stage */
+#pdf-frame
+    width: 100%
+    height: 100%
+    border: none
+
+
+/* Sidebar section color variables — teal for text, cyan for size, blue for background */
+:root
+    --section-primary-header: color-mix(in oklch, var(--color-teal-500) 60%, transparent)
+    --section-primary-body: color-mix(in oklch, var(--color-teal-400) 12%, transparent)
+    --section-middle-header: color-mix(in oklch, var(--color-cyan-500) 55%, transparent)
+    --section-middle-body: color-mix(in oklch, var(--color-cyan-400) 8%, transparent)
+    --section-secondary-header: color-mix(in oklch, var(--color-blue-500) 50%, transparent)
+    --section-secondary-body: color-mix(in oklch, var(--color-blue-400) 5%, transparent)
+
+
+.dark
+    --section-primary-header: color-mix(in oklch, var(--color-teal-600) 55%, transparent)
+    --section-primary-body: color-mix(in oklch, var(--color-teal-500) 14%, transparent)
+    --section-middle-header: color-mix(in oklch, var(--color-cyan-600) 50%, transparent)
+    --section-middle-body: color-mix(in oklch, var(--color-cyan-500) 10%, transparent)
+    --section-secondary-header: color-mix(in oklch, var(--color-blue-600) 50%, transparent)
+    --section-secondary-body: color-mix(in oklch, var(--color-blue-500) 8%, transparent)
+
+
+/* Remove browser-default padding/border from color inputs */
+input[type="color"]
+    overflow: hidden
+    border: 1px solid #888
+
+input[type="color"]::-webkit-color-swatch-wrapper, input[type="color"]::-webkit-color-swatch
+    padding: 0
+    margin: 0
+    border: none
+
+input[type="color"]::-moz-color-swatch
+    padding: 0
+    margin: 0
+    border: none
+
+/* Responsive: show one panel at a time on narrow viewports */
+@media (max-width: 1000px)
+    #app
+        flex-direction: column
+
+    .sidebar-panel
+        width: 100% !important
+        max-width: 100% !important
+        height: 100%
+        border-right: none !important
+
+    .preview-panel
+        height: 100%
+
+    .mobile-hidden
+        display: none !important
+
+    .paper-scale-lines
+        display: none
+
+
+/* Modal background on dark mode needs more contrast with main bg */
+.dark [role="dialog"]
+    background-color: var(--ui-bg-elevated)
+    --ui-border: var(--ui-bg-accented)
+
+/* Default overlay bg makes dialog similar cover to overlay */
+.dark [data-slot="overlay"]
+    background-color: hsla(0deg, 0%, 0%, 80%)

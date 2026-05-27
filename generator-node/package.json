@@ -1,0 +1,19 @@
+{
+    "name": "bookcover-node",
+    "version": "0.1.0",
+    "license": "MIT-0",
+    "repository": {"type": "git", "url": "https://github.com/gracious-tech/bookcover.git", "directory": "generator-node"},
+    "homepage": "https://github.com/gracious-tech/bookcover/tree/main/generator-node#readme",
+    "bugs": "https://github.com/gracious-tech/bookcover/issues",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch"
+    },
+    "dependencies": {
+        "bookcover": "file:../generator",
+        "sharp": "^0.34.5"
+    }
+}

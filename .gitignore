@@ -1,0 +1,7 @@
+
+node_modules/
+dist/
+
+/.bin/typst
+/widget/components.d.ts
+/widget/auto-imports.d.ts

@@ -1,0 +1,33 @@
+#!/usr/bin/env node
+
+import {createRequire} from 'module'
+import {readdir, mkdir, rm} from 'fs/promises'
+import {join, dirname} from 'path'
+import {fileURLToPath} from 'url'
+
+// Resolve project root from script location
+const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+
+// Load sharp from generator-node's node_modules
+const require = createRequire(join(root, 'generator-node/package.json'))
+const sharp = require('sharp')
+
+const src_dir = join(root, 'generator/assets/backgrounds')
+const out_dir = join(src_dir, 'thumbnails')
+
+console.log('Generating background thumbnails...')
+
+// Clear existing thumbnails and recreate directory
+await rm(out_dir, {recursive: true, force: true})
+await mkdir(out_dir, {recursive: true})
+
+const files = (await readdir(src_dir)).filter(f => f.endsWith('.jpg'))
+
+for (const file of files) {
+    await sharp(join(src_dir, file))
+        .resize(160, 120, {fit: 'cover', position: 'centre'})
+        .jpeg({quality: 80})
+        .toFile(join(out_dir, file))
+    console.log('  ' + file)
+}
+console.log('Done:', files.length, 'thumbnails ->', out_dir)
