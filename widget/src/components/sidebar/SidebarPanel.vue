@@ -41,10 +41,12 @@ aside.sidebar-panel(class="flex flex-col w-100 shrink-0 bg-(--ui-bg-elevated) bo
             AdvancedSection(v-else)
 
     //- Mobile-only print SVG thumbnail pinned at bottom of sidebar
-    img.mobile-print-thumb(
-        v-if="is_mobile && full_svg"
-        :src="svg_data_url(full_svg)"
-    )
+    template(v-if="is_mobile")
+        img.mobile-print-thumb(
+            v-if="full_svg"
+            :src="svg_data_url(full_svg)"
+        )
+        .mobile-print-loading(v-else) Loading preview...
 
 </template>
 
@@ -79,16 +81,23 @@ defineOptions({components: {ContentSection, BackgroundSection, SizeSection, Adva
 <style lang="sss" scoped>
 
 /* Mobile print SVG thumbnail — pinned at bottom of sidebar */
-.mobile-print-thumb
+.mobile-print-thumb, .mobile-print-loading
     display: none
 
 @media (max-width: 1000px)
-    .mobile-print-thumb
-        display: block
+    .mobile-print-thumb, .mobile-print-loading
         width: 100%
         height: 20vh
-        object-fit: contain
         background: var(--ui-bg-muted)
         border-top: 1px solid var(--ui-border)
+    .mobile-print-thumb
+        display: block
+        object-fit: contain
+    .mobile-print-loading
+        display: flex
+        align-items: center
+        justify-content: center
+        color: var(--ui-text-muted)
+        font-size: 0.85em
 
 </style>
