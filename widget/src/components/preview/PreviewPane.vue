@@ -426,18 +426,6 @@ async function load_renderer({svgs, cover_type, depth_mm}:RendererArgs):Promise<
         preview_photo_ref.value?.render(renderer)
 }
 
-/** Determine the 3D cover type from the current binding selection */
-function get_cover_type():CoverType {
-    if (form.binding_type.startsWith('hardcover'))
-        return 'hardcover'
-    if (form.binding_type === 'paperback_coil')
-        return 'coil'
-    if (form.binding_type === 'paperback_wire')
-        return 'wire'
-    if (form.binding_type === 'paperback_stitch')
-        return 'stitch'
-    return 'paperback'
-}
 
 // Whether another generation was requested while one was in progress
 let regenerate_queued = false
@@ -510,8 +498,8 @@ async function run_generate():Promise<void> {
 
         // For custom service with no spine, treat as stitch (faces meet)
         const cover_type = (form.service_id === 'custom' && dims.cover_spine.toNumber() === 0)
-            ? 'stitch' as CoverType
-            : get_cover_type()
+            ? 'paperback_stitch' as CoverType
+            : form.binding_type as CoverType
 
         // Store SVGs for the split and full views
         const split = result.split as {front:string, back:string, spine?:string}
