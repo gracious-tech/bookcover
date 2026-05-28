@@ -284,9 +284,10 @@ function reset_paper_if_invalid(): void {
 // When the service changes, reset dependent selections to the first available option
 watch(() => form.service_id, () => {
     if (is_custom.value) {
-        // For custom service, default to the first common size
+        // For custom service, default to the first common size and reset binding
         const sizes = get_common_sizes()
         form.size_id = sizes.length > 0 ? sizes[0]!.id : ''
+        form.binding_type = 'paperback'
         return
     }
     const sizes = service.value!.get_sizes()
