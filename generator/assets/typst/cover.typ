@@ -143,21 +143,7 @@
 
 
 // ============================================================
-// Layer 2b — Spine background
-// ============================================================
-
-// Spine background (only when spread has a spine) — drawn after pattern so it covers it
-#if has_spine and color_spine_bg != none {
-    place(
-        top + left,
-        dx: spine_x,
-        dy: 0mm,
-        rect(width: spine_width, height: total_height, fill: color_spine_bg),
-    )
-}
-
-// ============================================================
-// Layer 2c — Icon on front cover
+// Layer 2b — Icon on front cover
 // ============================================================
 
 #if has_icon {
@@ -212,6 +198,22 @@
         )
     }
 }
+
+
+// ============================================================
+// Layer 2c — Spine background
+// ============================================================
+
+// Spine background (only when spread has a spine) — drawn after pattern so it covers it
+#if has_spine and color_spine_bg != none {
+    place(
+        top + left,
+        dx: spine_x,
+        dy: 0mm,
+        rect(width: spine_width, height: total_height, fill: color_spine_bg),
+    )
+}
+
 
 // ============================================================
 // Layer 3 — Back panel content
