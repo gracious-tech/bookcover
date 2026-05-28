@@ -13,11 +13,14 @@ div(
     @pointerup="on_pointer_up"
     @pointercancel="on_pointer_up"
 )
-    div(:style="{zoom: props.zoom}" class="shrink-0 mx-auto")
-        div(v-if="full_svg" class="relative inline-block")
+    div(
+        :style="is_mobile ? {width: (props.zoom * 100) + '%'} : {zoom: props.zoom}"
+        :class="is_mobile ? 'shrink-0' : 'shrink-0 mx-auto'"
+    )
+        div(v-if="full_svg" class="relative" :class="is_mobile ? 'block' : 'inline-block'")
             img(
                 :src="svg_data_url(full_svg)"
-                class="block shadow-lg select-none"
+                :class="['block shadow-lg select-none', is_mobile ? 'max-w-full' : '']"
                 draggable="false"
                 alt="Full cover"
             )
@@ -34,13 +37,18 @@ div(
 
 // Full cover view — shows the complete spread with trim line overlay
 
-import {ref} from 'vue'
-import {svg_data_url, ZOOM_MIN, ZOOM_MAX, ZOOM_SENS} from '../../svg_utils'
+import {ref, inject} from 'vue'
+import {svg_data_url, ZOOM_SENS} from '../../svg_utils'
+import {IS_MOBILE_KEY} from '../../form_state'
+
+const is_mobile = inject(IS_MOBILE_KEY)!
 
 const props = defineProps<{
     full_svg:string | null
     trim_inset:{x:number, y:number} | null
     zoom:number
+    zoom_min:number
+    zoom_max:number
 }>()
 
 const emit = defineEmits<{
@@ -58,7 +66,7 @@ let scroll_start_y = 0
 function on_wheel(e:WheelEvent) {
     if (e.ctrlKey) {
         e.preventDefault()
-        emit('update:zoom', Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, props.zoom - e.deltaY * ZOOM_SENS)))
+        emit('update:zoom', Math.max(props.zoom_min, Math.min(props.zoom_max, props.zoom - e.deltaY * ZOOM_SENS)))
         return
     }
     const el = container_ref.value

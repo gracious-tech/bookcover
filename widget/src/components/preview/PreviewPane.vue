@@ -30,8 +30,8 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
                         div(class="flex flex-col items-center gap-2 p-3")
                             LogSlider(
                                 :modelValue="zoom_per_view[view_mode]"
-                                :min="0.5"
-                                :max="2"
+                                :min="zoom_min"
+                                :max="zoom_max"
                                 log
                                 instant
                                 :format="fmt_zoom"
@@ -174,6 +174,8 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
         PreviewSplit(
             v-show="view_mode === 'split' && !preview_error"
             :split_svgs="split_svgs"
+            :zoom_min="zoom_min"
+            :zoom_max="zoom_max"
             v-model:zoom="zoom_per_view['split']"
         )
 
@@ -182,6 +184,8 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
             v-show="view_mode === 'full' && !preview_error"
             :full_svg="full_svg"
             :trim_inset="trim_inset"
+            :zoom_min="zoom_min"
+            :zoom_max="zoom_max"
             v-model:zoom="zoom_per_view['full']"
         )
 
@@ -304,6 +308,10 @@ const fmt_zoom = (v:number) => Math.round(v * 100) + '%'
 
 // Scale lines only shown in views that render at physical size
 const show_scale_lines = computed(() => view_mode.value === 'split' || view_mode.value === 'full')
+
+// On mobile, full/split views fit to width at zoom=1, so zooming out is meaningless
+const zoom_min = computed(() => is_mobile.value && show_scale_lines.value ? 1.0 : 0.5)
+const zoom_max = computed(() => is_mobile.value && show_scale_lines.value ? 3.0 : 2.0)
 
 // Keep split and full zoom in sync — both render at physical size
 watch(() => zoom_per_view.split, (v) => { zoom_per_view.full = v })
