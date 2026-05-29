@@ -7,6 +7,9 @@
    id="svg21"
    sodipodi:docname="icon.svg"
    inkscape:version="1.4.3 (0d15f75042, 2025-12-25)"
+   inkscape:export-filename="icon.png"
+   inkscape:export-xdpi="768"
+   inkscape:export-ydpi="768"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
@@ -22,7 +25,7 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:zoom="4.8254514"
      inkscape:cx="69.838026"
-     inkscape:cy="42.58669"
+     inkscape:cy="42.586689"
      inkscape:window-width="1901"
      inkscape:window-height="2110"
      inkscape:window-x="0"
@@ -31,13 +34,6 @@
      inkscape:current-layer="svg21" />
   <defs
      id="defs21" />
-  <rect
-     style="fill:#0f172b;stroke-width:5.29134;stroke-linecap:round;stroke-linejoin:round;fill-opacity:1"
-     id="rect21"
-     width="64"
-     height="64"
-     x="0"
-     y="0" />
   <g
      id="g21"
      transform="matrix(1.1437681,0,0,1.1437681,3.5753329,2.9068971)">
