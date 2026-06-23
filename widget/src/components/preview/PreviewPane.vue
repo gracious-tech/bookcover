@@ -121,7 +121,7 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
         //- Input error panel: shown instead of preview when generation fails
         div(
             v-if="preview_error"
-            class="absolute inset-0 z-10 flex items-center justify-center p-8"
+            class="absolute inset-0 flex items-center justify-center p-8"
         )
             div(class="flex flex-col items-center gap-3 text-center max-w-lg")
                 svg(width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" class="text-muted shrink-0")
@@ -133,7 +133,7 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
         //- First-load spinner: shown while generating with no existing preview yet
         div(
             v-if="is_generating && !has_preview && !preview_error"
-            class="absolute inset-0 z-10 flex items-center justify-center"
+            class="absolute inset-0 flex items-center justify-center"
         )
             div(class="w-10 h-10 rounded-full border-4 border-(--ui-border) border-t-(--ui-text-muted) animate-spin")
 
