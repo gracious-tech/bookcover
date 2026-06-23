@@ -8,6 +8,7 @@ div(class="p-3 flex flex-col gap-4 w-100")
         div(class="flex items-center gap-2")
             LogSlider(
                 :modelValue="size"
+                :step="0.1"
                 :min="0.2"
                 :max="4"
                 class="flex-1"
