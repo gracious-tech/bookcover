@@ -1,7 +1,8 @@
 
 // Serialise all computed cover data into a Typst _data.typ file
 
-import {mm_to_typst, escape_typst_str} from './utils.js'
+import {mm_to_typst} from './utils.js'
+import {escape_typst_str} from 'typst-utils'
 import type {CoverSchema} from './schema.js'
 import type {GetDimensionsResult} from 'printing-services'
 import type {ResolvedColors} from './design.js'

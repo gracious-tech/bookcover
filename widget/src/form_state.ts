@@ -4,6 +4,7 @@
 import {reactive} from 'vue'
 import type {InjectionKey, Ref, ShallowRef} from 'vue'
 import type {CoverGenerator} from 'bookcover-web'
+import type {PmDoc, PmNode} from 'pm-to-typst'
 
 /** All form fields for the book cover generator */
 export interface FormState {
@@ -62,7 +63,7 @@ export interface FormState {
     author_margin_top:number
     author_margin_bottom:number
 
-    blurb: string
+    blurb: PmDoc  // ProseMirror/Tiptap document JSON (rendered to Typst via pm-to-typst)
     blurb_font: string
     blurb_size: number
     blurb_color: string | null
@@ -192,7 +193,7 @@ export function make_blank_form_values(): FormState {
         author_margin_top: 3,
         author_margin_bottom: 3,
 
-        blurb: '',
+        blurb: empty_doc(),
         blurb_font: '',
         blurb_size: 1,
         blurb_color: null,
@@ -261,27 +262,60 @@ export function make_blank_form_values(): FormState {
 }
 
 
-const default_blurb = `
+// Small builders for composing the demo blurb as a ProseMirror document
+function text(value:string):PmNode {
+    return {type: 'text', text: value}
+}
+function bold(value:string):PmNode {
+    return {type: 'text', text: value, marks: [{type: 'bold'}]}
+}
+function para(...content:PmNode[]):PmNode {
+    return {type: 'paragraph', content}
+}
+function heading(level:number, value:string):PmNode {
+    return {type: 'heading', attrs: {level}, content: [text(value)]}
+}
+function item(...content:PmNode[]):PmNode {
+    return {type: 'listItem', content: [{type: 'paragraph', content}]}
+}
 
-# Instant book covers that actually look kinda decent...
+/** An empty document — the blank-form blurb value */
+function empty_doc():PmDoc {
+    return {type: 'doc', content: [{type: 'paragraph'}]}
+}
 
-This is a free tool that generates print-ready book covers — front, back, spine, and all.
-
-Designing a book cover can be complicated. You need to understand concepts like bleed and spine width, otherwise your cover will end up the wrong size. Changing the type of paper or adding some pages will affect the size of your cover as well.
-
-This app takes care of all of those things for you, so you don't need to worry about them.
-
-## Here are a few tips as you get started:
-
- * COVER TEXT and BOOK SIZE options need to be correct, the rest is just aesthetics.
- * Decide on your background before touching any other style options. If you use a custom image, choose one with an empty area at the top (like sky) to place your title (see our suggested images for examples of this).
- * White or black text will work 90% of the time. Be careful putting colorful text on a colorful background as it can be hard to get right.
- * Use the zoom tool in the "Parts" and "Print" views to know exactly how big the book will be.
- * Need to change something that the app doesn't allow? Simply "Save Image" in the "Print" view to get an SVG you can edit in a free app like **Inkscape** and export to PDF when you're done.
-
-## Go make a great cover!
-
-`.trim()
+// Demo blurb shown in the initial preview, as ProseMirror/Tiptap document JSON
+const default_blurb:PmDoc = {
+    type: 'doc',
+    content: [
+        heading(1, 'Instant book covers that actually look kinda decent...'),
+        para(text('This is a free tool that generates print-ready book covers — front, back, '
+            + 'spine, and all.')),
+        para(text('Designing a book cover can be complicated. You need to understand concepts '
+            + 'like bleed and spine width, otherwise your cover will end up the wrong size. '
+            + 'Changing the type of paper or adding some pages will affect the size of your '
+            + 'cover as well.')),
+        para(text("This app takes care of all of those things for you, so you don't need to "
+            + 'worry about them.')),
+        heading(2, 'Here are a few tips as you get started:'),
+        {type: 'bulletList', content: [
+            item(text('COVER TEXT and BOOK SIZE options need to be correct, the rest is just '
+                + 'aesthetics.')),
+            item(text('Decide on your background before touching any other style options. If '
+                + 'you use a custom image, choose one with an empty area at the top (like sky) '
+                + 'to place your title (see our suggested images for examples of this).')),
+            item(text('White or black text will work 90% of the time. Be careful putting '
+                + 'colorful text on a colorful background as it can be hard to get right.')),
+            item(text('Use the zoom tool in the "Parts" and "Print" views to know exactly how '
+                + 'big the book will be.')),
+            item(text("Need to change something that the app doesn't allow? Simply \"Save "
+                + 'Image" in the "Print" view to get an SVG you can edit in a free app like '),
+                bold('Inkscape'),
+                text(" and export to PDF when you're done.")),
+        ]},
+        heading(2, 'Go make a great cover!'),
+    ],
+}
 
 
 /** Create a reactive FormState with demo values for initial preview */

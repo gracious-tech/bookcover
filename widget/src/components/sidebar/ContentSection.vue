@@ -134,7 +134,8 @@ BlurbEditorModal(v-model:open="is_blurb_open")
 import {ref, computed, inject} from 'vue'
 import {FORM_KEY} from '../../form_state'
 import type {FormState} from '../../form_state'
-import {markdown_to_preview_html, markdown_to_plain} from '../../markdown_to_typst'
+import {generateHTML, generateText} from '@tiptap/vue-3'
+import {blurb_extensions} from '../../blurb_extensions'
 import BlurbEditorModal from './BlurbEditorModal.vue'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
 import FontStyleOptions from './FontStyleOptions.vue'
@@ -155,9 +156,9 @@ function italic_key(key:TitleKey):keyof FormState { return `${key}_italic` }
 function font_key(key:TitleKey):keyof FormState { return `${key}_font` }
 function color_key(key:TitleKey):keyof FormState { return `${key}_color` }
 
-// Strip markdown from blurb for plain-text preview contexts
+// Flatten the blurb to plain text for preview contexts (font sample, etc.)
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
-const blurb_plain = computed(() => markdown_to_plain(form.blurb))
+const blurb_plain = computed(() => generateText(form.blurb, blurb_extensions))
 
 // Line 2 hides when all lines are empty; line 3 hides when lines 2 and 3 are both empty
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
@@ -197,5 +198,5 @@ const blurb_style_open = ref(false)
 
 
 // Rendered HTML for the 4-line readonly preview
-const blurb_preview_html = computed(() => markdown_to_preview_html(form.blurb))
+const blurb_preview_html = computed(() => generateHTML(form.blurb, blurb_extensions))
 </script>

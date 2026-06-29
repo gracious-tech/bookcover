@@ -106,12 +106,13 @@ UModal(:open="open_model" @update:open="open_model = $event" :ui="{content: 'max
 </template>
 
 <script setup lang="ts">
-// BlurbEditorModal — Tiptap WYSIWYG editor for the back blurb, saves markdown to form state
+// BlurbEditorModal — Tiptap WYSIWYG editor for the back blurb, saves ProseMirror JSON to
+// form state (rendered to Typst / plain text / HTML by the pm-to-typst package)
 
 import {computed, inject, onBeforeUnmount, toRef} from 'vue'
 import {useEditor, EditorContent} from '@tiptap/vue-3'
-import StarterKit from '@tiptap/starter-kit'
-import {Markdown} from 'tiptap-markdown'
+import type {PmDoc} from 'pm-to-typst'
+import {blurb_extensions} from '../../blurb_extensions'
 import {FORM_KEY} from '../../form_state'
 import {use_modal_tracking} from '../../modal_state'
 
@@ -130,16 +131,13 @@ use_modal_tracking(toRef(props, 'open'))
 // Inject shared form state — editor reads and writes form.blurb
 const form = inject(FORM_KEY)!
 
-// Initialise Tiptap with StarterKit (bold, italic, paragraphs) and Markdown extension.
-// Content is set from the current blurb value; onUpdate auto-saves back to form state.
+// Initialise Tiptap with the shared blurb extensions (defines the document schema).
+// Content is loaded from the stored JSON document; onUpdate auto-saves the JSON back.
 const editor = useEditor({
-    extensions: [
-        StarterKit,
-        Markdown,
-    ],
+    extensions: blurb_extensions,
     content: form.blurb,
     onUpdate({editor: e}) {
-        form.blurb = e.storage.markdown.getMarkdown()
+        form.blurb = e.getJSON() as PmDoc
     },
 })
 

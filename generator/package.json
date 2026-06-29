@@ -22,6 +22,7 @@
         "bwip-js": "^4.9.0",
         "chroma-js": "^3.2.0",
         "printing-services": "^1.5.1",
+        "typst-utils": "^0.1.0",
         "zod": "^4.3.6"
     },
     "devDependencies": {

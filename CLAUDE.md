@@ -14,7 +14,25 @@ platform wrappers compile it to PDF/SVG/PNG. The widget provides a live 3D previ
 | `3d/` | WebGL 3D book renderer — custom shaders, no external graphics libs |
 
 Dependency graph: `generator` < `generator-node`, `generator-web` < `widget`; `3d` < `widget`.
-`generator` and `3d` have no local dependencies on each other.
+`generator` and `3d` have no local deps on each other.
+
+Two helpers are published npm packages (maintained in a separate repo, not workspaces here):
+`typst-utils` (zero-dep Typst string escaping — `escape_typst_str`, `escape_typst`; used by
+`generator` and `widget`) and `pm-to-typst` (a pure ProseMirror/Tiptap doc JSON → Typst
+renderer; used by `widget`). All Typst escaping lives in `typst-utils` — don't re-implement it.
+
+The blurb is a WYSIWYG field. `pm-to-typst` is renderer-only — it does NOT own the editor
+schema. The shared Tiptap schema lives in `widget/src/blurb_extensions.ts` (`blurb_extensions`
+= StarterKit with link disabled, so the cover stays link-free); both the editor
+(`BlurbEditorModal.vue`) and the sidebar previews (`ContentSection.vue`) build from that one
+list so what they parse never diverges. Tiptap stores the blurb as ProseMirror document JSON
+(`form.blurb`); the cover is rendered via `pm_to_typst()` (with curly-quote + escaping injected
+through the renderer's `text` extension point in `widget/src/schema.ts`), while the sidebar
+previews use Tiptap's own `generateHTML` / `generateText`. The Typst renderer is a per-node/
+per-mark handler registry — `pm_to_typst(doc, custom)` merges a partial `{text, nodes, marks,
+fallback}` over the built-in renderer (`extend_renderer`), so extra node/mark types (color,
+alignment, etc.) can be registered; when adding one, register the matching Tiptap extension in
+`blurb_extensions` and a handler together so the schema and renderer stay in lockstep.
 
 ## Build
 

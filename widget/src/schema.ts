@@ -2,7 +2,8 @@
 // Pure functions for building the cover generator schema from form state
 
 import type {FormState} from './form_state'
-import {markdown_to_typst} from './markdown_to_typst'
+import type {PmDoc} from 'pm-to-typst'
+import {pm_to_typst} from 'pm-to-typst'
 import {derive_colors, hex_override_to_hsl} from './colors'
 import {find_pattern} from './services/patterns'
 
@@ -17,6 +18,17 @@ export function curly_quotes(text:string):string {
         .replace(/(^|[\s([{])'(?=\S)/gm, '$1\u2018')
         // Remaining single quotes become closing (also covers apostrophes)
         .replace(/'/g, '\u2019')
+}
+
+/**
+ * Render the blurb document to Typst markup. pm_to_typst escapes the text and the blurb is
+ * emitted as a Typst content block (see data_file.ts), so Typst's own smartquote curls the
+ * quotes — no manual curling needed here, unlike the plain-string title fields below.
+ * Returns undefined when the blurb is empty.
+ */
+function build_blurb(doc:PmDoc):string | undefined {
+    const typst = pm_to_typst(doc)
+    return typst.trim() ? typst : undefined
 }
 
 /** Parse a font family name from user input. Accepts:
@@ -143,7 +155,7 @@ export function build_schema(form:FormState):Record<string, unknown> {
         author_margin_top: form.author_margin_top !== 10 ? form.author_margin_top : undefined,
         author_margin_bottom: form.author_margin_bottom !== 10 ? form.author_margin_bottom : undefined,
 
-        blurb: form.blurb ? q(markdown_to_typst(form.blurb)) : undefined,
+        blurb: build_blurb(form.blurb),
         blurb_font: build_font_config(form.blurb_font),
         blurb_size: form.blurb_size,
         blurb_color: hex_override_to_hsl(form.blurb_color) ?? colors.blurb,
