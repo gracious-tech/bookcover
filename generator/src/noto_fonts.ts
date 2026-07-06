@@ -6,6 +6,7 @@
 // instead of the full ~150MB Noto set (dominated by the five CJK regions).
 
 import NOTO_MANIFEST from './generated/noto_manifest.json' with {type: 'json'}
+import HAN_HINTS from './generated/han_hints.json' with {type: 'json'}
 
 export type CjkVariant = 'JP' | 'KR' | 'SC' | 'TC' | 'HK'
 
@@ -75,15 +76,52 @@ const KANA_REGEX = /\p{Script=Hiragana}|\p{Script=Katakana}/u
 const HANGUL_REGEX = /\p{Script=Hangul}/u
 const HAN_REGEX = /\p{Script=Han}/u
 
+// Character-evidence regexes for Han-only text, generated from OpenCC's conversion tables by
+// .bin/download_han_hints: characters that only exist as simplified forms (气/们/图), only as
+// traditional forms (氣/們/圖), or only as Japanese shinjitai (図/駅/売). Shared characters
+// (the vast majority) match none of these and stay ambiguous. jp_gaps/kr_gaps are the Han
+// characters the Noto JP/KR subset fonts can NOT render (range-compressed class source).
+const SC_HINT_REGEX = new RegExp(`[${HAN_HINTS.sc}]`, 'u')
+const TC_HINT_REGEX = new RegExp(`[${HAN_HINTS.tc}]`, 'u')
+const JP_HINT_REGEX = new RegExp(`[${HAN_HINTS.jp}]`, 'u')
+const JP_GAP_REGEX = new RegExp(`[${HAN_HINTS.jp_gaps}]`, 'u')
+const KR_GAP_REGEX = new RegExp(`[${HAN_HINTS.kr_gaps}]`, 'u')
+
+// Classify Han-only text. Shinjitai-only characters (図/駅) mean kanji-only Japanese. A JP or
+// KR han_variant keeps the text in that region unless it needs glyphs the region's font lacks
+// (the tofu condition) — SC/TC evidence chars alone can't overrule it, since traditional-only
+// forms like 宮/東 are also everyday Japanese and KR hanja are traditional forms too. When the
+// text can't stay in the default region, character evidence decides between the Chinese
+// regions: simplified-only characters can only be SC, traditional-only characters mean TC
+// (or HK — indistinguishable, so an explicit TC/HK han_variant wins). Text of purely shared
+// characters is genuinely ambiguous and falls back to han_variant (or SC, broadest coverage,
+// when a JP/KR default can't render it).
+function classify_han(text:string, han_variant:CjkVariant):CjkVariant {
+    if (JP_HINT_REGEX.test(text))
+        return 'JP'
+    if (han_variant === 'JP' && !JP_GAP_REGEX.test(text))
+        return 'JP'
+    if (han_variant === 'KR' && !KR_GAP_REGEX.test(text))
+        return 'KR'
+    const sc = SC_HINT_REGEX.test(text)
+    const tc = TC_HINT_REGEX.test(text)
+    if (sc && !tc)
+        return 'SC'
+    if (tc && !sc)
+        return (han_variant === 'TC' || han_variant === 'HK') ? han_variant : 'TC'
+    return (han_variant === 'JP' || han_variant === 'KR') ? 'SC' : han_variant
+}
+
 // Auto-detect the cover-wide default region for Han-only text: kana anywhere can only mean
-// Japanese and Hangul can only mean Korean, while Han-only text is ambiguous (SC/TC/HK can't
-// be told apart reliably) so it falls back to SC as the broadest-coverage default
+// Japanese and Hangul can only mean Korean, then character evidence decides between the
+// Chinese regions (simplified-only chars → SC, traditional-only → TC), defaulting to SC as
+// the broadest-coverage region when the text is all shared characters
 export function detect_cjk_variant(text:string):CjkVariant {
     if (KANA_REGEX.test(text))
         return 'JP'
     if (HANGUL_REGEX.test(text))
         return 'KR'
-    return 'SC'
+    return classify_han(text, 'SC')
 }
 
 /** A contiguous CJK range of a text with the language region its sentences belong to */
@@ -93,69 +131,80 @@ export interface CjkSegment {
     region:CjkVariant
 }
 
-// Characters that belong to a CJK run: Han/kana/hangul letters plus CJK punctuation and
-// fullwidth forms (U+3000-303F, U+FF00-FFEF) so quotes/commas stay inside their sentence
-const CJK_RUN_REGEX =
-    /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}　-〿＀-￯]+/gu
+// Characters that belong to a CJK run: Han/Hangul letters plus the full CJK-punctuation +
+// kana blocks (U+3000-30FF — includes Script=Common marks like ー and ・ that sit inside
+// words) and fullwidth forms (U+FF00-FFEF) so quotes/commas stay inside their sentence
+const CJK_RUN_REGEX = /[\p{Script=Han}\p{Script=Hangul}　-ヿ＀-￯]+/gu
 
-// Sentence-ending punctuation inside a CJK run (。．！？) — enders stay with their sentence
-const SENTENCE_END_REGEX = /[。．！？]+/gu
+// Sentence boundaries for classification: CJK/ASCII sentence enders or line breaks. ASCII
+// '.' is excluded — it appears in decimals/abbreviations, and CJK text normally uses '。'.
+const SENTENCE_SPLIT_REGEX = /[。．！？!?]+|\n+/g
 
-// Classify one sentence's language: kana → JP, Hangul → KR, Han-only → han_variant,
-// null when it contains no CJK letters at all (punctuation only)
+// Classify one sentence's language: kana → JP, Hangul → KR, Han-only → character evidence
+// (so a Simplified Chinese sentence stays SC even on a cover whose default region is JP),
+// null when it contains no CJK letters at all
 function classify_sentence(text:string, han_variant:CjkVariant):CjkVariant | null {
     if (KANA_REGEX.test(text))
         return 'JP'
     if (HANGUL_REGEX.test(text))
         return 'KR'
     if (HAN_REGEX.test(text))
-        return han_variant
+        return classify_han(text, han_variant)
     return null
 }
 
-// Split text into CJK segments and classify each one's language: contiguous CJK runs are
-// split at sentence-ending punctuation and each sentence is classified independently (kana
-// can only be Japanese, Hangul only Korean, Han-only sentences use han_variant). This is
-// what lets one blurb mix e.g. Japanese and Chinese sentences and render each with its own
-// regional font — per-glyph fallback alone can't tell shared Han characters apart.
+// Resolve the Han-only tiebreaker region for one FIELD in auto mode: the field's own text
+// decides where it can — same rules as sentence classification (kana → JP, Hangul → KR,
+// character evidence, JP/KR renderability hold) applied to the whole field — and only a
+// field with no signal of its own inherits the cover-wide default. This is the middle level
+// of the sentence → field → cover tiebreaker hierarchy: an ambiguous sentence takes its
+// language from the rest of its field before the rest of the cover.
+export function field_cjk_variant(text:string, cover_variant:CjkVariant):CjkVariant {
+    return classify_sentence(text, cover_variant) ?? cover_variant
+}
+
+// Split text into CJK segments and classify each one's language (kana can only be Japanese,
+// Hangul only Korean, Han-only sentences classify by character evidence with han_variant as
+// the tiebreaker for all-shared-character text). Classification happens per
+// SENTENCE over the whole text — so Latin words or Typst markup interrupting a sentence
+// (e.g. a bolded word inside a Japanese sentence) don't strand Han characters without their
+// kana context — while the emitted segments cover only the pure-CJK character runs, which
+// callers can safely wrap in Typst markup. This is what lets one blurb mix e.g. Japanese
+// and Chinese sentences and render each with its own regional font — per-glyph fallback
+// alone can't tell shared Han characters apart.
 export function cjk_segments(text:string, han_variant:CjkVariant):CjkSegment[] {
+    // Pass 1: classify whole sentences
+    const sentences:{start:number, end:number, region:CjkVariant | null}[] = []
+    let sentence_start = 0
+    const add_sentence = (end:number) => {
+        if (end > sentence_start) {
+            const region = classify_sentence(text.slice(sentence_start, end), han_variant)
+            sentences.push({start: sentence_start, end, region})
+        }
+        sentence_start = end
+    }
+    for (const boundary of text.matchAll(SENTENCE_SPLIT_REGEX)) {
+        add_sentence(boundary.index! + boundary[0].length)
+    }
+    add_sentence(text.length)
+
+    // Pass 2: emit the CJK runs, split at sentence boundaries and tagged with the enclosing
+    // sentence's region; adjacent same-region pieces merge back together
     const segments:CjkSegment[] = []
     for (const run of text.matchAll(CJK_RUN_REGEX)) {
-        const run_text = run[0]
         const run_start = run.index!
-
-        // Split the run into sentences (ender punctuation stays with the preceding sentence)
-        const parts:{start:number, end:number}[] = []
-        let sentence_start = 0
-        for (const ender of run_text.matchAll(SENTENCE_END_REGEX)) {
-            parts.push({start: sentence_start, end: ender.index! + ender[0].length})
-            sentence_start = ender.index! + ender[0].length
-        }
-        if (sentence_start < run_text.length)
-            parts.push({start: sentence_start, end: run_text.length})
-
-        // Classify each sentence; punctuation-only sentences inherit the previous sentence's
-        // region (or the next one's when the run starts with them)
-        const regions = parts.map(p => classify_sentence(
-            run_text.slice(p.start, p.end), han_variant))
-        for (let i = 0; i < regions.length; i++) {
-            if (regions[i] === null)
-                regions[i] = regions[i - 1] ?? regions.slice(i + 1).find(r => r !== null) ?? null
-        }
-
-        // Emit segments, merging adjacent sentences of the same region
-        for (let i = 0; i < parts.length; i++) {
-            const region = regions[i]
-            if (region === null)
+        const run_end = run_start + run[0].length
+        for (const sentence of sentences) {
+            const start = Math.max(run_start, sentence.start)
+            const end = Math.min(run_end, sentence.end)
+            if (start >= end || sentence.region === null)
                 continue
-            const start = run_start + parts[i].start
-            const end = run_start + parts[i].end
             const last = segments[segments.length - 1]
-            if (last && last.region === region && last.end === start) {
+            if (last && last.region === sentence.region && last.end === start) {
                 last.end = end
             }
             else {
-                segments.push({start, end, region})
+                segments.push({start, end, region: sentence.region})
             }
         }
     }
@@ -185,17 +234,30 @@ function resolve_script_family(
     return resolve(fonts[style]) ?? resolve(style === 'serif' ? fonts.sans : fonts.serif)
 }
 
-// Build the font fallback chain for a piece of text: one Noto family per script detected in
-// the text, in the given style where available (Typst tries fonts in array order and skips
-// glyphs it can't find, so the chosen font always stays first in the caller's chain)
+// The CJK scripts resolve through sentence segments (kana → JP, Hangul → KR, Han-only →
+// han_variant) rather than through a single per-call region
+const CJK_SCRIPTS = new Set(['Han', 'Hiragana', 'Katakana', 'Hangul'])
+
+// Build the font fallback chain for a piece of text: one Noto family per detected script,
+// in the given style where available (Typst tries fonts in array order and skips glyphs it
+// can't find, so the chosen font always stays first in the caller's chain). CJK families
+// come from sentence-level segments — first-seen language first — so mixed-language text
+// gets every region it uses; han_variant only decides Han-only sentences.
 export function resolve_fallback_chain(
     text:string,
-    cjk_variant:CjkVariant = 'SC',
+    han_variant:CjkVariant = 'SC',
     style:FontStyle = 'serif',
 ):string[] {
     const families = new Set<string>()
+    for (const segment of cjk_segments(text, han_variant)) {
+        const family = cjk_family(segment.region, style)
+        if (family)
+            families.add(family)
+    }
     for (const script of detect_scripts(text)) {
-        const family = resolve_script_family(MANIFEST.by_script[script], cjk_variant, style)
+        if (CJK_SCRIPTS.has(script))
+            continue
+        const family = resolve_script_family(MANIFEST.by_script[script], han_variant, style)
         if (family)
             families.add(family)
     }

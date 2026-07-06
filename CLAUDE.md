@@ -79,8 +79,15 @@ script that calls `generate()` with a sample schema.
   for which font families a schema needs: chosen fonts plus one Noto fallback per non-Latin
   script per field, matching each field font's serif/sans style (`style` in the manifest;
   custom fonts pass a sniffed `style` in their FontConfig), using the other style only when
-  Noto lacks the preferred one. CJK scripts resolve per-region via `cjk_variant`
-  ('auto' infers JP/KR from kana/Hangul, else SC)
+  Noto lacks the preferred one. CJK text resolves per SENTENCE segment (`cjk_segments` in
+  noto_fonts.ts): kana → JP, Hangul → KR, Han-only sentences classify by character evidence
+  (simplified-only/traditional-only/shinjitai-only chars — `generated/han_hints.json`, built
+  from OpenCC tables + JP/KR font cmaps by `.bin/download_han_hints`) with `cjk_variant` as
+  the tiebreaker; a JP/KR default holds unless the sentence needs glyphs that region's font
+  lacks. An explicit `cjk_variant` tiebreaks cover-wide; 'auto' resolves sentence → field →
+  cover (`resolve_field_cjk_variant`). `build()` wraps the blurb's CJK
+  segments in `#text(font:)` spans so one blurb can mix languages; other fields get one
+  family per detected region in their chain
 - `patterns.ts` — 60+ SVG pattern definitions from heropatterns.com (large data file)
 - `barcode.ts` — ISBN-13 barcode generation via bwip-js
 - `frame.ts` — Composites background images into decorative frames (painted, torn edges)
@@ -188,6 +195,8 @@ size: {trim_width: 152, trim_height: 229, trim_unit: 'mm', page_count: 300}
 | `test` | Generate test covers (PDF/SVG/PNG) for visual inspection |
 | `setup_typst` | Download latest typst binary to .bin/ |
 | `download_fonts` | Fetch Google Fonts into generator/assets/fonts/ + generate manifest |
+| `download_fonts_noto` | Fetch Noto fallback fonts into fonts/_noto/ + generate manifest |
+| `download_han_hints` | Generate Han-region evidence chars (OpenCC) + JP/KR font coverage gaps |
 | `gen_bg_thumbnails` | Generate 160x120 thumbnails for background images via sharp |
 
 ## Gotchas

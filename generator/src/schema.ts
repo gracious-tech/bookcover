@@ -140,9 +140,15 @@ export interface CoverSchema {
 
     isbn:string
 
-    // Which regional Noto CJK font to use as a fallback when the text contains Han/Hiragana/
-    // Katakana/Hangul characters (glyph shapes differ by region even for shared Han characters).
-    // 'auto' (or unset) infers the variant from the text: kana → JP, Hangul → KR, otherwise SC.
+    // Which regional Noto CJK font renders ambiguous Han-only text (glyph shapes differ by
+    // region even for shared Han characters). Sentences containing kana or Hangul always
+    // resolve to JP/KR per segment, and Han-only sentences containing region-specific
+    // characters (simplified-only, traditional-only, or shinjitai-only forms) classify
+    // themselves — this setting only breaks ties for sentences of purely shared characters,
+    // plus picks HK over TC (which character evidence can't tell apart). An explicit value
+    // applies the tiebreak cover-wide; 'auto' (or unset) resolves it per FIELD — each field's
+    // own text decides where it can, inheriting the cover-wide detection only when the field
+    // has no language signal of its own.
     cjk_variant?:CjkVariant | 'auto'
 }
 

@@ -13,18 +13,21 @@ import type {Templates, ImageInput} from './build_files.js'
 import {resolve_icon} from './icon_cache.js'
 import {find_pattern} from './patterns.js'
 import type {FrameImageFn} from './frame.js'
-import {resolve_fallback_chain} from './noto_fonts.js'
-import {resolve_cjk_variant, collect_fallback_fonts, font_style} from './fonts.js'
+import {resolve_fallback_chain, cjk_segments, cjk_family} from './noto_fonts.js'
+import type {CjkVariant, FontStyle} from './noto_fonts.js'
+import {resolve_field_cjk_variant, collect_fallback_fonts, font_style} from './fonts.js'
 import type {FontConfig} from './schema.js'
+import {escape_typst_str} from 'typst-utils'
 
 export type {CoverSchema, TitlePosition, FontConfig} from './schema.js'
 export {default_spine_title} from './utils.js'
 export {BUNDLED_FONTS, get_fonts, get_bundled_font, collect_fonts, collect_all_fonts,
-    collect_fallback_fonts, all_fonts_bundled, resolve_cjk_variant, font_style,
-    BASE_FONT} from './fonts.js'
+    collect_fallback_fonts, all_fonts_bundled, resolve_cjk_variant, resolve_field_cjk_variant,
+    font_style, BASE_FONT} from './fonts.js'
 export type {BundledFont} from './fonts.js'
-export {get_noto_font, detect_scripts, resolve_fallback_chain} from './noto_fonts.js'
-export type {NotoFont, CjkVariant, FontStyle} from './noto_fonts.js'
+export {get_noto_font, detect_scripts, resolve_fallback_chain,
+    cjk_segments, cjk_family, detect_cjk_variant, field_cjk_variant} from './noto_fonts.js'
+export type {NotoFont, CjkVariant, FontStyle, CjkSegment} from './noto_fonts.js'
 export {asset_path, FRAMES_DIR, BACKGROUNDS_DIR,
     TYPST_DIR, TEMPLATE_FILES} from './assets.js'
 export {list_patterns} from './patterns.js'
@@ -53,6 +56,41 @@ export {calculate_crop_regions, calculate_pixel_crop_regions,
     split_svg, split_png, split_pdf} from './split.js'
 export {resolve_icon} from './icon_cache.js'
 export {frame_image, frame_asset_path} from './frame.js'
+
+/**
+ * Wrap each CJK sentence segment of the blurb markup in a #text(font:) span putting that
+ * sentence's regional family first, so a blurb mixing e.g. Japanese and Chinese sentences
+ * renders each language with its own glyph shapes (per-glyph font fallback alone can't tell
+ * shared Han characters apart). Safe on Typst markup: the wrapped ranges contain only CJK
+ * characters, which are never Typst syntax.
+ */
+function wrap_blurb_cjk(
+    markup:string,
+    han_variant:CjkVariant,
+    style:FontStyle,
+    chain:string[],
+):string {
+    const segments = cjk_segments(markup, han_variant)
+    if (segments.length === 0) {
+        return markup
+    }
+    let out = ''
+    let pos = 0
+    for (const segment of segments) {
+        const family = cjk_family(segment.region, style)
+        if (!family) {
+            continue
+        }
+        // The chosen font stays first (it rarely covers CJK, and wins when it does), then
+        // the segment's regional family, then the rest of the field chain as a safety net
+        const fonts = [chain[0], family, ...chain.slice(1).filter(f => f !== family)]
+        const font_list = fonts.map(f => `"${escape_typst_str(f)}"`).join(', ')
+        out += markup.slice(pos, segment.start)
+        out += `#text(font: (${font_list},))[${markup.slice(segment.start, segment.end)}]`
+        pos = segment.end
+    }
+    return out + markup.slice(pos)
+}
 
 /**
  * Validate schema, compute all derived values, and build every file needed
@@ -87,10 +125,11 @@ export async function build(
     // Build each field's Typst font fallback list: the chosen family first, then one Noto
     // family per non-Latin script in that field's own text, matching the field font's
     // serif/sans style where Noto covers it (Typst tries fonts in array order and skips
-    // glyphs it can't find)
-    const cjk_variant = resolve_cjk_variant(schema_resolved)
+    // glyphs it can't find). Han-only sentences tiebreak against the field's own region
+    // in auto mode (an explicit cjk_variant applies cover-wide).
     const fallback_chain = (config:FontConfig, text:string):string[] => {
         const style = font_style(config.family, config.style)
+        const cjk_variant = resolve_field_cjk_variant(schema_resolved, text)
         const extra = resolve_fallback_chain(text, cjk_variant, style)
         return [config.family, ...extra.filter(f => f !== config.family)]
     }
@@ -174,8 +213,20 @@ export async function build(
         processed_image = {data: new Uint8Array(await out_blob.arrayBuffer()), ext: '.png'}
     }
 
+    // Wrap mixed-language CJK sentences in the blurb with their own regional fonts. Only
+    // the copy handed to file assembly is wrapped — font sizing above uses the raw text.
+    const schema_files = {
+        ...schema_resolved,
+        blurb: wrap_blurb_cjk(
+            schema_resolved.blurb ?? '',
+            resolve_field_cjk_variant(schema_resolved, schema_resolved.blurb ?? ''),
+            font_style(configs.blurb.family, configs.blurb.style),
+            font_blurb_family_arr,
+        ),
+    }
+
     const files = build_cover_files(
-        templates, schema_resolved, dims, colors,
+        templates, schema_files, dims, colors,
         font_body_family_arr,
         font_title1_family_arr, font_title2_family_arr, font_title3_family_arr,
         font_subtitle_family_arr, font_author_family_arr, font_blurb_family_arr,

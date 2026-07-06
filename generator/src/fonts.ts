@@ -3,7 +3,7 @@
 
 import type {CoverSchema, FontConfig} from './schema.js'
 import FONT_MANIFEST from './generated/font_manifest.json' with {type: 'json'}
-import {resolve_fallback_chain, detect_cjk_variant} from './noto_fonts.js'
+import {resolve_fallback_chain, detect_cjk_variant, field_cjk_variant} from './noto_fonts.js'
 import type {CjkVariant, FontStyle} from './noto_fonts.js'
 import {resolve_font_configs} from './design.js'
 import {default_spine_title} from './utils.js'
@@ -71,12 +71,23 @@ function schema_texts(schema:CoverSchema):string[] {
     ]
 }
 
-// Resolve the schema's effective CJK variant: an explicit setting wins; 'auto' (or unset)
-// infers the variant from the schema's own text (kana → JP, Hangul → KR, otherwise SC)
+// Resolve the cover-wide default region for Han-ONLY text (sentences with kana or Hangul
+// always resolve to JP/KR at segment level regardless): an explicit setting wins; 'auto'
+// (or unset) infers the region from the schema's own text (kana anywhere → JP, Hangul → KR,
+// then Han character evidence, otherwise SC)
 export function resolve_cjk_variant(schema:CoverSchema):CjkVariant {
     if (schema.cjk_variant && schema.cjk_variant !== 'auto')
         return schema.cjk_variant
     return detect_cjk_variant(schema_texts(schema).map(t => t ?? '').join('\n'))
+}
+
+// Resolve the Han-only tiebreaker region for one field's text: an explicit setting applies
+// cover-wide, while in auto mode each field's own text decides (falling back to the
+// cover-wide detection only when the field carries no language signal of its own)
+export function resolve_field_cjk_variant(schema:CoverSchema, text:string):CjkVariant {
+    if (schema.cjk_variant && schema.cjk_variant !== 'auto')
+        return schema.cjk_variant
+    return field_cjk_variant(text, resolve_cjk_variant(schema))
 }
 
 // Resolve the serif/sans style of a chosen font: an explicit style (set for custom fonts,
@@ -109,12 +120,13 @@ function schema_fields(schema:CoverSchema):{text:string, config:FontConfig}[] {
 
 // Every Noto fallback family the schema's per-field font chains reference, in stable field
 // order: each field's detected scripts resolve to the field font's own style (serif or sans),
-// with the other style used only when Noto has no coverage in the preferred one
+// with the other style used only when Noto has no coverage in the preferred one; Han-only
+// sentences tiebreak against the field's own region (resolve_field_cjk_variant)
 export function collect_fallback_fonts(schema:CoverSchema):string[] {
-    const cjk_variant = resolve_cjk_variant(schema)
     const fallback = new Set<string>()
     for (const {text, config} of schema_fields(schema)) {
         const style = font_style(config.family, config.style)
+        const cjk_variant = resolve_field_cjk_variant(schema, text)
         for (const family of resolve_fallback_chain(text, cjk_variant, style))
             fallback.add(family)
     }

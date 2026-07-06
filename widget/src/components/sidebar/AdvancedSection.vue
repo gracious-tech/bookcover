@@ -191,7 +191,10 @@ const spine_author_style_open = ref(false)
 const confirm_open = ref(false)
 
 // Options for the Han-script language select — glyph shapes differ per region even for
-// shared characters ('auto' infers from the text: kana → JP, Hangul → KR, otherwise SC)
+// shared characters. Sentences classify themselves where possible (kana → JP, Hangul → KR,
+// simplified/traditional/shinjitai-only characters → SC/TC/JP); this only breaks ties for
+// all-shared-character sentences and picks HK over TC. An explicit value applies the
+// tiebreak cover-wide; 'auto' resolves it per field (sentence → field → cover hierarchy).
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
 const cjk_items = [
     {label: "Auto detect", value: 'auto'},
