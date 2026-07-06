@@ -66,6 +66,12 @@ div(class="flex flex-col gap-1")
     label(class="text-xs font-semibold tracking-[0.02em]") ISBN for barcode
     UInput(v-model="form.isbn" placeholder="978-…")
 
+//- Regional glyph style for Han characters — only affects covers containing CJK text
+div(class="flex flex-col gap-1")
+    label(class="text-xs font-semibold tracking-[0.02em]") Language for Han scripts
+    USelect(v-model="form.cjk_variant" :items="cjk_items")
+    div(class="text-[11px] text-muted") Chinese characters are drawn differently depending on the language. Only affects covers that include them.
+
 
 
 div
@@ -183,6 +189,18 @@ const spine_author_style_open = ref(false)
 
 // Controls the reset confirmation modal
 const confirm_open = ref(false)
+
+// Options for the Han-script language select — glyph shapes differ per region even for
+// shared characters ('auto' infers from the text: kana → JP, Hangul → KR, otherwise SC)
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+const cjk_items = [
+    {label: "Auto detect", value: 'auto'},
+    {label: "Chinese (Simplified)", value: 'SC'},
+    {label: "Chinese (Traditional)", value: 'TC'},
+    {label: "Chinese (Hong Kong)", value: 'HK'},
+    {label: "Japanese", value: 'JP'},
+    {label: "Korean", value: 'KR'},
+]
 
 // Placeholder shows the derived spine title using the same util the generator uses
 const spine_title_placeholder = computed(() =>

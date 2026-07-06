@@ -6,6 +6,7 @@ import type {PmDoc} from 'pm-to-typst'
 import {pm_to_typst} from 'pm-to-typst'
 import {derive_colors, hex_override_to_hsl} from './colors'
 import {find_pattern} from './services/patterns'
+import {custom_font_families} from './custom_fonts'
 
 /** Replace straight quotes with typographic curly quotes */
 export function curly_quotes(text:string):string {
@@ -54,11 +55,16 @@ function parse_font_family(text:string):string | null {
 
 /** Build an optional FontConfig from a raw font name or Google Fonts URL.
  *  Returns undefined when the string is empty or unrecognisable. */
-function build_font_config(raw:string):{family:string} | undefined {
+function build_font_config(raw:string):{family:string, style?:'serif' | 'sans'} | undefined {
     if (!raw.trim())
         return undefined
     const family = parse_font_family(raw)
-    return family ? {family} : undefined
+    if (!family)
+        return undefined
+    // Custom fonts aren't in the curated manifest, so pass their sniffed serif/sans style
+    // for the generator's Noto fallback selection (bundled fonts carry their own)
+    const custom = custom_font_families.find(f => f.family === family)
+    return custom ? {family, style: custom.style} : {family}
 }
 
 /** Assemble the full flat schema object from current form state */
@@ -210,6 +216,7 @@ export function build_schema(form:FormState):Record<string, unknown> {
 
         // Other
         isbn: form.isbn || undefined,
+        cjk_variant: form.cjk_variant !== 'auto' ? form.cjk_variant : undefined,
     }
 }
 

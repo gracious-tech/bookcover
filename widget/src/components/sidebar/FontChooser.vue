@@ -67,6 +67,7 @@ div(class="flex flex-col gap-1")
 import {ref, computed, onMounted} from 'vue'
 import {get_fonts} from 'bookcover-web'
 import {custom_font_families} from '../../custom_fonts'
+import {bundled_font_url} from '../../font_urls'
 import FontUploadModal from './FontUploadModal.vue'
 
 const props = defineProps<{
@@ -142,9 +143,9 @@ onMounted(async () => {
         return
     preview_fonts_loaded = true
 
-    const assets = new URL('/generator_assets/', window.location.href).href
     for (const font of bundled) {
-        const url = `${assets}fonts/${encodeURIComponent(font.family)}/${font.preview_file}`
+        // Fonts moved out of generator_assets to the separately-published fonts/ tree
+        const url = bundled_font_url(font.family, font.preview_file)
         try {
             const face = new FontFace(font.family, `url(${url})`)
             await face.load()

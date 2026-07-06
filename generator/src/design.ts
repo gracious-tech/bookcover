@@ -2,7 +2,7 @@
 // Resolve final color and font values, applying defaults where fields are omitted
 
 import chroma from 'chroma-js'
-import type {CoverSchema} from './schema.js'
+import type {CoverSchema, FontConfig} from './schema.js'
 
 
 // Baseline default colors — pure grays map to clean CMYK K-channel percentages
@@ -114,34 +114,45 @@ export function resolve_colors(schema:CoverSchema):ResolvedColors {
 // Base font: always Noto Serif (downloaded at runtime; not bundled with typst)
 const BODY_FONT = 'Noto Serif'
 
+/** Per-field resolved font configs — the single source of the font inheritance chain */
+export interface ResolvedFontConfigs {
+    body:FontConfig
+    title1:FontConfig
+    title2:FontConfig
+    title3:FontConfig
+    subtitle:FontConfig
+    author:FontConfig
+    blurb:FontConfig
+    spine_title:FontConfig
+    spine_author:FontConfig
+}
+
 /**
- * Resolve all font family strings from schema.
+ * Resolve each text field's effective font config (family + optional serif/sans style).
  * Each field falls back through: per-field font → category default → body font.
  */
-export function resolve_font_families(schema:CoverSchema):{
-    body:string
-    title1:string
-    title2:string
-    title3:string
-    subtitle:string
-    author:string
-    blurb:string
-    spine_title:string
-    spine_author:string
-} {
-    const body = BODY_FONT
-    const title1 = schema.title1_font?.family ?? body
+export function resolve_font_configs(schema:CoverSchema):ResolvedFontConfigs {
+    const body:FontConfig = {family: BODY_FONT}
+    const title1 = schema.title1_font ?? body
     // Title 2/3 fall back to title 1's font
-    const title2 = schema.title2_font?.family ?? title1
-    const title3 = schema.title3_font?.family ?? title1
-    const subtitle = schema.subtitle_font?.family ?? body
+    const title2 = schema.title2_font ?? title1
+    const title3 = schema.title3_font ?? title1
+    const subtitle = schema.subtitle_font ?? body
     // Author font falls back to subtitle font when not set independently
-    const author = schema.author_font?.family ?? subtitle
-    const blurb = schema.blurb_font?.family ?? body
+    const author = schema.author_font ?? subtitle
+    const blurb = schema.blurb_font ?? body
     // Spine falls back to corresponding front fonts
-    const spine_title = schema.spine_title_font?.family ?? title1
-    const spine_author = schema.spine_author_font?.family ?? subtitle
+    const spine_title = schema.spine_title_font ?? title1
+    const spine_author = schema.spine_author_font ?? subtitle
     return {body, title1, title2, title3, subtitle, author, blurb, spine_title, spine_author}
+}
+
+/** Resolve all font family strings from schema (family names of resolve_font_configs) */
+export function resolve_font_families(schema:CoverSchema):Record<keyof ResolvedFontConfigs, string> {
+    const configs = resolve_font_configs(schema)
+    return Object.fromEntries(
+        Object.entries(configs).map(([field, config]) => [field, config.family])
+    ) as Record<keyof ResolvedFontConfigs, string>
 }
 
 /**

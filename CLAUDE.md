@@ -75,8 +75,12 @@ script that calls `generate()` with a sample schema.
   pattern SVG, icon SVGs, barcode SVG, frame composites
 - `split.ts` — Splits a full-spread output into front/back/spine panels (SVG viewBox
   adjustment, PDF CropBox injection, PNG pixel cropping)
-- `fonts.ts` — Bundled font manifest and lookup; `collect_fonts()` resolves which fonts a
-  schema needs
+- `fonts.ts` — Bundled font manifest and lookup; `collect_all_fonts()` is the source of truth
+  for which font families a schema needs: chosen fonts plus one Noto fallback per non-Latin
+  script per field, matching each field font's serif/sans style (`style` in the manifest;
+  custom fonts pass a sniffed `style` in their FontConfig), using the other style only when
+  Noto lacks the preferred one. CJK scripts resolve per-region via `cjk_variant`
+  ('auto' infers JP/KR from kana/Hangul, else SC)
 - `patterns.ts` — 60+ SVG pattern definitions from heropatterns.com (large data file)
 - `barcode.ts` — ISBN-13 barcode generation via bwip-js
 - `frame.ts` — Composites background images into decorative frames (painted, torn edges)
@@ -146,9 +150,12 @@ size: {trim_width: 152, trim_height: 229, trim_unit: 'mm', page_count: 300}
 
 ## Key patterns
 
-- **Font loading (web)**: `loadFonts()` from typst.ts with `assets: ['text']`. Bundled fonts
-  are served from the assets prefix; custom fonts use blob URLs created from raw TTF bytes.
-  Blob URLs are revoked on reinit to prevent leaks.
+- **Font loading (web)**: the compiler is created lazily on the first `generate()` (never in
+  `init()`, which only warms the base-font byte cache). Font bytes are fetched once per session
+  into an in-memory cache keyed by URL and handed to typst.ts `loadFonts()` as blob URLs
+  (bundled and custom alike); blob URLs are revoked on reinit to prevent leaks. Custom fonts
+  are keyed by `Uint8Array` object identity (WeakMap ids), so callers must pass stable
+  references across generates.
 - **Split output**: SVG splits adjust the viewBox; PDF splits inject CropBox arrays into the
   raw PDF bytes; PNG splits use a crop callback (`sharp` on Node, Canvas API on web).
 - **Debounced inputs**: Color pickers debounce at 800ms (`ColorPicker.vue`) or 2000ms

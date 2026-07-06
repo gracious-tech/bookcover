@@ -25,6 +25,7 @@ import type {CoverGenerator} from 'bookcover-web'
 import {ref, shallowRef, provide} from 'vue'
 import {useMediaQuery} from '@vueuse/core'
 import {make_form, FORM_KEY, IS_MOBILE_KEY, FULL_SVG_KEY, GENERATOR_KEY} from './form_state'
+import {fonts_prefix} from './font_urls'
 
 import SidebarPanel from './components/sidebar/SidebarPanel.vue'
 import PreviewPane from './components/preview/PreviewPane.vue'
@@ -51,11 +52,12 @@ const mobile_view = ref<'sidebar' | 'preview'>('sidebar')
 const generator = shallowRef<CoverGenerator | null>(null)
 provide(GENERATOR_KEY, generator)
 
-// Generator assets (fonts, typst templates, frames, backgrounds) served via symlink
+// Generator assets (typst templates, frames, backgrounds) served via symlink; fonts are
+// published separately and resolved by the shared font_urls helper
 const assets_prefix = new URL('/generator_assets/', window.location.href).href
 
 // Initialise the WASM compiler and store the generator instance
-init({wasm_url, renderer_wasm_url, assets_prefix}).then((gen) => {
+init({wasm_url, renderer_wasm_url, assets_prefix, fonts_prefix}).then((gen) => {
     generator.value = gen
 }).catch((err:unknown) => {
     console.error('WASM init failed:', err)

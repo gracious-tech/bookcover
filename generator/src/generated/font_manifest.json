@@ -2,6 +2,7 @@
     {
         "family": "Noto Serif",
         "group": "Compatible with most languages",
+        "style": "serif",
         "files": [
             "NotoSerif-Bold.ttf",
             "NotoSerif-BoldItalic.ttf",
@@ -13,6 +14,7 @@
     {
         "family": "Noto Sans",
         "group": "Compatible with most languages",
+        "style": "sans",
         "files": [
             "NotoSans-Bold.ttf",
             "NotoSans-BoldItalic.ttf",
@@ -24,6 +26,7 @@
     {
         "family": "Dancing Script",
         "group": "Styles",
+        "style": "serif",
         "files": [
             "DancingScript-Bold.ttf",
             "DancingScript-Regular.ttf"
@@ -33,6 +36,7 @@
     {
         "family": "Caveat",
         "group": "Styles",
+        "style": "sans",
         "files": [
             "Caveat-Bold.ttf",
             "Caveat-Regular.ttf"
@@ -42,6 +46,7 @@
     {
         "family": "Playpen Sans",
         "group": "Styles",
+        "style": "sans",
         "files": [
             "PlaypenSans-Bold.ttf",
             "PlaypenSans-Regular.ttf"
@@ -51,6 +56,7 @@
     {
         "family": "Raleway",
         "group": "Styles",
+        "style": "sans",
         "files": [
             "Raleway-Bold.ttf",
             "Raleway-BoldItalic.ttf",
@@ -62,6 +68,7 @@
     {
         "family": "Special Elite",
         "group": "Styles",
+        "style": "serif",
         "files": [
             "SpecialElite-Regular.ttf"
         ],
@@ -70,6 +77,7 @@
     {
         "family": "Bevan",
         "group": "Styles",
+        "style": "serif",
         "files": [
             "Bevan-Italic.ttf",
             "Bevan-Regular.ttf"
@@ -79,6 +87,7 @@
     {
         "family": "EB Garamond",
         "group": "Commonly used inside books",
+        "style": "serif",
         "files": [
             "EBGaramond-Bold.ttf",
             "EBGaramond-BoldItalic.ttf",
@@ -90,6 +99,7 @@
     {
         "family": "Merriweather",
         "group": "Commonly used inside books",
+        "style": "serif",
         "files": [
             "Merriweather-Bold.ttf",
             "Merriweather-BoldItalic.ttf",
@@ -101,6 +111,7 @@
     {
         "family": "Crimson Pro",
         "group": "Commonly used inside books",
+        "style": "serif",
         "files": [
             "CrimsonPro-Bold.ttf",
             "CrimsonPro-BoldItalic.ttf",
@@ -112,6 +123,7 @@
     {
         "family": "Libre Baskerville",
         "group": "Commonly used inside books",
+        "style": "serif",
         "files": [
             "LibreBaskerville-Bold.ttf",
             "LibreBaskerville-BoldItalic.ttf",
@@ -123,6 +135,7 @@
     {
         "family": "Lora",
         "group": "Commonly used inside books",
+        "style": "serif",
         "files": [
             "Lora-Bold.ttf",
             "Lora-BoldItalic.ttf",

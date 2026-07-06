@@ -7,18 +7,25 @@ import type {GetDimensionsResult} from './dimensions.js'
 import type {CoverSchema} from './schema.js'
 import {default_spine_title} from './utils.js'
 import {calculate_font_sizes} from './font_sizes.js'
-import {resolve_colors, resolve_font_families, darken_hsl, mix_hsl} from './design.js'
+import {resolve_colors, resolve_font_configs, darken_hsl, mix_hsl} from './design.js'
 import {build_cover_files} from './build_files.js'
 import type {Templates, ImageInput} from './build_files.js'
 import {resolve_icon} from './icon_cache.js'
 import {find_pattern} from './patterns.js'
 import type {FrameImageFn} from './frame.js'
+import {resolve_fallback_chain} from './noto_fonts.js'
+import {resolve_cjk_variant, collect_fallback_fonts, font_style} from './fonts.js'
+import type {FontConfig} from './schema.js'
 
 export type {CoverSchema, TitlePosition, FontConfig} from './schema.js'
 export {default_spine_title} from './utils.js'
-export {BUNDLED_FONTS, get_fonts, get_bundled_font, collect_fonts, all_fonts_bundled, BASE_FONT} from './fonts.js'
+export {BUNDLED_FONTS, get_fonts, get_bundled_font, collect_fonts, collect_all_fonts,
+    collect_fallback_fonts, all_fonts_bundled, resolve_cjk_variant, font_style,
+    BASE_FONT} from './fonts.js'
 export type {BundledFont} from './fonts.js'
-export {asset_path, FONTS_DIR, FRAMES_DIR, BACKGROUNDS_DIR,
+export {get_noto_font, detect_scripts, resolve_fallback_chain} from './noto_fonts.js'
+export type {NotoFont, CjkVariant, FontStyle} from './noto_fonts.js'
+export {asset_path, FRAMES_DIR, BACKGROUNDS_DIR,
     TYPST_DIR, TEMPLATE_FILES} from './assets.js'
 export {list_patterns} from './patterns.js'
 export type {PatternDef} from './patterns.js'
@@ -38,7 +45,8 @@ export interface BuildResult {
 }
 
 // Re-export lower-level functions needed by generator-node and generator-web
-export {cover_schema, calculate_font_sizes, resolve_colors, resolve_font_families, darken_hsl}
+export {cover_schema, calculate_font_sizes, resolve_colors, darken_hsl}
+export {resolve_font_families, resolve_font_configs} from './design.js'
 export {resolve_dimensions} from './dimensions.js'
 export type {GetDimensionsResult} from './dimensions.js'
 export {calculate_crop_regions, calculate_pixel_crop_regions,
@@ -73,18 +81,35 @@ export async function build(
     const dims = resolve_dimensions(schema)
 
     const colors = resolve_colors(schema_resolved)
-    const {
-        body: font_body_family,
-        title1: font_title1_family,
-        title2: font_title2_family,
-        title3: font_title3_family,
-        subtitle: font_subtitle_family,
-        author: font_author_family,
-        blurb: font_blurb_family,
-        spine_title: font_spine_title_family,
-        spine_author: font_spine_author_family,
-    } = resolve_font_families(schema_resolved)
+    const configs = resolve_font_configs(schema_resolved)
     const font_sizes = calculate_font_sizes(schema_resolved, dims)
+
+    // Build each field's Typst font fallback list: the chosen family first, then one Noto
+    // family per non-Latin script in that field's own text, matching the field font's
+    // serif/sans style where Noto covers it (Typst tries fonts in array order and skips
+    // glyphs it can't find)
+    const cjk_variant = resolve_cjk_variant(schema_resolved)
+    const fallback_chain = (config:FontConfig, text:string):string[] => {
+        const style = font_style(config.family, config.style)
+        const extra = resolve_fallback_chain(text, cjk_variant, style)
+        return [config.family, ...extra.filter(f => f !== config.family)]
+    }
+    const font_title1_family_arr = fallback_chain(configs.title1, schema_resolved.title1 ?? '')
+    const font_title2_family_arr = fallback_chain(configs.title2, schema_resolved.title2 ?? '')
+    const font_title3_family_arr = fallback_chain(configs.title3, schema_resolved.title3 ?? '')
+    const font_subtitle_family_arr = fallback_chain(configs.subtitle, schema_resolved.subtitle ?? '')
+    const font_author_family_arr = fallback_chain(configs.author, schema_resolved.author ?? '')
+    const font_blurb_family_arr = fallback_chain(configs.blurb, schema_resolved.blurb ?? '')
+    const font_spine_title_family_arr = fallback_chain(configs.spine_title, schema_resolved.spine_title ?? '')
+    const font_spine_author_family_arr = fallback_chain(configs.spine_author, schema_resolved.spine_author ?? '')
+
+    // Body is the document-wide default font list: the base family plus every fallback any
+    // field chain references — a safety net for text rendered outside the field boxes that
+    // never pulls in font families the fields haven't already loaded
+    const font_body_family_arr = [
+        configs.body.family,
+        ...collect_fallback_fonts(schema_resolved).filter(f => f !== configs.body.family),
+    ]
 
     // Resolve and recolor icon SVG variants when an icon is specified
     const encoder = new TextEncoder()
@@ -151,10 +176,10 @@ export async function build(
 
     const files = build_cover_files(
         templates, schema_resolved, dims, colors,
-        font_body_family,
-        font_title1_family, font_title2_family, font_title3_family,
-        font_subtitle_family, font_author_family, font_blurb_family,
-        font_spine_title_family, font_spine_author_family,
+        font_body_family_arr,
+        font_title1_family_arr, font_title2_family_arr, font_title3_family_arr,
+        font_subtitle_family_arr, font_author_family_arr, font_blurb_family_arr,
+        font_spine_title_family_arr, font_spine_author_family_arr,
         font_sizes, processed_image, icon_main, icon_ghost, icon_ghost2, icon_spine, icon_bg, pattern_file,
     )
     return {files, dims}

@@ -3,7 +3,7 @@
 
 import {reactive} from 'vue'
 import type {InjectionKey, Ref, ShallowRef} from 'vue'
-import type {CoverGenerator} from 'bookcover-web'
+import type {CoverGenerator, CjkVariant} from 'bookcover-web'
 import type {PmDoc, PmNode} from 'pm-to-typst'
 
 /** All form fields for the book cover generator */
@@ -128,6 +128,7 @@ export interface FormState {
     // OTHER
 
     isbn: string
+    cjk_variant: CjkVariant | 'auto'  // Regional glyph style for Han characters
 }
 
 
@@ -258,6 +259,7 @@ export function make_blank_form_values(): FormState {
         // OTHER
 
         isbn: '',
+        cjk_variant: 'auto',
     }
 }
 

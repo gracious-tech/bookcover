@@ -18,6 +18,12 @@ function str(name:string, value:string):string {
     return `#let ${name} = "${escape_typst_str(value)}"`
 }
 
+/** Helper: emit a Typst #let binding for an array of strings (font fallback lists) */
+function arr(name:string, values:string[]):string {
+    const items = values.map(v => `"${escape_typst_str(v)}"`).join(', ')
+    return `#let ${name} = (${items}${items ? ',' : ''})`
+}
+
 /** Helper: emit a Typst #let binding for a boolean */
 function bool(name:string, value:boolean):string {
     return `#let ${name} = ${value ? 'true' : 'false'}`
@@ -49,15 +55,15 @@ export function build_data_file(
     schema:CoverSchema,
     dims:GetDimensionsResult,
     colors:ResolvedColors,
-    font_body_family:string,
-    font_title1_family:string,
-    font_title2_family:string,
-    font_title3_family:string,
-    font_subtitle_family:string,
-    font_author_family:string,
-    font_blurb_family:string,
-    font_spine_title_family:string,
-    font_spine_author_family:string,
+    font_body_family:string[],
+    font_title1_family:string[],
+    font_title2_family:string[],
+    font_title3_family:string[],
+    font_subtitle_family:string[],
+    font_author_family:string[],
+    font_blurb_family:string[],
+    font_spine_title_family:string[],
+    font_spine_author_family:string[],
     font_sizes:FontSizes,
     image_filename:string | null,
     has_barcode:boolean,
@@ -145,15 +151,15 @@ export function build_data_file(
 
     // Typography
     lines.push('// Typography')
-    lines.push(str('font_body_family', font_body_family))
-    lines.push(str('font_title1_family', font_title1_family))
-    lines.push(str('font_title2_family', font_title2_family))
-    lines.push(str('font_title3_family', font_title3_family))
-    lines.push(str('font_subtitle_family', font_subtitle_family))
-    lines.push(str('font_author_family', font_author_family))
-    lines.push(str('font_blurb_family', font_blurb_family))
-    lines.push(str('font_spine_title_family', font_spine_title_family))
-    lines.push(str('font_spine_author_family', font_spine_author_family))
+    lines.push(arr('font_body_family', font_body_family))
+    lines.push(arr('font_title1_family', font_title1_family))
+    lines.push(arr('font_title2_family', font_title2_family))
+    lines.push(arr('font_title3_family', font_title3_family))
+    lines.push(arr('font_subtitle_family', font_subtitle_family))
+    lines.push(arr('font_author_family', font_author_family))
+    lines.push(arr('font_blurb_family', font_blurb_family))
+    lines.push(arr('font_spine_title_family', font_spine_title_family))
+    lines.push(arr('font_spine_author_family', font_spine_author_family))
     lines.push(num('title1_weight', schema.title1_weight ?? 700))
     lines.push(bool('title1_italic', schema.title1_italic ?? false))
     lines.push(num('title2_weight', schema.title2_weight ?? 700))

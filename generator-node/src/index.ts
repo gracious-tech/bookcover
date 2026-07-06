@@ -8,19 +8,27 @@ import * as crypto from 'node:crypto'
 import {fileURLToPath} from 'node:url'
 import {spawn} from 'node:child_process'
 import {build, cover_schema, split_svg, split_png, split_pdf,
-    asset_path, FONTS_DIR, TYPST_DIR, TEMPLATE_FILES} from 'bookcover'
+    asset_path, TYPST_DIR, TEMPLATE_FILES,
+    collect_all_fonts, get_bundled_font, get_noto_font} from 'bookcover'
 import type {OutputFormat, Templates} from 'bookcover'
+import type {CoverSchema} from 'bookcover'
 import sharp from 'sharp'
 
 export type {CoverSchema, TitlePosition, FontConfig,
     OutputFormat, SplitResult, PatternDef, BundledFont} from 'bookcover'
-export {list_patterns, get_fonts, get_bundled_font, collect_fonts, default_spine_title} from 'bookcover'
+export {list_patterns, get_fonts, get_bundled_font, collect_fonts, collect_all_fonts,
+    default_spine_title} from 'bookcover'
 
 // Resolve the generator package's assets directory
 const ASSETS_BASE = path.join(
     path.dirname(fileURLToPath(import.meta.resolve('bookcover'))),
     '..', 'assets',
 )
+
+// Fonts live in a top-level fonts/ directory (sibling of generator/), published separately
+// from the app — not under generator/assets. Populated locally by running .bin/download_fonts
+// and .bin/download_fonts_noto.
+const FONTS_ROOT = path.join(ASSETS_BASE, '..', '..', 'fonts')
 
 // Image extensions to try when auto-discovering a background image
 const IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.webp']
@@ -71,9 +79,21 @@ async function find_background_image(
     return null
 }
 
-// Resolve the bundled fonts directory from the generator package assets
-function get_bundled_fonts_dir():string {
-    return asset_path(ASSETS_BASE, FONTS_DIR)
+// Resolve the on-disk font directories a schema needs: one per family, curated fonts under
+// FONTS_ROOT/<family>/, Noto fallback families under FONTS_ROOT/_noto/<family>/. Passed to
+// typst as one --font-path per directory so it only scans the fonts actually referenced,
+// instead of the whole fonts/ tree (which can hold 150+ MB of Noto CJK fallback fonts).
+function resolve_font_dirs(schema:CoverSchema):string[] {
+    const dirs:string[] = []
+    for (const family of collect_all_fonts(schema)) {
+        if (get_bundled_font(family)) {
+            dirs.push(path.join(FONTS_ROOT, family))
+        }
+        else if (get_noto_font(family)) {
+            dirs.push(path.join(FONTS_ROOT, '_noto', family))
+        }
+    }
+    return dirs
 }
 
 // Load typst template files from the generator package assets
@@ -90,13 +110,13 @@ async function run_typst(
     work_dir:string,
     format:OutputFormat,
     ppi:number,
-    font_dir?:string,
+    font_dirs:string[] = [],
 ):Promise<void> {
     const ext = FORMAT_EXT[format]
     const args = ['compile']
 
-    // Extra font path for Google Fonts (or other custom fonts)
-    if (font_dir) {
+    // One font path per needed family's directory (typst accepts --font-path repeated)
+    for (const font_dir of font_dirs) {
         args.push('--font-path', font_dir)
     }
 
@@ -217,9 +237,9 @@ export async function generate(options:GenerateOptions):Promise<GenerateResult> 
             await fs.writeFile(path.join(tmp_dir, filename), bytes)
         }
 
-        // Point typst at the bundled fonts directory
-        const font_dir = get_bundled_fonts_dir()
-        await run_typst(tmp_dir, format, ppi, font_dir)
+        // Point typst at only the font directories this schema actually needs
+        const font_dirs = resolve_font_dirs(parsed)
+        await run_typst(tmp_dir, format, ppi, font_dirs)
         await move_file(tmp_output, options.output_path)
         await fs.rm(tmp_dir, {recursive: true, force: true})
     }

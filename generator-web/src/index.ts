@@ -7,13 +7,14 @@ import type {TypstCompiler} from '@myriaddreamin/typst.ts/compiler'
 import type {TypstRenderer} from '@myriaddreamin/typst.ts/renderer'
 import {loadFonts} from '@myriaddreamin/typst.ts'
 import {build, cover_schema, split_svg, split_png, split_pdf, frame_image, frame_asset_path,
-    asset_path, FONTS_DIR, TYPST_DIR, TEMPLATE_FILES,
-    collect_fonts, get_bundled_font} from 'bookcover'
+    asset_path, TYPST_DIR, TEMPLATE_FILES,
+    collect_all_fonts, get_bundled_font, get_noto_font, BASE_FONT} from 'bookcover'
 import type {OutputFormat, SplitResult, Templates} from 'bookcover'
 
 export type {CoverSchema, TitlePosition, FontConfig,
-    OutputFormat, SplitResult, PatternDef, BundledFont} from 'bookcover'
-export {list_patterns, get_fonts, get_bundled_font, collect_fonts, default_spine_title} from 'bookcover'
+    OutputFormat, SplitResult, PatternDef, BundledFont, CjkVariant} from 'bookcover'
+export {list_patterns, get_fonts, get_bundled_font, collect_fonts, collect_all_fonts,
+    default_spine_title} from 'bookcover'
 
 const decoder = new TextDecoder()
 
@@ -23,8 +24,12 @@ export interface InitOptions {
     // URL or path to typst_ts_renderer_bg.wasm — required for SVG/PNG output
     renderer_wasm_url?:string
     // URL prefix for generator assets (e.g. '/generator_assets/').
-    // Used to load fonts, typst templates, frames, backgrounds, etc.
+    // Used to load typst templates, frames, backgrounds, etc.
     assets_prefix?:string
+    // URL prefix for fonts — curated and Noto fallback alike (e.g. '/fonts/' locally, or
+    // 'https://fonts.paper.bible' in production, a separately published copy of the same
+    // fonts/ tree). Kept separate from assets_prefix since fonts are published independently.
+    fonts_prefix?:string
 }
 
 export interface GenerateOptions {
@@ -84,40 +89,104 @@ async function canvas_crop(
 /** Stateful cover generator — each instance owns its own compiler and renderer */
 export class CoverGenerator {
     private opts:InitOptions
-    private compiler:TypstCompiler
+    // Created lazily on first generate() — the font set isn't known until a schema arrives,
+    // so creating one earlier would just instantiate WASM with fonts that get replaced
+    private compiler!:TypstCompiler
     private renderer:TypstRenderer | null
 
-    // Sorted, comma-joined font families last used to init the compiler ('' = base fonts only)
+    // Cache key of the font set the current compiler was init'd with ('' = no compiler yet)
     private active_fonts = ''
-    // Blob URLs created for custom fonts — revoked on reinit to avoid leaks
-    private custom_font_blob_urls:string[] = []
+    // Fetched font bytes keyed by URL, so a compiler reinit (any font-set change) never
+    // refetches families already seen this session
+    private font_bytes = new Map<string, Uint8Array>()
+    // Blob URLs handed to the current compiler (bundled + custom) — revoked on reinit
+    private font_blob_urls:string[] = []
+    // Identity-based ids for custom font byte arrays (see custom_font_id)
+    private custom_font_ids = new WeakMap<Uint8Array, number>()
+    private next_custom_font_id = 1
 
-    constructor(opts:InitOptions, compiler:TypstCompiler, renderer:TypstRenderer | null) {
+    constructor(opts:InitOptions, renderer:TypstRenderer | null) {
         this.opts = opts
-        this.compiler = compiler
         this.renderer = renderer
     }
 
-    /** (Re)initialise compiler with different fonts. The renderer does not need
-     *  reinitialisation because it reads glyph outlines from the compiled vector data. */
-    private async reinit_compiler(font_urls:string[], custom_fonts?:Uint8Array[]):Promise<void> {
-        // Revoke previous custom font blob URLs to avoid memory leaks
-        for (const url of this.custom_font_blob_urls) {
-            URL.revokeObjectURL(url)
-        }
-        this.custom_font_blob_urls = []
-
-        // Create blob URLs for custom font bytes so loadFonts() can fetch them —
-        // mapShadow only adds to the virtual filesystem, not the font book
-        if (custom_fonts) {
-            for (const data of custom_fonts) {
-                const blob = new Blob([data as BlobPart], {type: 'font/ttf'})
-                this.custom_font_blob_urls.push(URL.createObjectURL(blob))
+    /** Build fetch URLs for the given font families against fonts_prefix — curated families
+     *  live at <prefix>/<family>/, Noto fallback families at <prefix>/_noto/<family>/,
+     *  mirroring the top-level fonts/ directory's own layout exactly */
+    private font_urls_for(families:string[]):string[] {
+        const fonts_base = this.opts.fonts_prefix ?? '/fonts/'
+        const urls:string[] = []
+        for (const family of families) {
+            const bundled = get_bundled_font(family)
+            const noto = bundled ? undefined : get_noto_font(family)
+            const font = bundled ?? noto
+            if (!font) continue
+            for (const file of font.files) {
+                urls.push(bundled
+                    ? asset_path(fonts_base, encodeURIComponent(family), file)
+                    : asset_path(fonts_base, '_noto', encodeURIComponent(family), file))
             }
         }
+        return urls
+    }
 
-        // Compiler gets bundled + custom font URLs so Typst can shape text with them
-        const compiler_font_opts = loadFonts([...font_urls, ...this.custom_font_blob_urls])
+    /** Fetch a font file's bytes, memoised in font_bytes (failures aren't cached, so a
+     *  later generate retries the fetch) */
+    private async fetch_font(url:string):Promise<Uint8Array> {
+        const cached = this.font_bytes.get(url)
+        if (cached) {
+            return cached
+        }
+        const resp = await fetch(url)
+        if (!resp.ok) {
+            throw new Error(`[generator-web] Failed to fetch font ${url}: HTTP ${resp.status}`)
+        }
+        const bytes = new Uint8Array(await resp.arrayBuffer())
+        this.font_bytes.set(url, bytes)
+        return bytes
+    }
+
+    /** Pre-fetch the given font families into the in-memory byte cache */
+    async prefetch_fonts(families:string[]):Promise<void> {
+        await Promise.all(this.font_urls_for(families).map(url => this.fetch_font(url)))
+    }
+
+    /** Stable id for a custom font's byte array. The widget passes the same Uint8Array
+     *  references across generates, so object identity distinguishes fonts without hashing
+     *  their bytes (byteLength alone could collide between two different fonts). */
+    private custom_font_id(data:Uint8Array):number {
+        let id = this.custom_font_ids.get(data)
+        if (id === undefined) {
+            id = this.next_custom_font_id
+            this.next_custom_font_id += 1
+            this.custom_font_ids.set(data, id)
+        }
+        return id
+    }
+
+    /** (Re)initialise the compiler with a different font set. Bundled font bytes come from
+     *  the in-memory cache (fetched at most once per session) and everything is handed to
+     *  loadFonts() as blob URLs, keeping the network out of the reinit path. The renderer
+     *  never needs reinitialisation because it reads glyph outlines from compiled vector
+     *  data. */
+    private async reinit_compiler(font_urls:string[], custom_fonts?:Uint8Array[]):Promise<void> {
+        // Fetch any fonts not yet cached, in parallel
+        const bundled_bytes = await Promise.all(font_urls.map(url => this.fetch_font(url)))
+
+        // Revoke the previous compiler's blob URLs to avoid memory leaks
+        for (const url of this.font_blob_urls) {
+            URL.revokeObjectURL(url)
+        }
+        this.font_blob_urls = []
+
+        // One blob URL per font file (bundled + custom) for loadFonts() to read —
+        // mapShadow only adds to the virtual filesystem, not the font book
+        for (const data of [...bundled_bytes, ...(custom_fonts ?? [])]) {
+            const blob = new Blob([data as BlobPart], {type: 'font/ttf'})
+            this.font_blob_urls.push(URL.createObjectURL(blob))
+        }
+
+        const compiler_font_opts = loadFonts(this.font_blob_urls)
 
         const c = createTypstCompiler()
         await c.init({
@@ -232,26 +301,18 @@ export class CoverGenerator {
         const parsed = cover_schema.parse(options.schema)
         const assets = this.opts.assets_prefix ?? '/assets/'
 
-        // Reinitialise the compiler when the set of required fonts changes.
+        // (Re)initialise the compiler when the set of required fonts changes — including on
+        // the very first generate, since the compiler is created lazily ('' never matches).
         // Noto Serif (base font) is always included — it's not bundled in the WASM assets.
-        const needed_fonts = collect_fonts(parsed)
+        // collect_all_fonts also includes every Noto fallback family needed to cover non-Latin
+        // scripts detected in the schema's text, so only those specific families get fetched.
+        const needed_fonts = collect_all_fonts(parsed)
         const custom_fonts_id = options.custom_fonts
-            ? options.custom_fonts.map(b => b.byteLength).join(':')
+            ? options.custom_fonts.map(b => String(this.custom_font_id(b))).join(':')
             : ''
         const cache_key = needed_fonts.join(',') + '|' + custom_fonts_id
         if (cache_key !== this.active_fonts) {
-            // Build URLs for bundled fonts via asset_path
-            const font_urls:string[] = []
-            for (const family of needed_fonts) {
-                const bundled = get_bundled_font(family)
-                if (bundled) {
-                    for (const file of bundled.files) {
-                        font_urls.push(
-                            asset_path(assets, FONTS_DIR, encodeURIComponent(family), file))
-                    }
-                }
-            }
-            await this.reinit_compiler(font_urls, options.custom_fonts)
+            await this.reinit_compiler(this.font_urls_for(needed_fonts), options.custom_fonts)
             this.active_fonts = cache_key
         }
 
@@ -312,28 +373,22 @@ export class CoverGenerator {
         return result
     }
 
-    /** Revoke blob URLs to free memory */
+    /** Revoke blob URLs and drop cached font bytes to free memory */
     destroy():void {
-        for (const url of this.custom_font_blob_urls) {
+        for (const url of this.font_blob_urls) {
             URL.revokeObjectURL(url)
         }
-        this.custom_font_blob_urls = []
+        this.font_blob_urls = []
+        this.font_bytes.clear()
     }
 }
 
 /**
- * Create a CoverGenerator instance with an initialised WASM compiler and optional renderer.
- * Each instance is independent — multiple generators can run concurrently.
+ * Create a CoverGenerator instance with an optional initialised WASM renderer.
+ * The compiler itself is created lazily by the first generate() call, once the schema's
+ * font set is known. Each instance is independent — multiple generators can run concurrently.
  */
 export async function init(options:InitOptions):Promise<CoverGenerator> {
-    // Compiler with base fonts only (reinitialised per-generate when custom fonts are needed)
-    const compiler_font_opts = loadFonts([])
-    const c = createTypstCompiler()
-    await c.init({
-        getModule: () => ({module_or_path: options.wasm_url}),
-        beforeBuild: [compiler_font_opts],
-    })
-
     // Renderer only needs base fonts (glyph shapes are embedded in compiled vector data)
     let renderer:TypstRenderer | null = null
     if (options.renderer_wasm_url) {
@@ -346,5 +401,11 @@ export async function init(options:InitOptions):Promise<CoverGenerator> {
         renderer = r
     }
 
-    return new CoverGenerator(options, c, renderer)
+    const gen = new CoverGenerator(options, renderer)
+
+    // Warm the font byte cache with the always-needed base font while the rest of the app
+    // finishes loading — a failure here is fine, the first generate simply refetches
+    gen.prefetch_fonts([BASE_FONT]).catch(() => {})
+
+    return gen
 }

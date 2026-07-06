@@ -7,6 +7,9 @@ import {unzipSync} from 'fflate'
 /** A user-uploaded font family with its file data */
 export interface CustomFontFamily {
     family:string
+    // Serif/sans classification sniffed from font metadata — passed to the generator so
+    // Noto script fallbacks match the font's style (custom fonts aren't in the manifest)
+    style:'serif' | 'sans'
     files:Uint8Array[]
 }
 
@@ -36,27 +39,29 @@ function should_include(name:string):boolean {
     return true
 }
 
+/** Find a table's byte offset in a TTF/OTF file's table directory, or 0 if absent */
+function find_table(view:DataView, wanted:string):number {
+    // Read number of tables from the offset table, then scan the 16-byte table records
+    const num_tables = view.getUint16(4)
+    for (let i = 0; i < num_tables; i++) {
+        const rec = 12 + i * 16
+        const tag = String.fromCharCode(
+            view.getUint8(rec), view.getUint8(rec + 1),
+            view.getUint8(rec + 2), view.getUint8(rec + 3),
+        )
+        if (tag === wanted) {
+            return view.getUint32(rec + 8)
+        }
+    }
+    return 0
+}
+
 /** Parse the font family name from a TTF/OTF file's name table */
 export function parse_font_family(data:Uint8Array):string | null {
     try {
         const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
 
-        // Read number of tables from the offset table
-        const num_tables = view.getUint16(4)
-
-        // Find the 'name' table offset
-        let name_offset = 0
-        for (let i = 0; i < num_tables; i++) {
-            const rec = 12 + i * 16
-            const tag = String.fromCharCode(
-                view.getUint8(rec), view.getUint8(rec + 1),
-                view.getUint8(rec + 2), view.getUint8(rec + 3),
-            )
-            if (tag === 'name') {
-                name_offset = view.getUint32(rec + 8)
-                break
-            }
-        }
+        const name_offset = find_table(view, 'name')
         if (!name_offset)
             return null
 
@@ -95,6 +100,37 @@ export function parse_font_family(data:Uint8Array):string | null {
                 return String.fromCharCode(...chars)
             }
         }
+    } catch {
+        // Malformed font file
+    }
+    return null
+}
+
+/** Parse serif/sans classification from a font's OS/2 table — sFamilyClass first, then
+ *  PANOSE. Returns null when the font declares neither (both are often zeroed). */
+export function parse_font_style(data:Uint8Array):'serif' | 'sans' | null {
+    try {
+        const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
+
+        const os2_offset = find_table(view, 'OS/2')
+        if (!os2_offset)
+            return null
+
+        // sFamilyClass high byte: class 8 = sans serif, classes 1-7 = serif designs
+        const family_class = view.getUint8(os2_offset + 30)
+        if (family_class === 8)
+            return 'sans'
+        if (family_class >= 1 && family_class <= 7)
+            return 'serif'
+
+        // PANOSE: byte 0 = family kind (2 = latin text), byte 1 = serif style
+        // (2-10 = serif variants, 11-15 = sans variants)
+        const panose_kind = view.getUint8(os2_offset + 32)
+        const panose_serif = view.getUint8(os2_offset + 33)
+        if (panose_kind === 2 && panose_serif >= 11)
+            return 'sans'
+        if (panose_kind === 2 && panose_serif >= 2)
+            return 'serif'
     } catch {
         // Malformed font file
     }
@@ -177,7 +213,11 @@ export async function process_uploaded_files(file_list:File[]):Promise<string[]>
     for (const [family, files] of families) {
         if (existing.has(family))
             continue
-        custom_font_families.push({family, files})
+        // Classify serif/sans from the first file that declares it, falling back to the
+        // family name, then serif (book covers skew serif)
+        const sniffed = files.map(f => parse_font_style(f)).find(s => s !== null)
+        const style = sniffed ?? (/sans/i.test(family) ? 'sans' : 'serif')
+        custom_font_families.push({family, style, files})
         existing.add(family)
         added.push(family)
 

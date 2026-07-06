@@ -7,7 +7,6 @@ export function asset_path(base:string, ...segments:string[]):string {
 }
 
 // Asset subdirectory names
-export const FONTS_DIR = 'fonts'
 export const FRAMES_DIR = 'frames'
 export const BACKGROUNDS_DIR = 'backgrounds'
 export const TYPST_DIR = 'typst'

@@ -1,17 +1,20 @@
 #!/usr/bin/env node
 
-// Download curated Google Fonts into generator/assets/fonts/
-// Uses the Google Fonts download list API to fetch Regular/Bold/Italic/BoldItalic TTFs.
-// After downloading, generates generator/src/font_manifest.json with the font metadata.
+// Download curated Google Fonts into the top-level fonts/ directory (published separately
+// from the app). Uses the Google Fonts download list API to fetch Regular/Bold/Italic/
+// BoldItalic TTFs. After downloading, writes fonts/manifest.json (canonical) and a compiled-in
+// copy at generator/src/generated/font_manifest.json (tsc can't import JSON from outside its
+// rootDir, so generator needs its own copy to bundle at compile time).
 
 import {writeFile, mkdir, access, readdir} from 'node:fs/promises'
 import {dirname, join, basename} from 'node:path'
 import {fileURLToPath} from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const GENERATOR_DIR = join(__dirname, '..', 'generator')
-const FONT_DIR = join(GENERATOR_DIR, 'assets', 'fonts')
-const MANIFEST_PATH = join(GENERATOR_DIR, 'src', 'generated', 'font_manifest.json')
+const ROOT_DIR = join(__dirname, '..')
+const FONT_DIR = join(ROOT_DIR, 'fonts')
+const MANIFEST_PATH = join(FONT_DIR, 'manifest.json')
+const GENERATED_MANIFEST_PATH = join(ROOT_DIR, 'generator', 'src', 'generated', 'font_manifest.json')
 const API = 'https://fonts.google.com/download/list'
 
 // Font families to download, organized by group (shown as subheadings in the widget UI)
@@ -19,6 +22,8 @@ const FONT_GROUPS = [
     {
         group: 'Compatible with most languages',
         fonts: [
+            // NOTE Noto base fonts are here rather than in noto script as they are first class and
+            //      not just fallbacks, selectable in the UI, and also have extra italic variants
             'Noto Serif',  // Fallback / generic serif
             'Noto Sans',  // Generic sans
         ],
@@ -45,6 +50,27 @@ const FONT_GROUPS = [
         ],
     },
 ]
+
+// Serif/sans classification per family — decides which style of Noto fallback the generator
+// pairs with the font when it lacks glyphs for a script. Decorative fonts get whichever
+// style pairs better visually (e.g. slab/typewriter → serif, handwriting → sans).
+const FONT_STYLES = {
+    'Noto Serif': 'serif',
+    'Noto Sans': 'sans',
+
+    'Dancing Script': 'serif',
+    'Caveat': 'sans',
+    'Playpen Sans': 'sans',
+    'Raleway': 'sans',
+    'Special Elite': 'serif',
+    'Bevan': 'serif',
+
+    'EB Garamond': 'serif',
+    'Merriweather': 'serif',
+    'Crimson Pro': 'serif',
+    'Libre Baskerville': 'serif',
+    'Lora': 'serif',
+}
 
 // Flat list for iteration
 const FONTS = FONT_GROUPS.flatMap(g => g.fonts)
@@ -135,16 +161,21 @@ async function write_manifest(results) {
     const entries = results.map(r => ({
         family: r.family,
         group: FONT_GROUP_MAP.get(r.family),
+        style: FONT_STYLES[r.family] ?? 'serif',
         files: r.files,
         preview_file: r.preview_file,
     }))
+    const json = JSON.stringify(entries, null, 4) + '\n'
     await mkdir(dirname(MANIFEST_PATH), {recursive: true})
-    await writeFile(MANIFEST_PATH, JSON.stringify(entries, null, 4) + '\n')
+    await writeFile(MANIFEST_PATH, json)
+    await mkdir(dirname(GENERATED_MANIFEST_PATH), {recursive: true})
+    await writeFile(GENERATED_MANIFEST_PATH, json)
     console.log(`\nGenerated ${MANIFEST_PATH}`)
+    console.log(`Generated ${GENERATED_MANIFEST_PATH}`)
 }
 
 // Run all downloads and generate manifest
-console.log(`Downloading ${FONTS.length} fonts to generator/assets/fonts/\n`)
+console.log(`Downloading ${FONTS.length} fonts to fonts/\n`)
 
 const results = []
 for (const family of FONTS) {

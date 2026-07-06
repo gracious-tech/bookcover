@@ -2,6 +2,7 @@
 // TypeScript interfaces and Zod validation schema for the cover generator input
 
 import {z} from 'zod'
+import type {CjkVariant} from './noto_fonts.js'
 
 // -- Font and layout types --
 
@@ -10,6 +11,9 @@ export type TitlePosition = 'top' | 'middle' | 'bottom'
 export interface FontConfig {
     // Font family name as used in Typst (e.g. 'Noto Serif', 'Playfair Display')
     family:string
+    // Serif/sans classification for Noto fallback selection — only needed for custom fonts
+    // that aren't in the curated manifest (bundled fonts carry their own classification)
+    style?:'serif' | 'sans'
 }
 
 export type IconMode = 'center' | 'offset' | 'echo' | 'background'
@@ -135,6 +139,11 @@ export interface CoverSchema {
     // OTHER
 
     isbn:string
+
+    // Which regional Noto CJK font to use as a fallback when the text contains Han/Hiragana/
+    // Katakana/Hangul characters (glyph shapes differ by region even for shared Han characters).
+    // 'auto' (or unset) infers the variant from the text: kana → JP, Hangul → KR, otherwise SC.
+    cjk_variant?:CjkVariant | 'auto'
 }
 
 // -- Zod validation --
@@ -148,6 +157,7 @@ const hsl_color = z.string().regex(
 // Reusable font config schema
 const font_config = z.object({
     family: z.string().min(1),
+    style: z.enum(['serif', 'sans']).optional(),
 })
 
 export const cover_schema = z.object({
@@ -264,4 +274,5 @@ export const cover_schema = z.object({
 
     // Other
     isbn: z.string().default(''),
+    cjk_variant: z.enum(['auto', 'JP', 'KR', 'SC', 'TC', 'HK']).optional(),
 })
