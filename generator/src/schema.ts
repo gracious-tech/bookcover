@@ -2,7 +2,7 @@
 // TypeScript interfaces and Zod validation schema for the cover generator input
 
 import {z} from 'zod'
-import type {CjkVariant} from './noto_fonts.js'
+import type {CjkVariant} from 'typst-fonts'
 
 // -- Font and layout types --
 

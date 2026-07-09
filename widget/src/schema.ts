@@ -6,7 +6,7 @@ import type {PmDoc} from 'pm-to-typst'
 import {pm_to_typst} from 'pm-to-typst'
 import {derive_colors, hex_override_to_hsl} from './colors'
 import {find_pattern} from './services/patterns'
-import {custom_font_families} from './custom_fonts'
+import {custom_font_families} from './fonts'
 
 /** Replace straight quotes with typographic curly quotes */
 export function curly_quotes(text:string):string {

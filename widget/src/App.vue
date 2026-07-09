@@ -25,7 +25,7 @@ import type {CoverGenerator} from 'bookcover-web'
 import {ref, shallowRef, provide} from 'vue'
 import {useMediaQuery} from '@vueuse/core'
 import {make_form, FORM_KEY, IS_MOBILE_KEY, FULL_SVG_KEY, GENERATOR_KEY} from './form_state'
-import {fonts_prefix} from './font_urls'
+import {fonts_prefix} from './fonts'
 
 import SidebarPanel from './components/sidebar/SidebarPanel.vue'
 import PreviewPane from './components/preview/PreviewPane.vue'
@@ -53,7 +53,7 @@ const generator = shallowRef<CoverGenerator | null>(null)
 provide(GENERATOR_KEY, generator)
 
 // Generator assets (typst templates, frames, backgrounds) served via symlink; fonts are
-// published separately and resolved by the shared font_urls helper
+// published separately and resolved via fonts_prefix (see fonts.ts)
 const assets_prefix = new URL('/generator_assets/', window.location.href).href
 
 // Initialise the WASM compiler and store the generator instance

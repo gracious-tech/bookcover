@@ -7,14 +7,18 @@ import type {TypstCompiler} from '@myriaddreamin/typst.ts/compiler'
 import type {TypstRenderer} from '@myriaddreamin/typst.ts/renderer'
 import {loadFonts} from '@myriaddreamin/typst.ts'
 import {build, cover_schema, split_svg, split_png, split_pdf, frame_image, frame_asset_path,
-    asset_path, TYPST_DIR, TEMPLATE_FILES,
-    collect_all_fonts, get_bundled_font, get_noto_font, BASE_FONT} from 'bookcover'
+    asset_path, TYPST_DIR, TEMPLATE_FILES, collect_all_fonts} from 'bookcover'
 import type {OutputFormat, SplitResult, Templates} from 'bookcover'
+import {base_font} from 'typst-fonts'
+import {load_fonts_prefix, font_urls_for as build_font_urls, fetch_font_bytes,
+    fonts_to_blob_urls, revoke_blob_urls} from 'typst-fonts/web'
 
 export type {CoverSchema, TitlePosition, FontConfig,
-    OutputFormat, SplitResult, PatternDef, BundledFont, CjkVariant} from 'bookcover'
-export {list_patterns, get_fonts, get_bundled_font, collect_fonts, collect_all_fonts,
-    default_spine_title} from 'bookcover'
+    OutputFormat, SplitResult, PatternDef} from 'bookcover'
+export type {BundledFont, CjkVariant} from 'typst-fonts'
+export {font_file_url} from 'typst-fonts/web'
+export {get_fonts, get_bundled_font} from 'typst-fonts'
+export {list_patterns, collect_fonts, collect_all_fonts, default_spine_title} from 'bookcover'
 
 const decoder = new TextDecoder()
 
@@ -26,9 +30,10 @@ export interface InitOptions {
     // URL prefix for generator assets (e.g. '/generator_assets/').
     // Used to load typst templates, frames, backgrounds, etc.
     assets_prefix?:string
-    // URL prefix for fonts — curated and Noto fallback alike (e.g. '/fonts/' locally, or
-    // 'https://fonts.paper.bible' in production, a separately published copy of the same
-    // fonts/ tree). Kept separate from assets_prefix since fonts are published independently.
+    // URL prefix for fonts — curated and Noto fallback alike (e.g.
+    // 'http://localhost:5300/generator_assets/fonts' in dev, 'https://fonts.paper.bible' in
+    // production). Kept separate from assets_prefix since the fonts tree is managed and
+    // published by its own separate repo.
     fonts_prefix?:string
 }
 
@@ -114,20 +119,7 @@ export class CoverGenerator {
      *  live at <prefix>/<family>/, Noto fallback families at <prefix>/_noto/<family>/,
      *  mirroring the top-level fonts/ directory's own layout exactly */
     private font_urls_for(families:string[]):string[] {
-        const fonts_base = this.opts.fonts_prefix ?? '/fonts/'
-        const urls:string[] = []
-        for (const family of families) {
-            const bundled = get_bundled_font(family)
-            const noto = bundled ? undefined : get_noto_font(family)
-            const font = bundled ?? noto
-            if (!font) continue
-            for (const file of font.files) {
-                urls.push(bundled
-                    ? asset_path(fonts_base, encodeURIComponent(family), file)
-                    : asset_path(fonts_base, '_noto', encodeURIComponent(family), file))
-            }
-        }
-        return urls
+        return build_font_urls(this.opts.fonts_prefix ?? '/fonts/', families)
     }
 
     /** Fetch a font file's bytes, memoised in font_bytes (failures aren't cached, so a
@@ -137,11 +129,7 @@ export class CoverGenerator {
         if (cached) {
             return cached
         }
-        const resp = await fetch(url)
-        if (!resp.ok) {
-            throw new Error(`[generator-web] Failed to fetch font ${url}: HTTP ${resp.status}`)
-        }
-        const bytes = new Uint8Array(await resp.arrayBuffer())
+        const bytes = await fetch_font_bytes(url)
         this.font_bytes.set(url, bytes)
         return bytes
     }
@@ -174,17 +162,11 @@ export class CoverGenerator {
         const bundled_bytes = await Promise.all(font_urls.map(url => this.fetch_font(url)))
 
         // Revoke the previous compiler's blob URLs to avoid memory leaks
-        for (const url of this.font_blob_urls) {
-            URL.revokeObjectURL(url)
-        }
-        this.font_blob_urls = []
+        revoke_blob_urls(this.font_blob_urls)
 
         // One blob URL per font file (bundled + custom) for loadFonts() to read —
         // mapShadow only adds to the virtual filesystem, not the font book
-        for (const data of [...bundled_bytes, ...(custom_fonts ?? [])]) {
-            const blob = new Blob([data as BlobPart], {type: 'font/ttf'})
-            this.font_blob_urls.push(URL.createObjectURL(blob))
-        }
+        this.font_blob_urls = fonts_to_blob_urls([...bundled_bytes, ...(custom_fonts ?? [])])
 
         const compiler_font_opts = loadFonts(this.font_blob_urls)
 
@@ -375,9 +357,7 @@ export class CoverGenerator {
 
     /** Revoke blob URLs and drop cached font bytes to free memory */
     destroy():void {
-        for (const url of this.font_blob_urls) {
-            URL.revokeObjectURL(url)
-        }
+        revoke_blob_urls(this.font_blob_urls)
         this.font_blob_urls = []
         this.font_bytes.clear()
     }
@@ -389,6 +369,9 @@ export class CoverGenerator {
  * font set is known. Each instance is independent — multiple generators can run concurrently.
  */
 export async function init(options:InitOptions):Promise<CoverGenerator> {
+    // Load the curated font manifest before anything else below resolves a font family
+    await load_fonts_prefix(options.fonts_prefix ?? '/fonts/')
+
     // Renderer only needs base fonts (glyph shapes are embedded in compiled vector data)
     let renderer:TypstRenderer | null = null
     if (options.renderer_wasm_url) {
@@ -405,7 +388,7 @@ export async function init(options:InitOptions):Promise<CoverGenerator> {
 
     // Warm the font byte cache with the always-needed base font while the rest of the app
     // finishes loading — a failure here is fine, the first generate simply refetches
-    gen.prefetch_fonts([BASE_FONT]).catch(() => {})
+    gen.prefetch_fonts([base_font()]).catch(() => {})
 
     return gen
 }

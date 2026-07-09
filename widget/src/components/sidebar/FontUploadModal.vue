@@ -62,7 +62,7 @@ UModal(:open="open_model" @update:open="open_model = $event" :ui="{content: 'max
 // FontUploadModal — dialog for uploading custom font files (zip or individual)
 
 import {ref, computed, toRef} from 'vue'
-import {process_uploaded_files} from '../../custom_fonts'
+import {process_uploaded_files} from '../../fonts'
 import {use_modal_tracking} from '../../modal_state'
 
 const props = defineProps<{open:boolean}>()

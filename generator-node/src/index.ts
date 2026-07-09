@@ -8,16 +8,17 @@ import * as crypto from 'node:crypto'
 import {fileURLToPath} from 'node:url'
 import {spawn} from 'node:child_process'
 import {build, cover_schema, split_svg, split_png, split_pdf,
-    asset_path, TYPST_DIR, TEMPLATE_FILES,
-    collect_all_fonts, get_bundled_font, get_noto_font} from 'bookcover'
+    asset_path, TYPST_DIR, TEMPLATE_FILES, collect_all_fonts} from 'bookcover'
 import type {OutputFormat, Templates} from 'bookcover'
 import type {CoverSchema} from 'bookcover'
+import {load_fonts_dir, resolve_font_dirs as resolve_font_dirs_generic} from 'typst-fonts/node'
 import sharp from 'sharp'
 
 export type {CoverSchema, TitlePosition, FontConfig,
-    OutputFormat, SplitResult, PatternDef, BundledFont} from 'bookcover'
-export {list_patterns, get_fonts, get_bundled_font, collect_fonts, collect_all_fonts,
-    default_spine_title} from 'bookcover'
+    OutputFormat, SplitResult, PatternDef} from 'bookcover'
+export type {BundledFont} from 'typst-fonts'
+export {get_fonts, get_bundled_font} from 'typst-fonts'
+export {list_patterns, collect_fonts, collect_all_fonts, default_spine_title} from 'bookcover'
 
 // Resolve the generator package's assets directory
 const ASSETS_BASE = path.join(
@@ -25,9 +26,9 @@ const ASSETS_BASE = path.join(
     '..', 'assets',
 )
 
-// Fonts live in a top-level fonts/ directory (sibling of generator/), published separately
-// from the app — not under generator/assets. Populated locally by running .bin/download_fonts
-// and .bin/download_fonts_noto.
+// Fonts live in a top-level fonts/ directory (sibling of generator/, gitignored) — the fonts
+// collection is managed in a separate repo, so populate this locally from there (e.g. via the
+// typst-fonts-download CLI or a symlink to that repo's tree).
 const FONTS_ROOT = path.join(ASSETS_BASE, '..', '..', 'fonts')
 
 // Image extensions to try when auto-discovering a background image
@@ -79,21 +80,21 @@ async function find_background_image(
     return null
 }
 
-// Resolve the on-disk font directories a schema needs: one per family, curated fonts under
-// FONTS_ROOT/<family>/, Noto fallback families under FONTS_ROOT/_noto/<family>/. Passed to
-// typst as one --font-path per directory so it only scans the fonts actually referenced,
-// instead of the whole fonts/ tree (which can hold 150+ MB of Noto CJK fallback fonts).
+// Resolve the on-disk font directories a schema needs, via typst-fonts/node — one per family,
+// curated fonts under FONTS_ROOT/<family>/, Noto fallback families under
+// FONTS_ROOT/_noto/<family>/. Passed to typst as one --font-path per directory so it only
+// scans the fonts actually referenced, instead of the whole fonts/ tree (which can hold
+// 150+ MB of Noto CJK fallback fonts).
 function resolve_font_dirs(schema:CoverSchema):string[] {
-    const dirs:string[] = []
-    for (const family of collect_all_fonts(schema)) {
-        if (get_bundled_font(family)) {
-            dirs.push(path.join(FONTS_ROOT, family))
-        }
-        else if (get_noto_font(family)) {
-            dirs.push(path.join(FONTS_ROOT, '_noto', family))
-        }
-    }
-    return dirs
+    return resolve_font_dirs_generic(FONTS_ROOT, collect_all_fonts(schema))
+}
+
+// Load the curated font manifest from FONTS_ROOT once per process — every function that
+// resolves fonts (collect_all_fonts, resolve_font_dirs, ...) requires this to have run first
+let fonts_loaded:Promise<void> | undefined
+function ensure_fonts_loaded():Promise<void> {
+    fonts_loaded ??= load_fonts_dir(FONTS_ROOT)
+    return fonts_loaded
 }
 
 // Load typst template files from the generator package assets
@@ -205,6 +206,10 @@ export async function generate(options:GenerateOptions):Promise<GenerateResult> 
     // Default to 144 PPI (2x typographic resolution, 2 × 72pt/in)
     const ppi = options.ppi ?? 144
     const split = options.split ?? false
+
+    // Fonts must be loaded before anything below resolves a font family (build(), then
+    // resolve_font_dirs() further down)
+    await ensure_fonts_loaded()
 
     // Parse schema and get dimensions from printing-services
     const parsed = cover_schema.parse(options.schema)

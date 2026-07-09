@@ -16,6 +16,7 @@
         "@myriaddreamin/typst-ts-renderer": "^0.7.0-rc2",
         "@myriaddreamin/typst-ts-web-compiler": "^0.7.0-rc2",
         "@myriaddreamin/typst.ts": "^0.7.0-rc2",
-        "bookcover": "file:../generator"
+        "bookcover": "file:../generator",
+        "typst-fonts": "^0.1.0"
     }
 }

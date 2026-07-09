@@ -13,21 +13,16 @@ import type {Templates, ImageInput} from './build_files.js'
 import {resolve_icon} from './icon_cache.js'
 import {find_pattern} from './patterns.js'
 import type {FrameImageFn} from './frame.js'
-import {resolve_fallback_chain, cjk_segments, cjk_family} from './noto_fonts.js'
-import type {CjkVariant, FontStyle} from './noto_fonts.js'
-import {resolve_field_cjk_variant, collect_fallback_fonts, font_style} from './fonts.js'
+import {resolve_fallback_chain, cjk_segments, cjk_family, font_style} from 'typst-fonts'
+import type {CjkVariant, FontStyle} from 'typst-fonts'
+import {resolve_field_cjk_variant, collect_fallback_fonts} from './fonts.js'
 import type {FontConfig} from './schema.js'
 import {escape_typst_str} from 'typst-utils'
 
 export type {CoverSchema, TitlePosition, FontConfig} from './schema.js'
 export {default_spine_title} from './utils.js'
-export {BUNDLED_FONTS, get_fonts, get_bundled_font, collect_fonts, collect_all_fonts,
-    collect_fallback_fonts, all_fonts_bundled, resolve_cjk_variant, resolve_field_cjk_variant,
-    font_style, BASE_FONT} from './fonts.js'
-export type {BundledFont} from './fonts.js'
-export {get_noto_font, detect_scripts, resolve_fallback_chain,
-    cjk_segments, cjk_family, detect_cjk_variant, field_cjk_variant} from './noto_fonts.js'
-export type {NotoFont, CjkVariant, FontStyle, CjkSegment} from './noto_fonts.js'
+export {collect_fonts, collect_all_fonts, collect_fallback_fonts, all_fonts_bundled,
+    resolve_cjk_variant, resolve_field_cjk_variant} from './fonts.js'
 export {asset_path, FRAMES_DIR, BACKGROUNDS_DIR,
     TYPST_DIR, TEMPLATE_FILES} from './assets.js'
 export {list_patterns} from './patterns.js'

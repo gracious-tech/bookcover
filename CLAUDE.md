@@ -16,10 +16,13 @@ platform wrappers compile it to PDF/SVG/PNG. The widget provides a live 3D previ
 Dependency graph: `generator` < `generator-node`, `generator-web` < `widget`; `3d` < `widget`.
 `generator` and `3d` have no local deps on each other.
 
-Two helpers are published npm packages (maintained in a separate repo, not workspaces here):
-`typst-utils` (zero-dep Typst string escaping — `escape_typst_str`, `escape_typst`; used by
-`generator` and `widget`) and `pm-to-typst` (a pure ProseMirror/Tiptap doc JSON → Typst
-renderer; used by `widget`). All Typst escaping lives in `typst-utils` — don't re-implement it.
+Three helpers are published npm packages (each maintained in its own separate repo, not
+workspaces here): `typst-utils` (zero-dep Typst string escaping — `escape_typst_str`,
+`escape_typst`; used by `generator` and `widget`), `pm-to-typst` (a pure ProseMirror/Tiptap
+doc JSON → Typst renderer; used by `widget`), and `typst-fonts` (generic font
+manifest/fallback/sfnt-parsing logic for any Typst app; used by `generator`, both platform
+wrappers, and `widget` — see its API notes below). All Typst escaping lives in `typst-utils` —
+don't re-implement it.
 
 The blurb is a WYSIWYG field. `pm-to-typst` is renderer-only — it does NOT own the editor
 schema. The shared Tiptap schema lives in `widget/src/blurb_extensions.ts` (`blurb_extensions`
@@ -36,8 +39,8 @@ alignment, etc.) can be registered; when adding one, register the matching Tipta
 
 ## Build
 
-Each package compiles TypeScript to `dist/` via `tsc`. Local deps use `file:../package-name`.
-Build in dependency order using the `.bin/` scripts:
+Each package compiles TypeScript to `dist/` via `tsc`. The packages are npm workspaces of the
+repo root. Build in dependency order using the `.bin/` scripts:
 
 ```bash
 .bin/build_modules       # generator -> generator-node -> generator-web -> 3d
@@ -45,6 +48,15 @@ Build in dependency order using the `.bin/` scripts:
 .bin/build_site          # build_modules + build_widget
 .bin/build_deploy        # npm ci all packages + build everything (for CI)
 ```
+
+The fonts collection (curated fonts + Noto fallback set + `manifest.json`) is NOT managed in
+this repo — it lives in its own repo and is published at `https://fonts.paper.bible`. Font
+manifests are runtime-loaded, not baked into the build, so `typst-fonts`'s
+`init_fonts()`/`load_fonts_dir()`/`load_fonts_prefix()` need real manifest data to resolve
+against: the widget loads `http://localhost:5300/generator_assets/fonts/manifest.json` in dev
+(the fonts repo's own dev server) and `https://fonts.paper.bible` in production (see
+`widget/src/fonts.ts`), while `generator-node` reads a local top-level `fonts/` dir
+(gitignored) that must be populated from the fonts repo before `.bin/test` works.
 
 For development:
 
@@ -75,19 +87,23 @@ script that calls `generate()` with a sample schema.
   pattern SVG, icon SVGs, barcode SVG, frame composites
 - `split.ts` — Splits a full-spread output into front/back/spine panels (SVG viewBox
   adjustment, PDF CropBox injection, PNG pixel cropping)
-- `fonts.ts` — Bundled font manifest and lookup; `collect_all_fonts()` is the source of truth
-  for which font families a schema needs: chosen fonts plus one Noto fallback per non-Latin
-  script per field, matching each field font's serif/sans style (`style` in the manifest;
-  custom fonts pass a sniffed `style` in their FontConfig), using the other style only when
-  Noto lacks the preferred one. CJK text resolves per SENTENCE segment (`cjk_segments` in
-  noto_fonts.ts): kana → JP, Hangul → KR, Han-only sentences classify by character evidence
-  (simplified-only/traditional-only/shinjitai-only chars — `generated/han_hints.json`, built
-  from OpenCC tables + JP/KR font cmaps by `.bin/download_han_hints`) with `cjk_variant` as
+- `fonts.ts` — Cover-schema-specific font resolution layered on top of the generic `typst-fonts`
+  package (manifest lookup, Noto fallback resolution, CJK/script detection all live there now —
+  see below). `collect_all_fonts()` is the source of truth for which font families a schema
+  needs: chosen fonts plus one Noto fallback per non-Latin script per field, matching each field
+  font's serif/sans style (`style` in the manifest; custom fonts pass a sniffed `style` in their
+  FontConfig), using the other style only when Noto lacks the preferred one. CJK text resolves
+  per SENTENCE segment (`cjk_segments`, in `typst-fonts`): kana → JP, Hangul → KR, Han-only
+  sentences classify by character evidence (simplified-only/traditional-only/shinjitai-only
+  chars — han-hints data bundled inside `typst-fonts`, built from OpenCC tables + JP/KR font
+  cmaps by that repo's maintainer-only `update-han-hints` script) with `cjk_variant` as
   the tiebreaker; a JP/KR default holds unless the sentence needs glyphs that region's font
   lacks. An explicit `cjk_variant` tiebreaks cover-wide; 'auto' resolves sentence → field →
   cover (`resolve_field_cjk_variant`). `build()` wraps the blurb's CJK
   segments in `#text(font:)` spans so one blurb can mix languages; other fields get one
-  family per detected region in their chain
+  family per detected region in their chain. Every function in `fonts.ts` assumes `typst-fonts`
+  has already been initialised by the calling platform wrapper (`generator-node`/`generator-web`)
+  — `generator` itself does no I/O and never calls the loaders
 - `patterns.ts` — 60+ SVG pattern definitions from heropatterns.com (large data file)
 - `barcode.ts` — ISBN-13 barcode generation via bwip-js
 - `frame.ts` — Composites background images into decorative frames (painted, torn edges)
@@ -100,13 +116,38 @@ script that calls `generate()` with a sample schema.
   (blurb + barcode) -> spine text -> front content (title/subtitle/author in position boxes)
 - `_helpers.typ` — `fit-to-width` and `shrink-to-width` scaling helpers used by cover.typ
 
+### Font logic (`typst-fonts` npm package)
+
+Generic, cover-app-agnostic font manifest/fallback logic, maintained in its own repo and
+installed from npm. Nothing in it knows about `CoverSchema`/`FontConfig`. The API surface this
+repo uses:
+
+- Main export — Noto per-script fallback + CJK/script detection (`detect_scripts`,
+  `resolve_fallback_chain`, `cjk_segments`, `cjk_family`, `detect_cjk_variant`, etc.; backed by
+  data bundled in the package, so these work immediately on import with no setup call);
+  curated-font lookups (`get_bundled_font`, `get_fonts`, `base_font`, `font_style` — this data
+  is app-specific so it's runtime-loaded via `init_fonts()`, and every lookup throws until a
+  loader has run); pure TTF/OTF sfnt parsing (`parse_font_family`, `parse_font_style`); and
+  custom-font upload processing (`process_font_files` — zip extraction, weight filtering,
+  family grouping, serif/sans sniffing — returning `CustomFont[]`).
+- `typst-fonts/node` / `typst-fonts/web` — platform loaders (`load_fonts_dir`,
+  `load_fonts_prefix`) that read an app's `manifest.json` and call `init_fonts()`, plus
+  platform-specific helpers: `resolve_font_dirs`/`write_custom_fonts` on Node;
+  `font_file_url`/`font_urls_for`/`fetch_font_bytes`/`fonts_to_blob_urls`/`revoke_blob_urls`/
+  `register_preview_fonts`/`register_custom_font_preview` on web.
+- `typst-fonts-download` CLI (+ `typst-fonts/download` API) — downloads a fonts tree for an
+  app. Not used by this repo: the fonts collection paper_cover consumes is managed and
+  published by its own separate repo (see Build above).
+
 ### Platform wrappers
 
 **generator-node**: Writes files to a temp directory, spawns the `typst` CLI binary, reads
-output back. Uses `sharp` for PNG cropping in split mode.
+output back. Uses `sharp` for PNG cropping in split mode. Lazily calls `typst-fonts/node`'s
+`load_fonts_dir()` once per process (memoised) before the first `generate()` resolves any font.
 
 **generator-web**: Manages a `TypstCompiler` + optional `TypstRenderer` (WASM). Files are
-loaded into a virtual shadow filesystem. The compiler is reinitialised when the set of
+loaded into a virtual shadow filesystem. `init()` calls `typst-fonts/web`'s `load_fonts_prefix()`
+before anything else touches fonts. The compiler is reinitialised when the set of
 required fonts changes (tracked by `active_fonts` cache key). Renderer is init'd once.
 
 ### Widget (`widget/src/`)
@@ -148,11 +189,13 @@ bleed values, or option lists.
 
 ### Schema format
 
+The cover schema is flat — print options are top-level fields:
+
 ```js
-printer: {service: 'kdp', binding_type: 'paperback', ink_type: 'bw', paper_type: 'white'}
-size: {size_id: 'us_trade', page_count: 300}
+service_id: 'kdp', binding_type: 'paperback', ink_type: 'bw', paper_type: 'white',
+size_id: 'us_trade', page_count: 300,
 // or custom size:
-size: {trim_width: 152, trim_height: 229, trim_unit: 'mm', page_count: 300}
+custom_trim_width: 152, custom_trim_height: 229, custom_unit: 'mm', page_count: 300,
 ```
 
 ## Key patterns
@@ -170,9 +213,11 @@ size: {trim_width: 152, trim_height: 229, trim_unit: 'mm', page_count: 300}
   has its own debounce on top.
 - **Modal tracking**: `modal_state.ts` tracks open modals; `App.vue` defers regeneration
   while any modal is open to avoid layout thrashing.
-- **Custom fonts**: Uploaded .ttf/.otf/.zip files are processed in `custom_fonts.ts`, stored
-  as `FontFace` objects in `document.fonts`, and passed as raw `Uint8Array` bytes to the
-  generator for Typst compilation.
+- **Custom fonts**: Uploaded .ttf/.otf/.zip files are processed by `typst-fonts`'s
+  `process_font_files()` (zip extraction, weight filtering, family grouping, serif/sans
+  sniffing), stored in `fonts.ts`'s reactive `CustomFont[]` store, registered for preview via
+  `register_custom_font_preview()`, and passed as raw `Uint8Array` bytes to the generator for
+  Typst compilation.
 - **Vue Pug + TS**: Volar can't trace Pug template bindings, so components/refs used only
   in templates get `@ts-ignore TS6133` comments. `SidebarPanel.vue` uses `defineOptions({components})`
   to register its children explicitly.
@@ -194,9 +239,6 @@ size: {trim_width: 152, trim_height: 229, trim_unit: 'mm', page_count: 300}
 | `serve_site` | `vite` dev server in site/ |
 | `test` | Generate test covers (PDF/SVG/PNG) for visual inspection |
 | `setup_typst` | Download latest typst binary to .bin/ |
-| `download_fonts` | Fetch Google Fonts into generator/assets/fonts/ + generate manifest |
-| `download_fonts_noto` | Fetch Noto fallback fonts into fonts/_noto/ + generate manifest |
-| `download_han_hints` | Generate Han-region evidence chars (OpenCC) + JP/KR font coverage gaps |
 | `gen_bg_thumbnails` | Generate 160x120 thumbnails for background images via sharp |
 
 ## Gotchas
@@ -211,7 +253,8 @@ size: {trim_width: 152, trim_height: 229, trim_unit: 'mm', page_count: 300}
 - **npm v9 bug**: `widget/` fails `npm install` on npm 9.x due to nested `file:` dep
   resolution; use `npx npm@latest install` as a workaround.
 - **generator_assets symlink**: `widget/public/generator_assets` is a symlink to
-  `../../generator/assets` so Vite can serve fonts, backgrounds, and templates at dev time.
+  `../../generator/assets` so Vite can serve backgrounds and templates at dev time (fonts are
+  NOT served from here — they come from the separate fonts repo's server, see Build).
 - **No semicolons**: All TypeScript uses no semicolons, snake_case for variables/functions.
 - **Patterns file**: `generator/src/patterns.ts` is ~810 lines / 167K tokens — almost
   entirely inline SVG data strings. Don't try to read the whole file.

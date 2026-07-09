@@ -7,40 +7,29 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT/generator" && npm run build --silent
 cd "$ROOT/generator-node" && npm run build --silent
 
-# Shared schema used by all test cases
+# Shared schema used by all test cases (flat top-level format, see generator/src/schema.ts)
 SCHEMA='{
-    text: {
-        title_pre: "The",
-        title: "Art of Code",
-        subtitle: "A journey through software craft",
-        author: "Alice Chen",
-        isbn: "978-3-16-148410-0",
-        back_blurb: `*The Art of Code* is a deep dive into the timeless \
+    title1: "The",
+    title2: "Art of Code",
+    title_position: "top",
+    subtitle: "A journey through software craft",
+    subtitle_position: "middle",
+    author: "Alice Chen",
+    author_position: "bottom",
+    blurb: `*The Art of Code* is a deep dive into the timeless \
 principles behind great software.
 
 Whether you are a seasoned engineer or just starting out, this book will \
 challenge the way you think about your craft.`,
-    },
-    colors: {
-        front_background: "#1a1a2e",
-        front_title:      "#e8e8f0",
-        front_title_pre:  "#7f8cf7",
-        front_subtitle:   "#aaaacc",
-        front_author:     "#ccccdd",
-        back_background:  "#16213e",
-        back_blurb:       "#ddddee",
-        spine_background: "#7f8cf7",
-        spine_title:      "#1a1a2e",
-        spine_author:     "#1a1a2e",
-        accent:           "#7f8cf7",
-    },
-    size: {
-        size_id:     "us_trade",
-        page_count:  300,
-    },
-    images: {},
-    theme: {name: "minimal", font: "serif"},
-    printer: {service: "kdp", binding_type: "paperback", ink_type: "bw", paper_type: "white"},
+    bg_color: "hsl(237deg, 28%, 14%)",
+    spine_color: "hsl(234deg, 88%, 73%)",
+    service_id: "kdp",
+    binding_type: "paperback",
+    ink_type: "bw",
+    paper_type: "white",
+    size_id: "us_trade",
+    page_count: 300,
+    isbn: "978-3-16-148410-0",
 }'
 
 # Run test generation — PDF, SVG, and PNG (with splitting)

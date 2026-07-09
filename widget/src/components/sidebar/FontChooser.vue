@@ -66,8 +66,8 @@ div(class="flex flex-col gap-1")
 
 import {ref, computed, onMounted} from 'vue'
 import {get_fonts} from 'bookcover-web'
-import {custom_font_families} from '../../custom_fonts'
-import {bundled_font_url} from '../../font_urls'
+import {register_preview_fonts} from 'typst-fonts/web'
+import {custom_font_families, fonts_prefix} from '../../fonts'
 import FontUploadModal from './FontUploadModal.vue'
 
 const props = defineProps<{
@@ -136,23 +136,13 @@ function font_css(family:string):string {
     return `'${family}', serif`
 }
 
-// Load bundled fonts as @font-face for preview rendering (once globally)
+// Register bundled fonts as @font-face for preview rendering (once globally) — the browser
+// fetches each file lazily when its family first appears in rendered text
 let preview_fonts_loaded = false
-onMounted(async () => {
+onMounted(() => {
     if (preview_fonts_loaded)
         return
     preview_fonts_loaded = true
-
-    for (const font of bundled) {
-        // Fonts moved out of generator_assets to the separately-published fonts/ tree
-        const url = bundled_font_url(font.family, font.preview_file)
-        try {
-            const face = new FontFace(font.family, `url(${url})`)
-            await face.load()
-            document.fonts.add(face)
-        } catch {
-            // Font preview will fall back to serif
-        }
-    }
+    register_preview_fonts(fonts_prefix, bundled)
 })
 </script>

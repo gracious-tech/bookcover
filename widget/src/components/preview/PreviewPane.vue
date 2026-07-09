@@ -229,7 +229,7 @@ import {get_service, get_custom_dimensions} from 'printing-services'
 import type {BindingTypeId, SizeId, CustomSize} from 'printing-services'
 import {FORM_KEY, IS_MOBILE_KEY, FULL_SVG_KEY, GENERATOR_KEY} from '../../form_state'
 import {build_schema, read_image, read_image_preview} from '../../schema'
-import {all_custom_font_bytes} from '../../custom_fonts'
+import {all_custom_font_bytes} from '../../fonts'
 import {debounce} from '../../svg_utils'
 import {modal_open_count} from '../../modal_state'
 
