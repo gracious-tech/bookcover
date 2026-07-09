@@ -154,8 +154,14 @@ required fonts changes (tracked by `active_fonts` cache key). Renderer is init'd
 
 - `form_state.ts` — Reactive form state (`FormState` interface), injected via Vue provide/inject
 - `schema.ts` — Converts `FormState` into the generator schema format
-- `App.vue` — Root layout; initialises the WASM generator, manages generate-on-change loop
-  with debouncing and deferred generation while modals are open
+- `App.vue` — Root layout; starts the generator Web Worker (and loads the font manifest on
+  the main thread for the pickers), manages generate-on-change loop with debouncing and
+  deferred generation while modals are open
+- `generator_worker.ts` / `generator_client.ts` — Web Worker owning the WASM compiler (all
+  generation runs off the main thread) + the main-thread client that relays calls via
+  id-tagged request/response messages (same pattern as paper_bible's `typst_worker.ts`).
+  The worker keeps a snapshot of uploaded font bytes (`set_custom_fonts` action, re-sent on
+  upload) so `generate` options don't carry fonts and byte identity stays stable worker-side
 - `components/sidebar/SidebarPanel.vue` — Four collapsible sections: Cover Text, Book Size,
   Background, Advanced
 - `components/preview/PreviewPane.vue` — Tab bar (Full/Split/3D/Photo/Print) + preview
@@ -205,7 +211,8 @@ custom_trim_width: 152, custom_trim_height: 229, custom_unit: 'mm', page_count: 
   into an in-memory cache keyed by URL and handed to typst.ts `loadFonts()` as blob URLs
   (bundled and custom alike); blob URLs are revoked on reinit to prevent leaks. Custom fonts
   are keyed by `Uint8Array` object identity (WeakMap ids), so callers must pass stable
-  references across generates.
+  references across generates (structured clone breaks identity, hence the worker's
+  `set_custom_fonts` snapshot in the widget).
 - **Split output**: SVG splits adjust the viewBox; PDF splits inject CropBox arrays into the
   raw PDF bytes; PNG splits use a crop callback (`sharp` on Node, Canvas API on web).
 - **Debounced inputs**: Color pickers debounce at 800ms (`ColorPicker.vue`) or 2000ms
@@ -216,8 +223,8 @@ custom_trim_width: 152, custom_trim_height: 229, custom_unit: 'mm', page_count: 
 - **Custom fonts**: Uploaded .ttf/.otf/.zip files are processed by `typst-fonts`'s
   `process_font_files()` (zip extraction, weight filtering, family grouping, serif/sans
   sniffing), stored in `fonts.ts`'s reactive `CustomFont[]` store, registered for preview via
-  `register_custom_font_preview()`, and passed as raw `Uint8Array` bytes to the generator for
-  Typst compilation.
+  `register_custom_font_preview()`, and snapshot-sent as raw `Uint8Array` bytes to the
+  generator worker (`set_custom_fonts`) for Typst compilation.
 - **Vue Pug + TS**: Volar can't trace Pug template bindings, so components/refs used only
   in templates get `@ts-ignore TS6133` comments. `SidebarPanel.vue` uses `defineOptions({components})`
   to register its children explicitly.
@@ -246,7 +253,8 @@ custom_trim_width: 152, custom_trim_height: 229, custom_unit: 'mm', page_count: 
 - **Widget CSS**: `styles.sss` (SugarSS) for global styles; `tailwind.css` must stay vanilla
   CSS because Tailwind's plugin system breaks inside preprocessors.
 - **Typst binary**: `generator-node` requires `typst` on PATH. Run `.bin/setup_typst` to install.
-- **WASM lifecycle**: `generator-web` creates a `CoverGenerator` instance via `init()`.
+- **WASM lifecycle**: `generator-web` creates a `CoverGenerator` instance via `init()` — in
+  the widget this all happens inside `generator_worker.ts`, never on the main thread.
   The compiler is reinitialised per-generate when fonts change; the renderer is not
   (glyph outlines are embedded in compiled vector data).
 - **Pug comments**: Use `//-` not `//` in `<template lang="pug">` blocks.

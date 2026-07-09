@@ -3,8 +3,9 @@
 
 import {reactive} from 'vue'
 import type {InjectionKey, Ref, ShallowRef} from 'vue'
-import type {CoverGenerator, CjkVariant} from 'bookcover-web'
+import type {CjkVariant} from 'bookcover-web'
 import type {PmDoc, PmNode} from 'pm-to-typst'
+import type {GeneratorWorkerClient} from './generator_client'
 
 /** All form fields for the book cover generator */
 export interface FormState {
@@ -136,7 +137,8 @@ export interface FormState {
 export const FORM_KEY: InjectionKey<FormState> = Symbol('form')
 export const IS_MOBILE_KEY: InjectionKey<Ref<boolean>> = Symbol('is_mobile')
 export const FULL_SVG_KEY: InjectionKey<Ref<string | null>> = Symbol('full_svg')
-export const GENERATOR_KEY: InjectionKey<ShallowRef<CoverGenerator | null>> = Symbol('generator')
+export const GENERATOR_KEY: InjectionKey<ShallowRef<GeneratorWorkerClient | null>> =
+    Symbol('generator')
 
 /** Plain object with blank/empty values — no demo content, white background, no icon or pattern */
 export function make_blank_form_values(): FormState {

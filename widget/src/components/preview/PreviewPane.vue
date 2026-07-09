@@ -484,13 +484,11 @@ async function run_generate():Promise<void> {
         const img = await read_image_preview(form, preview_w, preview_h)
 
         // Generate SVG with split panels (needed for 3D renderer and split view)
-        const custom_fonts = all_custom_font_bytes.value
         const result = await generator.value!.generate({
             schema,
             image: img,
             format: 'svg',
             split: true,
-            ...(custom_fonts.length ? {custom_fonts} : {}),
         })
 
         if (!result.split)
@@ -556,11 +554,7 @@ async function export_pdf():Promise<void> {
     try {
         const schema = build_schema(form)
         const img = read_image(form)
-        const custom_fonts = all_custom_font_bytes.value
-        const result = await generator.value!.generate({
-            schema, image: img,
-            ...(custom_fonts.length ? {custom_fonts} : {}),
-        })
+        const result = await generator.value!.generate({schema, image: img})
         // .slice() produces Uint8Array<ArrayBuffer> (not ArrayBufferLike), satisfying BlobPart
         trigger_download(new Blob([(result.data as Uint8Array).slice()], {type: 'application/pdf'}), 'cover.pdf')
     }
@@ -584,10 +578,8 @@ async function export_split_pdfs():Promise<void> {
     try {
         const schema = build_schema(form)
         const img = read_image(form)
-        const custom_fonts = all_custom_font_bytes.value
         const result = await generator.value!.generate({
             schema, image: img, format: 'pdf', split: true,
-            ...(custom_fonts.length ? {custom_fonts} : {}),
         })
 
         const parts = result.split as {front:Uint8Array, back:Uint8Array, spine?:Uint8Array}
@@ -681,8 +673,14 @@ watch(
     () => { text_changed = true; schedule_generate() },
 )
 
-// Re-generate when custom fonts are uploaded (they affect rendering)
-watch(all_custom_font_bytes, () => run_generate())
+// Push uploaded fonts to the generator worker (it holds a copy, not our array reference),
+// then re-generate with them. Uploads before the worker is ready are sent by App.vue instead.
+watch(all_custom_font_bytes, async (fonts) => {
+    if (!generator.value)
+        return
+    await generator.value.set_custom_fonts(fonts)
+    void run_generate()
+})
 
 // All other form changes (selects, toggles, etc.) run immediately;
 // text field changes are handled above and suppressed here via the flag

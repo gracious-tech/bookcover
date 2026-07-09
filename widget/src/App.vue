@@ -16,16 +16,14 @@ UButton.mobile-fab(
 
 <script setup lang="ts">
 
-// App root — initialises WASM, provides form state, renders layout
+// App root — starts the generator worker, provides form state, renders layout
 
-import wasm_url from '@myriaddreamin/typst-ts-web-compiler/pkg/typst_ts_web_compiler_bg.wasm?url'
-import renderer_wasm_url from '@myriaddreamin/typst-ts-renderer/pkg/typst_ts_renderer_bg.wasm?url'
-import {init} from 'bookcover-web'
-import type {CoverGenerator} from 'bookcover-web'
 import {ref, shallowRef, provide} from 'vue'
 import {useMediaQuery} from '@vueuse/core'
+import {load_fonts_prefix} from 'typst-fonts/web'
 import {make_form, FORM_KEY, IS_MOBILE_KEY, FULL_SVG_KEY, GENERATOR_KEY} from './form_state'
-import {fonts_prefix} from './fonts'
+import {GeneratorWorkerClient} from './generator_client'
+import {fonts_prefix, all_custom_font_bytes} from './fonts'
 
 import SidebarPanel from './components/sidebar/SidebarPanel.vue'
 import PreviewPane from './components/preview/PreviewPane.vue'
@@ -48,17 +46,30 @@ provide(FULL_SVG_KEY, full_svg)
 // Mobile view toggle — which panel is visible on narrow viewports
 const mobile_view = ref<'sidebar' | 'preview'>('sidebar')
 
-// Generator instance — null until WASM init completes
-const generator = shallowRef<CoverGenerator | null>(null)
+// Generator worker client — null until the worker's WASM compiler has initialised
+const generator = shallowRef<GeneratorWorkerClient | null>(null)
 provide(GENERATOR_KEY, generator)
 
 // Generator assets (typst templates, frames, backgrounds) served via symlink; fonts are
 // published separately and resolved via fonts_prefix (see fonts.ts)
 const assets_prefix = new URL('/generator_assets/', window.location.href).href
 
-// Initialise the WASM compiler and store the generator instance
-init({wasm_url, renderer_wasm_url, assets_prefix, fonts_prefix}).then((gen) => {
-    generator.value = gen
+// Load the font manifest on the main thread too — the worker loads its own copy, but the
+// font pickers/previews (get_fonts, register_preview_fonts) resolve against this one
+void load_fonts_prefix(fonts_prefix).catch((err:unknown) => {
+    console.error('Font manifest load failed:', err)
+})
+
+// Initialise the WASM compiler in a Web Worker (non-blocking — preview waits on it, and
+// compilation runs off the main thread so it never lags the UI)
+const client = new GeneratorWorkerClient()
+client.init(assets_prefix, fonts_prefix).then(async () => {
+    // The worker holds a snapshot of uploaded fonts — PreviewPane re-sends after changes,
+    // and this covers any uploads that happened before the worker was ready
+    if (all_custom_font_bytes.value.length) {
+        await client.set_custom_fonts(all_custom_font_bytes.value)
+    }
+    generator.value = client
 }).catch((err:unknown) => {
     console.error('WASM init failed:', err)
 })

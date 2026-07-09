@@ -67,6 +67,27 @@ function throw_compile_error(diagnostics:unknown):never {
     throw new Error(`[generator-web] Typst compilation failed:\n${diag}`)
 }
 
+/** Create a 2D canvas — a DOM element on the main thread, OffscreenCanvas inside a worker */
+function make_canvas(width:number, height:number):HTMLCanvasElement | OffscreenCanvas {
+    if (typeof document === 'undefined') {
+        return new OffscreenCanvas(width, height)
+    }
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    return canvas
+}
+
+/** Encode a canvas' contents as PNG bytes (handles both canvas types) */
+async function canvas_png_bytes(canvas:HTMLCanvasElement | OffscreenCanvas):Promise<Uint8Array> {
+    const blob = 'convertToBlob' in canvas
+        ? await canvas.convertToBlob({type: 'image/png'})
+        : await new Promise<Blob>((resolve) => {
+            canvas.toBlob((b) => resolve(b!), 'image/png')
+        })
+    return new Uint8Array(await blob.arrayBuffer())
+}
+
 /** Crop a region from a PNG using the Canvas API — used as PngCropFn */
 async function canvas_crop(
     data:Uint8Array,
@@ -78,17 +99,12 @@ async function canvas_crop(
     const blob = new Blob([data as BlobPart], {type: 'image/png'})
     const bitmap = await createImageBitmap(blob)
 
-    const canvas = document.createElement('canvas')
-    canvas.width = w
-    canvas.height = h
-    const ctx = canvas.getContext('2d')!
+    const canvas = make_canvas(w, h)
+    const ctx = (canvas as HTMLCanvasElement).getContext('2d')!
     ctx.drawImage(bitmap, x, y, w, h, 0, 0, w, h)
     bitmap.close()
 
-    const out_blob = await new Promise<Blob>((resolve) => {
-        canvas.toBlob((b) => resolve(b!), 'image/png')
-    })
-    return new Uint8Array(await out_blob.arrayBuffer())
+    return canvas_png_bytes(canvas)
 }
 
 /** Stateful cover generator — each instance owns its own compiler and renderer */
