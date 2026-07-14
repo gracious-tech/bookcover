@@ -24,6 +24,7 @@ import {load_fonts_prefix} from 'typst-fonts/web'
 import {make_form, FORM_KEY, IS_MOBILE_KEY, FULL_SVG_KEY, GENERATOR_KEY} from './form_state'
 import {GeneratorWorkerClient} from './generator_client'
 import {fonts_prefix, all_custom_font_bytes} from './fonts'
+import {init_embed} from './embed'
 
 import SidebarPanel from './components/sidebar/SidebarPanel.vue'
 import PreviewPane from './components/preview/PreviewPane.vue'
@@ -34,6 +35,9 @@ defineOptions({components: {SidebarPanel, PreviewPane}})
 // Create reactive form state and provide it to all child components
 const form = make_form()
 provide(FORM_KEY, form)
+
+// Wire up the postMessage embed API — no-ops when not running inside an iframe
+init_embed(form)
 
 // Mobile breakpoint — matches the 1000px threshold used in CSS
 const is_mobile = useMediaQuery('(max-width: 1000px)')

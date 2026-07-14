@@ -9,20 +9,21 @@ aside.sidebar-panel(class="flex flex-col w-100 shrink-0 bg-(--ui-bg-elevated) bo
         div(class="flex flex-col gap-[24px] px-4 pb-[48px] pt-[14px] bg-(--section-primary-body)")
             ContentSection
 
-        div(class="text-sm font-bold tracking-[0.08em] uppercase bg-(--section-middle-header) border-t border-b border-(--ui-border) px-4 py-[14px]") Book Size
-        div(class="px-4 pb-[24px] pt-[14px] bg-(--section-middle-body)")
-            div(class='flex flex-col gap-[24px]')
-                SizeSection
-            div(class='text-center pt-3')
-                UButton(
-                    type="button"
-                    variant="link"
-                    color="neutral"
-                    size="xs"
-                    class="self-end -mt-3"
-                    @click="size_help_open = true"
-                ) Why must these be correct?
-                SizeSectionHelpModal(v-model:open="size_help_open")
+        template(v-if="!hide_size_section")
+            div(class="text-sm font-bold tracking-[0.08em] uppercase bg-(--section-middle-header) border-t border-b border-(--ui-border) px-4 py-[14px]") Book Size
+            div(class="px-4 pb-[24px] pt-[14px] bg-(--section-middle-body)")
+                div(class='flex flex-col gap-[24px]')
+                    SizeSection
+                div(class='text-center pt-3')
+                    UButton(
+                        type="button"
+                        variant="link"
+                        color="neutral"
+                        size="xs"
+                        class="self-end -mt-3"
+                        @click="size_help_open = true"
+                    ) Why must these be correct?
+                    SizeSectionHelpModal(v-model:open="size_help_open")
 
         div(class="text-sm font-bold tracking-[0.08em] uppercase bg-(--section-secondary-header) border-t border-b border-(--ui-border) px-4 py-[14px]") Background
         div(class="flex flex-col gap-[24px] px-4 pb-[48px] pt-[14px] bg-(--section-secondary-body)")
@@ -57,6 +58,7 @@ aside.sidebar-panel(class="flex flex-col w-100 shrink-0 bg-(--ui-bg-elevated) bo
 import {ref, inject} from 'vue'
 import {IS_MOBILE_KEY, FULL_SVG_KEY} from '../../form_state'
 import {svg_data_url} from '../../svg_utils'
+import {hide_size_section} from '../../embed'
 import ContentSection from './ContentSection.vue'
 import BackgroundSection from './BackgroundSection.vue'
 import SizeSection from './SizeSection.vue'

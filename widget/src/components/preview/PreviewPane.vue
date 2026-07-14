@@ -82,6 +82,7 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
                 )
                 //- Export PDF (single) or Export PDFs (split parts as zip)
                 UButton(
+                    v-if="!finished_mode"
                     :icon="is_mobile ? 'material-symbols:draft' : undefined"
                     color="primary"
                     variant='solid'
@@ -91,6 +92,16 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
                     @click="view_mode === 'split' ? export_split_pdfs() : export_pdf()"
                 )
                     template(v-if="!is_mobile") {{ view_mode === 'split' ? 'Export PDFs' : 'Export PDF' }}
+                //- Embed mode: signals the parent to close instead of exporting a PDF locally
+                UButton(
+                    v-else
+                    :icon="is_mobile ? 'material-symbols:check-circle' : undefined"
+                    color="primary"
+                    variant='solid'
+                    class="cursor-pointer"
+                    @click="notify_finished"
+                )
+                    template(v-if="!is_mobile") Finished
                 //- Fallback download icon — redownloads whatever was last saved/exported
                 UButton(
                     v-if="last_url"
@@ -232,6 +243,7 @@ import {build_schema, read_image, read_image_preview} from '../../schema'
 import {all_custom_font_bytes} from '../../fonts'
 import {debounce} from '../../svg_utils'
 import {modal_open_count} from '../../modal_state'
+import {finished_mode, notify_finished} from '../../embed'
 
 import LogSlider from '../LogSlider.vue'
 import Preview3D from './Preview3D.vue'
