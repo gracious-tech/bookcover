@@ -50,6 +50,17 @@ div(class="flex flex-col gap-1")
             @click="form.bg_image = null"
         )
 
+    //- Inline resolution warning — short label, click opens the full-detail dialog
+    button(
+        v-if="bg_dpi_warning"
+        type="button"
+        class="text-sm flex items-center gap-1 cursor-pointer hover:underline w-fit ml-1 mt-1"
+        :class="dpi_warning_class"
+        @click="low_res_dialog_open = true"
+    )
+        UIcon(:name="dpi_warning_icon" class="w-3.5 h-3.5 shrink-0")
+        span {{ dpi_warning_short }}
+
 
 //- Background image coverage
 div(v-if='form.bg_image' class="flex flex-col gap-1")
@@ -302,6 +313,27 @@ div(v-if="form.icon_id" class="flex flex-col gap-2")
 //- Iconify help modal — opened by the "more" button in the icon picker
 IconifyHelpModal(v-model:open="icon_help_open")
 
+//- One-time low-resolution warning shown right after a new image is added
+UModal(v-model:open="low_res_dialog_open" :ui="{content: 'max-w-sm'}")
+    template(#header)
+        p(class="text-lg font-semibold") {{ bg_dpi_warning?.title }}
+    template(#body)
+        div(class="flex flex-col gap-3")
+            p(class="text-sm text-muted") {{ bg_dpi_warning?.body }}
+            dl(class="text-xs text-muted flex flex-col gap-0.5")
+                div(class="flex justify-between gap-2")
+                    dt Image size
+                    dd {{ bg_dpi_warning?.actual_size }}
+                div(v-if="bg_dpi_warning?.acceptable_size" class="flex justify-between gap-2")
+                    dt Acceptable size
+                    dd {{ bg_dpi_warning?.acceptable_size }}
+                div(class="flex justify-between gap-2")
+                    dt Recommended size
+                    dd {{ bg_dpi_warning?.recommended_size }}
+    template(#footer)
+        div(class="flex justify-end w-full")
+            UButton(type="button" color="neutral" variant="subtle" size="sm" @click="low_res_dialog_open = false") Understood
+
 </template>
 
 <script lang="ts">
@@ -321,6 +353,8 @@ import {suggested_icons} from '../../services/icons'
 import {PATTERNS, PREVIEW_PATTERNS, get_preview_url, get_preview_size} from '../../services/patterns'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
 import {BACKGROUNDS, PREVIEW_BGS, bg_thumb_url, bg_url} from '../../services/backgrounds'
+import {check_bg_image_dpi} from '../../dpi'
+import type {BgImageDpiWarning} from '../../dpi'
 import ColorPicker from './ColorPicker.vue'
 import ColorSwatch from './ColorSwatch.vue'
 import LogSlider from '../LogSlider.vue'
@@ -359,6 +393,76 @@ const bg_picker_open = ref(false)
 // Object URL for current bg_image File — revokes previous URL on change
 const bg_image_url = computed(() => form.bg_image ? URL.createObjectURL(form.bg_image) : '')
 watch(bg_image_url, (_new, old) => { if (old) URL.revokeObjectURL(old) })
+
+// Intrinsic pixel dimensions of the current bg_image, decoded async whenever the file changes
+const bg_image_px = ref<{width:number, height:number} | null>(null)
+
+// Live resolution warning for the current image against the current print size (full-cover
+// basis) — null when resolution is fine or nothing is uploaded yet
+const bg_dpi_warning = computed<BgImageDpiWarning | null>(() => {
+    if (!bg_image_px.value)
+        return null
+    try {
+        return check_bg_image_dpi(form, bg_image_px.value.width, bg_image_px.value.height)
+    } catch {
+        return null
+    }
+})
+
+// Short clickable label for the inline warning — full detail lives in the dialog it opens
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+const dpi_warning_short = computed(() => (
+    bg_dpi_warning.value?.level === 'very_low' ? 'Very low resolution - should change' : 'Low resolution - may look soft'
+))
+
+// Inline warning styling — amber for the mild tier, red for the severe tier
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+const dpi_warning_class = computed(() => ({
+    'text-amber-600 dark:text-amber-400': bg_dpi_warning.value?.level === 'low',
+    'text-red-600 dark:text-red-400': bg_dpi_warning.value?.level === 'very_low',
+}))
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+const dpi_warning_icon = computed(() => (
+    bg_dpi_warning.value?.level === 'very_low' ? 'material-symbols:error' : 'material-symbols:warning'
+))
+
+// One-time low-resolution dialog, opened when a newly user-added image is below print quality
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+const low_res_dialog_open = ref(false)
+
+// Set right before a user-initiated upload/paste so the watcher below only pops the one-time
+// dialog for images the user actually chose — not suggested backgrounds or the mount default
+let bg_image_is_user_upload = false
+
+/** Decode a File's intrinsic pixel dimensions */
+async function decode_image_size(file:File):Promise<{width:number, height:number}> {
+    const bitmap = await createImageBitmap(file)
+    const size = {width: bitmap.width, height: bitmap.height}
+    bitmap.close()
+    return size
+}
+
+// Re-decode pixel dimensions whenever the image changes, then show the one-time low-res
+// dialog if a newly user-added image doesn't meet the current print size
+watch(() => form.bg_image, async (file) => {
+    const check_dialog = bg_image_is_user_upload
+    bg_image_is_user_upload = false
+    if (!file) {
+        bg_image_px.value = null
+        return
+    }
+    const size = await decode_image_size(file)
+    // Bail if the image changed again while decoding
+    if (form.bg_image !== file)
+        return
+    bg_image_px.value = size
+    if (!check_dialog)
+        return
+    try {
+        if (check_bg_image_dpi(form, size.width, size.height))
+            low_res_dialog_open.value = true
+    } catch { /* print dimensions not resolvable yet */ }
+})
 
 // Load a default background on first mount only (module-scoped to survive remounts)
 onMounted(() => {
@@ -438,7 +542,9 @@ function on_bg_color_input(e:Event): void {
 /** Read the selected file from the file input and store it on the form */
 function on_image_change(event:Event): void {
     const input = event.target as HTMLInputElement
-    form.bg_image = input.files?.[0] ?? null
+    const file = input.files?.[0] ?? null
+    if (file) bg_image_is_user_upload = true
+    form.bg_image = file
 }
 
 /** Extract an image file from a DataTransferItemList, if present */
@@ -459,6 +565,7 @@ async function on_paste_click(): Promise<void> {
         const image_type = item.types.find(t => t.startsWith('image/'))
         if (image_type) {
             const blob = await item.getType(image_type)
+            bg_image_is_user_upload = true
             form.bg_image = new File([blob], 'pasted', {type: image_type})
             return
         }
@@ -473,6 +580,7 @@ function on_global_paste(event:ClipboardEvent): void {
     const file = image_from_clipboard(event.clipboardData.items)
     if (file) {
         event.preventDefault()
+        bg_image_is_user_upload = true
         form.bg_image = file
     }
 }

@@ -236,11 +236,12 @@ const photo_bg_urls:Record<string, string> = {
 import {ref, watch, inject, computed, reactive, onUnmounted} from 'vue'
 import {useDark} from '@vueuse/core'
 import {zipSync} from 'fflate'
-import {get_service, get_custom_dimensions} from 'printing-services'
-import type {BindingTypeId, SizeId, CustomSize} from 'printing-services'
+import {get_service} from 'printing-services'
+import type {SizeId} from 'printing-services'
 import {FORM_KEY, IS_MOBILE_KEY, FULL_SVG_KEY, GENERATOR_KEY} from '../../form_state'
 import {build_schema, read_image, read_image_preview} from '../../schema'
 import {all_custom_font_bytes} from '../../fonts'
+import {compute_cover_dims} from '../../dimensions'
 import {debounce} from '../../svg_utils'
 import {modal_open_count} from '../../modal_state'
 import {finished_mode, notify_finished} from '../../embed'
@@ -365,39 +366,10 @@ const save_label = computed(() => ({
 }[view_mode.value]))
 const full_svg = inject(FULL_SVG_KEY)!
 
-// Convert a value to mm based on the form's custom unit
-function form_to_mm(v:number):number {
-    return form.custom_unit === 'inch' ? v * 25.4 : v
-}
-
-/** Compute cover dimensions from the current form state */
-function compute_dims() {
-    const unit = form.custom_unit as 'mm' | 'inch'
-    if (form.service_id === 'custom') {
-        const size:SizeId | {width:number, height:number} = form.size_id
-            ? form.size_id as SizeId
-            : {width: form_to_mm(form.custom_trim_width), height: form_to_mm(form.custom_trim_height)}
-        return get_custom_dimensions({
-            unit: 'mm', size,
-            bleed: form_to_mm(form.custom_bleed),
-            spine: form_to_mm(form.custom_spine),
-        })
-    }
-    const service = get_service(form.service_id as Parameters<typeof get_service>[0])
-    const size:SizeId | CustomSize = form.size_id
-        ? form.size_id as SizeId
-        : {width: form.custom_trim_width, height: form.custom_trim_height, unit}
-    return service.get_dimensions({
-        size, pages: form.page_count,
-        binding_type: form.binding_type as BindingTypeId,
-        unit: 'mm',
-    })
-}
-
 /** Trim line position as a percentage of total cover dimensions, for the overlay in full view */
 const trim_inset = computed(() => {
     try {
-        const dims = compute_dims()
+        const dims = compute_cover_dims(form)
         const bleed = dims.cover_bleed.toNumber()
         if (!bleed)
             return null
@@ -413,7 +385,7 @@ const trim_inset = computed(() => {
 /** Total cover width in mm, for paper-scale reference lines */
 const cover_width_mm = computed<number | null>(() => {
     try {
-        return compute_dims().cover_total_width.toNumber()
+        return compute_cover_dims(form).cover_total_width.toNumber()
     } catch {
         return null
     }
@@ -489,7 +461,7 @@ async function run_generate():Promise<void> {
         // Compute preview image dimensions
         // Using a lower res version for preview greatly speeds up render
         // Full res still used for save and export
-        const dims = compute_dims()
+        const dims = compute_cover_dims(form)
         const dpi = 96 * 2  // Standard screen 96dpi × 2 for zoom
         const preview_w = Math.round(dims.cover_total_width.toNumber() * dpi)
         const preview_h = Math.round(dims.cover_total_height.toNumber() * dpi)
