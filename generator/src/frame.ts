@@ -17,6 +17,32 @@ export function frame_asset_path(base:string, frame:'painted'|'torn'):string {
     return asset_path(base, FRAMES_DIR, FRAME_FILES[frame])
 }
 
+/** Create a 2D canvas — a DOM element on the main thread, OffscreenCanvas inside a worker */
+function make_canvas(width:number, height:number):HTMLCanvasElement|OffscreenCanvas {
+    if (typeof document === 'undefined') {
+        return new OffscreenCanvas(width, height)
+    }
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    return canvas
+}
+
+/** Export a canvas' contents as a PNG Blob (handles both canvas types) */
+function canvas_png_blob(canvas:HTMLCanvasElement|OffscreenCanvas):Promise<Blob> {
+    if ('convertToBlob' in canvas) {
+        return canvas.convertToBlob({type: 'image/png'})
+    }
+    return new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((blob) => {
+            if (blob)
+                resolve(blob)
+            else
+                reject(new Error('canvas.toBlob returned null'))
+        }, 'image/png')
+    })
+}
+
 /**
  * Compute source crop rect so the image covers the canvas (like CSS object-fit: cover),
  * centered with no distortion.
@@ -59,11 +85,9 @@ export async function frame_image(
     height:number,
 ):Promise<Blob> {
 
-    // Create output canvas
-    const canvas = document.createElement('canvas')
-    canvas.width  = width
-    canvas.height = height
-    const ctx = canvas.getContext('2d')!
+    // Create output canvas (worker-safe)
+    const canvas = make_canvas(width, height)
+    const ctx = (canvas as HTMLCanvasElement).getContext('2d')!
 
     // Fill background color
     ctx.fillStyle = bg
@@ -113,12 +137,5 @@ export async function frame_image(
     frame_bitmap.close()
 
     // Export canvas to PNG Blob
-    return new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob((blob) => {
-            if (blob)
-                resolve(blob)
-            else
-                reject(new Error('canvas.toBlob returned null'))
-        }, 'image/png')
-    })
+    return canvas_png_blob(canvas)
 }
