@@ -58,6 +58,13 @@ against: the widget loads `http://localhost:5300/generator_assets/fonts/manifest
 `widget/src/fonts.ts`), while `generator-node` reads a local top-level `fonts/` dir
 (gitignored) that must be populated from the fonts repo before `.bin/test` works.
 
+The typst.ts WASM binaries (compiler ~28MB + renderer ~1MB) are likewise NOT bundled — the
+same assets repo hosts them at `https://assets.paper.bible/typst/<version>/<file>.wasm`
+(immutable version directories matching the npm package versions; localhost:5300 equivalent
+in dev). `widget/src/generator_worker.ts` derives each URL from the installed
+`@myriaddreamin/*` package's own version, so bumping those deps requires the assets repo to
+have published that version's wasm first (a stale assets repo 404s at generate time).
+
 For development:
 
 ```bash
