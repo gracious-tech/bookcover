@@ -50,11 +50,11 @@ repo root. Build in dependency order using the `.bin/` scripts:
 ```
 
 The fonts collection (curated fonts + Noto fallback set + `manifest.json`) is NOT managed in
-this repo — it lives in its own repo and is published at `https://fonts.paper.bible`. Font
+this repo — it lives in its own repo and is published at `https://assets.paper.bible/fonts`. Font
 manifests are runtime-loaded, not baked into the build, so `typst-fonts`'s
 `init_fonts()`/`load_fonts_dir()`/`load_fonts_prefix()` need real manifest data to resolve
 against: the widget loads `http://localhost:5300/generator_assets/fonts/manifest.json` in dev
-(the fonts repo's own dev server) and `https://fonts.paper.bible` in production (see
+(the fonts repo's own dev server) and `https://assets.paper.bible/fonts` in production (see
 `widget/src/fonts.ts`), while `generator-node` reads a local top-level `fonts/` dir
 (gitignored) that must be populated from the fonts repo before `.bin/test` works.
 

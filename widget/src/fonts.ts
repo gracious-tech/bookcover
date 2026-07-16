@@ -9,9 +9,9 @@ import {register_custom_font_preview} from 'typst-fonts/web'
 
 // URL prefix for the separately-published fonts tree (curated + Noto fallback). The fonts
 // collection is managed in its own repo, not here — in production it's published at
-// fonts.paper.bible, and in dev that repo's own dev server serves the same tree
+// assets.paper.bible/fonts, and in dev that repo's own dev server serves the same tree
 export const fonts_prefix = import.meta.env.PROD
-    ? 'https://fonts.paper.bible'
+    ? 'https://assets.paper.bible/fonts'
     : 'http://localhost:5300/generator_assets/fonts'
 
 // Module-level reactive list of uploaded font families
