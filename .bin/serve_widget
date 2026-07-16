@@ -3,4 +3,4 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../widget"
 
-npx vite
+npx vite --port 5301
