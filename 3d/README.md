@@ -1,10 +1,10 @@
 
-# bookcover-3d
+# bookcover-3d-web
 
 Create 3D images of books by providing the book cover designs. Part of the [bookcover](https://github.com/gracious-tech/bookcover) generation system.
 
 ```
-npm install bookcover-3d
+npm install bookcover-3d-web
 ```
 
 ![Example 3D image](./README_sample.webp)
@@ -12,8 +12,8 @@ npm install bookcover-3d
 This is a WebGL 3D book renderer with no external graphics dependencies.
 
 ```ts
-import {Book3DRenderer, generate} from 'bookcover-3d'
-import type {BookFaces, CoverType, GenerateOptions} from 'bookcover-3d'
+import {Book3DRenderer, generate} from 'bookcover-3d-web'
+import type {BookFaces, CoverType, GenerateOptions} from 'bookcover-3d-web'
 ```
 
 Both exports take the same SVG face inputs and produce the same kind of output. The
@@ -28,7 +28,7 @@ Use `generate` for static exports. Use `Book3DRenderer` for interactive previews
 Creates a renderer, loads the SVGs, renders once, returns PNG bytes, then cleans up.
 
 ```ts
-import {generate} from 'bookcover-3d'
+import {generate} from 'bookcover-3d-web'
 
 const png = await generate(
     {front: frontSvg, back: backSvg, spine: spineSvg},
@@ -59,7 +59,7 @@ Persistent renderer for interactive use. Load SVGs once; call `render()` repeate
 with different angles without reloading textures each time.
 
 ```ts
-import {Book3DRenderer} from 'bookcover-3d'
+import {Book3DRenderer} from 'bookcover-3d-web'
 
 // Create once
 const renderer = new Book3DRenderer(800, 600)
@@ -119,8 +119,8 @@ make the book look natural in that scene. Pass the background entry directly as 
 `options` argument — it extends `PhotoCompositeOptions`.
 
 ```ts
-import {Book3DRenderer, BACKGROUNDS} from 'bookcover-3d'
-import type {Background} from 'bookcover-3d'
+import {Book3DRenderer, BACKGROUNDS} from 'bookcover-3d-web'
+import type {Background} from 'bookcover-3d-web'
 
 // Find the background you want
 const bg: Background = BACKGROUNDS.find(b => b.id === 'coffee_table')!

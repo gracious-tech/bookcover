@@ -21,8 +21,8 @@ div(class="absolute inset-0 flex items-center justify-center overflow-hidden p-4
 
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {BACKGROUNDS} from 'bookcover-3d'
-import type {Book3DRenderer} from 'bookcover-3d'
+import {BACKGROUNDS} from 'bookcover-3d-web'
+import type {Book3DRenderer} from 'bookcover-3d-web'
 import {make_zoom_wheel_handler} from '../../svg_utils'
 
 const props = defineProps<{

@@ -1,6 +1,6 @@
 
 {
-    "name": "bookcover-3d",
+    "name": "bookcover-3d-web",
     "version": "0.1.0",
     "license": "MIT-0",
     "repository": {"type": "git", "url": "https://github.com/gracious-tech/bookcover.git", "directory": "3d"},

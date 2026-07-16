@@ -15,4 +15,4 @@ Install either the web or node package — they have slightly different APIs due
 fonts and images need to be loaded.
 
  * [bookcover-node](generator-node/README.md)
- * [bookcover-web](generator-web/README.md) (see also [bookcover-3d](3d/README.md))
+ * [bookcover-web](generator-web/README.md) (see also [bookcover-3d-web](3d/README.md))

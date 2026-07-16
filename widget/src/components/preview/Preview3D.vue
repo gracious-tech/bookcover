@@ -30,7 +30,7 @@ div(ref="container_el" class="absolute inset-0 flex items-center justify-center 
 
 import {ref, watch, onMounted, onUnmounted} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {Book3DRenderer} from 'bookcover-3d'
+import type {Book3DRenderer} from 'bookcover-3d-web'
 
 const props = defineProps<{
     has_preview:boolean

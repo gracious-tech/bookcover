@@ -215,8 +215,8 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
 
 // Preview pane — toolbar, generation logic, and preview mode orchestration
 
-import {Book3DRenderer, BACKGROUNDS} from 'bookcover-3d'
-import type {CoverType} from 'bookcover-3d'
+import {Book3DRenderer, BACKGROUNDS} from 'bookcover-3d-web'
+import type {CoverType} from 'bookcover-3d-web'
 
 // Background photo URLs — imported as Vite asset references so they get hashed/served correctly
 import url_coffee_table from '../../../../3d/src/backgrounds/coffee_table.jpg?url'
