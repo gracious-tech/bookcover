@@ -9,7 +9,7 @@ platform wrappers compile it to PDF/SVG/PNG. The widget provides a live 3D previ
 |---------|---------|
 | `generator/` | Pure TS core — schema validation, dimension calc, Typst file assembly |
 | `generator-node/` | Node wrapper — spawns `typst` binary, uses `sharp` for PNG cropping |
-| `generator-web/` | Browser wrapper — compiles via WASM (`typst.ts` ^0.7.0-rc2) |
+| `generator-web/` | Browser wrapper — compiles via WASM (`typst.ts`) |
 | `widget/` | Vue 3 web UI — sidebar form, preview pane, 3D book view |
 | `3d/` | WebGL 3D book renderer — custom shaders, no external graphics libs |
 

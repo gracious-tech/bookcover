@@ -3,8 +3,6 @@
 // runs off the main thread and never lags the UI. Driven by GeneratorWorkerClient in
 // generator_client.ts via simple id-tagged request/response messages.
 
-import compiler_pkg from '@myriaddreamin/typst-ts-web-compiler/package.json'
-import renderer_pkg from '@myriaddreamin/typst-ts-renderer/package.json'
 import {init as init_generator} from 'bookcover-web'
 
 import type {CoverGenerator, GenerateOptions, GenerateResult} from 'bookcover-web'
@@ -13,11 +11,12 @@ import type {CoverGenerator, GenerateOptions, GenerateResult} from 'bookcover-we
 // fonts.ts) rather than bundled — they're large and shared with related apps. Each URL embeds
 // the installed package's own version so the bytes always match the bundled JS glue (a
 // mismatched version 404s loudly instead of failing in confusing ways)
+const TYPST_VERSION = '0.7.0'  // WARN Must match shared version (preferably own typst.ts too)
 const typst_prefix = import.meta.env.PROD
     ? 'https://assets.paper.bible/typst'
     : 'http://localhost:5300/generator_assets/typst'
-const wasm_url = `${typst_prefix}/${compiler_pkg.version}/typst_ts_web_compiler_bg.wasm`
-const renderer_wasm_url = `${typst_prefix}/${renderer_pkg.version}/typst_ts_renderer_bg.wasm`
+const wasm_url = `${typst_prefix}/${TYPST_VERSION}/typst_ts_web_compiler_bg.wasm`
+const renderer_wasm_url = `${typst_prefix}/${TYPST_VERSION}/typst_ts_renderer_bg.wasm`
 
 
 // Actions the main thread can request (see GeneratorWorkerClient in generator_client.ts)
