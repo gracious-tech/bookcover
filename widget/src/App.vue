@@ -22,8 +22,10 @@ UButton.mobile-fab(
 import {ref, shallowRef, provide} from 'vue'
 import {useMediaQuery} from '@vueuse/core'
 import {useI18n} from 'vue-i18n'
-import {load_fonts_prefix} from 'typst-fonts/web'
-import {make_form, FORM_KEY, IS_MOBILE_KEY, FULL_SVG_KEY, GENERATOR_KEY} from './form_state'
+import {load_fonts_prefix, FontsServerError} from 'typst-fonts/web'
+import {
+    make_form, FORM_KEY, IS_MOBILE_KEY, FULL_SVG_KEY, GENERATOR_KEY, INIT_ERROR_KEY,
+} from './form_state'
 import {GeneratorWorkerClient} from './generator_client'
 import {fonts_prefix, all_custom_font_bytes} from './fonts'
 import {init_embed} from './embed'
@@ -58,14 +60,24 @@ const mobile_view = ref<'sidebar' | 'preview'>('sidebar')
 const generator = shallowRef<GeneratorWorkerClient | null>(null)
 provide(GENERATOR_KEY, generator)
 
+// Fatal startup failure (fonts server / WASM init) — PreviewPane shows it instead of a preview
+const init_error = ref<string | null>(null)
+provide(INIT_ERROR_KEY, init_error)
+
 // Generator assets (typst templates, frames, backgrounds) served via symlink; fonts are
 // published separately and resolved via fonts_prefix (see fonts.ts)
 const assets_prefix = new URL('/generator_assets/', window.location.href).href
 
 // Load the font manifest on the main thread too — the worker loads its own copy, but the
-// font pickers/previews (get_fonts, register_preview_fonts) resolve against this one
+// font pickers/previews (get_fonts, register_preview_fonts) resolve against this one.
+// A FontsServerError means the fonts server itself isn't answering correctly (e.g. its dev
+// server isn't running and something else on the port returned an HTML page) — surface that
+// distinctly since it explains why fonts/covers can't work at all
 void load_fonts_prefix(fonts_prefix).catch((err:unknown) => {
-    console.error('Font manifest load failed:', err)
+    console.error(err)
+    init_error.value = err instanceof FontsServerError
+        ? `The fonts server is not working — it didn't return the font list expected at ${fonts_prefix}/manifest.json, so covers can't be generated.`
+        : 'The cover generator failed to start. Check the browser console for details.'
 })
 
 // Initialise the WASM compiler in a Web Worker (non-blocking — preview waits on it, and
@@ -80,6 +92,10 @@ client.init(assets_prefix, fonts_prefix).then(async () => {
     generator.value = client
 }).catch((err:unknown) => {
     console.error('WASM init failed:', err)
+    // The worker fetches the same manifest — don't overwrite a more specific fonts error
+    if (!init_error.value) {
+        init_error.value = 'The cover generator failed to start. Check the browser console for details.'
+    }
 })
 
 </script>

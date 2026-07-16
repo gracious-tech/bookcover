@@ -139,6 +139,7 @@ export const IS_MOBILE_KEY: InjectionKey<Ref<boolean>> = Symbol('is_mobile')
 export const FULL_SVG_KEY: InjectionKey<Ref<string | null>> = Symbol('full_svg')
 export const GENERATOR_KEY: InjectionKey<ShallowRef<GeneratorWorkerClient | null>> =
     Symbol('generator')
+export const INIT_ERROR_KEY: InjectionKey<Ref<string | null>> = Symbol('init_error')
 
 /** Plain object with blank/empty values — no demo content, white background, no icon or pattern */
 export function make_blank_form_values(): FormState {

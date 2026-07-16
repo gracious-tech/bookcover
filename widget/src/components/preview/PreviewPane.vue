@@ -129,9 +129,9 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
     //- Preview area — switches between 3D, split panel, and full SVG views
     div(class="flex-1 relative overflow-hidden")
 
-        //- Input error panel: shown instead of preview when generation fails
+        //- Input error panel: shown instead of preview when startup or generation fails
         div(
-            v-if="preview_error"
+            v-if="shown_error"
             class="absolute inset-0 flex items-center justify-center p-8"
         )
             div(class="flex flex-col items-center gap-3 text-center max-w-lg")
@@ -139,11 +139,11 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
                     path(d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z")
                     line(x1="12" y1="9" x2="12" y2="13")
                     line(x1="12" y1="17" x2="12.01" y2="17")
-                p(class="text-lg whitespace-pre-line text-muted") {{ preview_error }}
+                p(class="text-lg whitespace-pre-line text-muted") {{ shown_error }}
 
         //- First-load spinner: shown while generating with no existing preview yet
         div(
-            v-if="is_generating && !has_preview && !preview_error"
+            v-if="is_generating && !has_preview && !shown_error"
             class="absolute inset-0 flex items-center justify-center"
         )
             div(class="w-10 h-10 rounded-full border-4 border-(--ui-border) border-t-(--ui-text-muted) animate-spin")
@@ -151,7 +151,7 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
         //- Stale-render overlay: spinner shown while re-generating an existing preview
         Transition(name="fade")
             div(
-                v-if="is_generating && has_preview && !preview_error"
+                v-if="is_generating && has_preview && !shown_error"
                 class="absolute inset-0 z-10 flex items-center justify-center bg-black/20 pointer-events-none"
             )
                 div(class="w-10 h-10 rounded-full border-4 border-white/30 border-t-white animate-spin")
@@ -166,7 +166,7 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
 
         //- 3D canvas — kept in DOM at all times to preserve the WebGL renderer state
         Preview3D(
-            v-show="view_mode === '3d' && !preview_error"
+            v-show="view_mode === '3d' && !shown_error"
             ref="preview_3d_ref"
             :has_preview="has_preview"
             v-model:zoom="zoom_per_view['3d']"
@@ -174,7 +174,7 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
 
         //- Photo mode — composited book on a background photo
         PreviewPhoto(
-            v-show="view_mode === 'photo' && !preview_error"
+            v-show="view_mode === 'photo' && !shown_error"
             ref="preview_photo_ref"
             :has_preview="has_preview"
             :photo_bg_urls="photo_bg_urls"
@@ -183,7 +183,7 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
 
         //- Split view — individual face SVGs
         PreviewSplit(
-            v-show="view_mode === 'split' && !preview_error"
+            v-show="view_mode === 'split' && !shown_error"
             :split_svgs="split_svgs"
             :zoom_min="zoom_min"
             :zoom_max="zoom_max"
@@ -192,7 +192,7 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
 
         //- Full view — complete spread at print size
         PreviewFull(
-            v-show="view_mode === 'full' && !preview_error"
+            v-show="view_mode === 'full' && !shown_error"
             :full_svg="full_svg"
             :trim_inset="trim_inset"
             :zoom_min="zoom_min"
@@ -239,7 +239,9 @@ import {useI18n} from 'vue-i18n'
 import {zipSync} from 'fflate'
 import {get_service} from 'printing-services'
 import type {SizeId} from 'printing-services'
-import {FORM_KEY, IS_MOBILE_KEY, FULL_SVG_KEY, GENERATOR_KEY} from '../../form_state'
+import {
+    FORM_KEY, IS_MOBILE_KEY, FULL_SVG_KEY, GENERATOR_KEY, INIT_ERROR_KEY,
+} from '../../form_state'
 import {build_schema, read_image, read_image_preview} from '../../schema'
 import {all_custom_font_bytes} from '../../fonts'
 import {compute_cover_dims} from '../../dimensions'
@@ -286,6 +288,12 @@ const is_saving = ref(false)
 const has_preview = ref(false)
 const preview_error = ref<string | null>(null)
 const export_error = ref<string | null>(null)
+
+// Fatal startup error from App.vue (fonts server down, WASM init failed) — takes priority
+// over per-generate errors in the error panel
+const init_error = inject(INIT_ERROR_KEY)!
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+const shown_error = computed(() => init_error.value ?? preview_error.value)
 
 // Last download blob URL + filename — kept alive for the fallback download icon
 const last_url = ref<string | null>(null)

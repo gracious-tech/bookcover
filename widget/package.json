@@ -18,7 +18,7 @@
         "fflate": "^0.8.3",
         "pm-to-typst": "^0.1.0",
         "printing-services": "^1.5.1",
-        "typst-fonts": "^0.1.0",
+        "typst-fonts": "^0.1.1",
         "typst-utils": "^0.1.0",
         "vue": "^3.5.31",
         "vue-i18n": "^11.4.6"
