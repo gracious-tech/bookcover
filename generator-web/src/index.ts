@@ -184,7 +184,9 @@ export class CoverGenerator {
         // mapShadow only adds to the virtual filesystem, not the font book
         this.font_blob_urls = fonts_to_blob_urls([...bundled_bytes, ...(custom_fonts ?? [])])
 
-        const compiler_font_opts = loadFonts(this.font_blob_urls)
+        // assets:false stops typst.ts silently appending its default text fonts (NewCM,
+        // Libertinus, DejaVu... fetched from jsdelivr) — all fonts we need are passed explicitly
+        const compiler_font_opts = loadFonts(this.font_blob_urls, {assets: false})
 
         const c = createTypstCompiler()
         await c.init({
