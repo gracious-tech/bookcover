@@ -5,6 +5,9 @@
 
 import type {FormState} from './form_state'
 import {compute_cover_dims} from './dimensions'
+import {i18n} from './i18n'
+
+const {t} = i18n.global
 
 // Below this effective DPI, print quality is visibly degraded (soft/pixelated)
 const VERY_LOW_DPI = 150
@@ -112,16 +115,13 @@ export function check_bg_image_dpi(form:FormState, px_w:number, px_h:number):BgI
     if (level === 'ok')
         return null
 
-    const title = level === 'very_low' ? 'Very low resolution image' : 'Low resolution image'
-    let body = level === 'very_low'
-        ? 'This image is too small for its position on the cover. It will look low quality when printed.'
-        : 'This image is smaller than what is recommended for its position on the cover. It may look '
-            + 'slightly blurry when printed.'
+    const title = level === 'very_low' ? t('dpi_warning.title_very_low') : t('dpi_warning.title_low')
+    let body = level === 'very_low' ? t('dpi_warning.body_very_low') : t('dpi_warning.body_low')
 
     if (level === 'very_low' && (coverage === 'full' || coverage === 'front')) {
         const feature_dpi = estimate_dpi(px_w, px_h, feature_target_mm(dims))
         if (dpi_level(feature_dpi) !== 'very_low')
-            body += ' It may be suitable for display on the front only.'
+            body += t('dpi_warning.body_front_suffix')
     }
 
     return {

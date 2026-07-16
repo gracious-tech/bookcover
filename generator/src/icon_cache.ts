@@ -4,6 +4,21 @@
 // Module-level in-memory cache: iconify ID → raw SVG string
 const svg_cache = new Map<string, string>()
 
+// This package has no i18n/UI concerns (see repo CLAUDE.md — generator is pure TS core), so
+// errors reachable via user input (a mistyped icon field) carry a translation code + params
+// alongside a default English message; the widget translates at the point it catches them
+// (generator_client.ts / PreviewPane.vue), falling back to `message` for anything else.
+export class IconCacheError extends Error {
+    code:string
+    params:Record<string, unknown>
+    constructor(message:string, code:string, params:Record<string, unknown>) {
+        super(message)
+        this.name = 'IconCacheError'
+        this.code = code
+        this.params = params
+    }
+}
+
 /** Fetch an SVG from the Iconify API and cache by ID */
 async function fetch_icon_svg(iconify_id:string):Promise<string> {
     if (svg_cache.has(iconify_id))
@@ -11,8 +26,12 @@ async function fetch_icon_svg(iconify_id:string):Promise<string> {
 
     // Iconify IDs are formatted as "collection:name"
     const colon = iconify_id.indexOf(':')
-    if (colon < 1)
-        throw new Error(`Invalid iconify ID "${iconify_id}" — expected "collection:name"`)
+    if (colon < 1) {
+        throw new IconCacheError(
+            `Invalid iconify ID "${iconify_id}" — expected "collection:name"`,
+            'icon_invalid_format', {id: iconify_id},
+        )
+    }
 
     const collection = iconify_id.slice(0, colon)
     const name       = iconify_id.slice(colon + 1)
@@ -21,9 +40,12 @@ async function fetch_icon_svg(iconify_id:string):Promise<string> {
     const response = await fetch(url)
     if (!response.ok){
         if (response.status === 404){
-            throw new Error(`Icon does not exist: ${iconify_id}`)
+            throw new IconCacheError(`Icon does not exist: ${iconify_id}`, 'icon_not_found', {id: iconify_id})
         }
-        throw new Error(`Failed to fetch icon "${iconify_id}": ${response.status} ${response.statusText}`)
+        throw new IconCacheError(
+            `Failed to fetch icon "${iconify_id}": ${response.status} ${response.statusText}`,
+            'icon_fetch_failed', {id: iconify_id, status: response.status, status_text: response.statusText},
+        )
     }
 
     // Strip width/height from the root <svg> tag so the icon scales via its container

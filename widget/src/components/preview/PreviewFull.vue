@@ -22,7 +22,7 @@ div(
                 :src="svg_data_url(full_svg)"
                 :class="['block shadow-lg select-none', is_mobile ? 'max-w-full' : '']"
                 draggable="false"
-                alt="Full cover"
+                :alt="t('preview_full.alt_full_cover')"
             )
             //- Trim line overlay — dashed border at the bleed boundary
             div(
@@ -38,10 +38,12 @@ div(
 // Full cover view — shows the complete spread with trim line overlay
 
 import {ref, inject} from 'vue'
+import {useI18n} from 'vue-i18n'
 import {svg_data_url, ZOOM_SENS} from '../../svg_utils'
 import {IS_MOBILE_KEY} from '../../form_state'
 
 const is_mobile = inject(IS_MOBILE_KEY)!
+const {t} = useI18n()
 
 const props = defineProps<{
     full_svg:string | null

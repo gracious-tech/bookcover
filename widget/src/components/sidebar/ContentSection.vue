@@ -6,12 +6,12 @@
 //- Title fields — three independent single-line inputs, each with a style popover
 div(class="flex flex-col gap-2")
     label(class="text-xs font-semibold tracking-[0.02em]")
-        | Title
+        | {{ t('content.title_label') }}
     template(v-for="(key, i) in TITLE_KEYS" :key="key")
         div(v-if="i === 0 || (i === 1 ? show_title2 : show_title3)" class="flex gap-1 items-stretch")
             UInput(
                 v-model="form[key]"
-                :placeholder="`Line ${i + 1}\u2026`"
+                :placeholder="t('content.title_placeholder', {n: i + 1})"
                 class="flex-1"
                 :ui="{base: text_align_class(form.title_alignment)}"
                 @keydown="block_enter"
@@ -23,7 +23,7 @@ div(class="flex flex-col gap-2")
                     variant="ghost"
                     icon="material-symbols:custom-typography"
                     class="h-full"
-                    :aria-label="`Line ${i + 1} style`"
+                    :aria-label="t('content.title_style_aria', {n: i + 1})"
                 )
                 template(#content)
                     FontStyleOptions(
@@ -39,7 +39,7 @@ div(class="flex flex-col gap-2")
 
 //- Subtitle field with style popover
 div(class="flex flex-col gap-1")
-    label(class="text-xs font-semibold tracking-[0.02em]") Subtitle
+    label(class="text-xs font-semibold tracking-[0.02em]") {{ t('content.subtitle_label') }}
     div(class="flex gap-1 items-stretch")
         UTextarea(v-model="form.subtitle" :rows="2" resize="none" class="flex-1" :ui="{base: text_align_class(form.subtitle_alignment)}" @keydown="limit_subtitle")
         UPopover(v-model:open="subtitle_style_open" class="flex")
@@ -49,7 +49,7 @@ div(class="flex flex-col gap-1")
                 variant="ghost"
                 icon="material-symbols:custom-typography"
                 class="h-full"
-                aria-label="Subtitle style"
+                :aria-label="t('content.subtitle_style_aria')"
             )
             template(#content)
                 FontStyleOptions(
@@ -65,7 +65,7 @@ div(class="flex flex-col gap-1")
 
 //- Author field with style popover
 div(class="flex flex-col gap-1")
-    label(class="text-xs font-semibold tracking-[0.02em]") Author/Series
+    label(class="text-xs font-semibold tracking-[0.02em]") {{ t('content.author_label') }}
     div(class="flex gap-1 items-stretch")
         UInput(v-model="form.author" class="flex-1" :ui="{base: text_align_class(form.author_alignment)}")
         UPopover(v-model:open="author_style_open" class="flex")
@@ -75,7 +75,7 @@ div(class="flex flex-col gap-1")
                 variant="ghost"
                 icon="material-symbols:custom-typography"
                 class="h-full"
-                aria-label="Author style"
+                :aria-label="t('content.author_style_aria')"
             )
             template(#content)
                 FontStyleOptions(
@@ -91,12 +91,12 @@ div(class="flex flex-col gap-1")
 
 //- Back blurb — readonly 4-line preview, click to open WYSIWYG markdown editor; style popover on the right
 div(class="flex flex-col gap-1")
-    label(class="text-xs font-semibold tracking-[0.02em]") Back blurb
+    label(class="text-xs font-semibold tracking-[0.02em]") {{ t('common.back_blurb') }}
     div(class="flex gap-1 items-stretch")
         div(
             class="cursor-pointer flex-1 rounded-md border border-default px-3 py-2 text-[13px] leading-relaxed hover:border-accented transition-colors select-none bg-default"
             role="button"
-            aria-label="Edit back blurb"
+            :aria-label="t('content.blurb_edit_aria')"
             @click="is_blurb_open = true"
         )
             div(
@@ -104,7 +104,7 @@ div(class="flex flex-col gap-1")
                 class="line-clamp-4 text-default [&_strong]:font-bold [&_em]:italic [&_h1]:text-[15px] [&_h1]:font-bold [&_h2]:text-[14px] [&_h2]:font-bold [&_:where(p,h1,h2,ul,ol,blockquote)]:m-0 [&_ul]:list-disc [&_ol]:list-decimal [&_:where(ul,ol)]:pl-4 [&_blockquote]:pl-2 [&_blockquote]:border-l-2 [&_blockquote]:border-default [&_hr]:my-1"
                 v-html="blurb_preview_html"
             )
-            div(v-else class="text-dimmed italic") Click to add a back blurb…
+            div(v-else class="text-dimmed italic") {{ t('content.blurb_empty_placeholder') }}
         UPopover(v-model:open="blurb_style_open" class="flex")
             UButton(
                 type="button"
@@ -112,7 +112,7 @@ div(class="flex flex-col gap-1")
                 variant="ghost"
                 icon="material-symbols:custom-typography"
                 class="h-full"
-                aria-label="Blurb style"
+                :aria-label="t('content.blurb_style_aria')"
             )
             template(#content)
                 BlurbFontOptions(
@@ -132,6 +132,7 @@ BlurbEditorModal(v-model:open="is_blurb_open")
 // Content section — title fields, subtitle, author, ISBN, blurb
 
 import {ref, computed, inject} from 'vue'
+import {useI18n} from 'vue-i18n'
 import {FORM_KEY} from '../../form_state'
 import type {FormState} from '../../form_state'
 import {generateHTML, generateText} from '@tiptap/vue-3'
@@ -144,6 +145,8 @@ import BlurbFontOptions from './BlurbFontOptions.vue'
 
 // Inject the shared form state
 const form = inject(FORM_KEY)!
+
+const {t} = useI18n()
 
 // Title field keys for the v-for loop
 const TITLE_KEYS = ['title1', 'title2', 'title3'] as const

@@ -6,8 +6,8 @@
 UModal(:open="open_model" @update:open="open_model = $event" :ui="{content: 'max-w-lg'}")
     template(#header)
         div(class="flex items-center justify-between w-full")
-            p(class="text-sm font-semibold") Back blurb
-            UButton(type="button" size="xs" variant="ghost" color="neutral" icon="material-symbols:close" @click="open_model = false" aria-label="Close")
+            p(class="text-sm font-semibold") {{ t('common.back_blurb') }}
+            UButton(type="button" size="xs" variant="ghost" color="neutral" icon="material-symbols:close" @click="open_model = false" :aria-label="t('common.close')")
 
     template(#body)
         //- Formatting toolbar
@@ -20,7 +20,7 @@ UModal(:open="open_model" @update:open="open_model = $event" :ui="{content: 'max
                 icon="material-symbols:format-bold"
                 :class="editor?.isActive('bold') ? 'bg-accented' : ''"
                 @click="editor?.chain().focus().toggleBold().run()"
-                aria-label="Bold"
+                :aria-label="t('blurb_editor.bold_aria')"
             )
             UButton(
                 type="button"
@@ -30,7 +30,7 @@ UModal(:open="open_model" @update:open="open_model = $event" :ui="{content: 'max
                 icon="material-symbols:format-italic"
                 :class="editor?.isActive('italic') ? 'bg-accented' : ''"
                 @click="editor?.chain().focus().toggleItalic().run()"
-                aria-label="Italic"
+                :aria-label="t('blurb_editor.italic_aria')"
             )
             //- Separator
             div(class="w-px bg-border mx-1")
@@ -43,7 +43,7 @@ UModal(:open="open_model" @update:open="open_model = $event" :ui="{content: 'max
                 icon="material-symbols:format-h1"
                 :class="editor?.isActive('heading', {level: 1}) ? 'bg-accented' : ''"
                 @click="editor?.chain().focus().toggleHeading({level: 1}).run()"
-                aria-label="Heading 1"
+                :aria-label="t('blurb_editor.h1_aria')"
             )
             UButton(
                 type="button"
@@ -53,7 +53,7 @@ UModal(:open="open_model" @update:open="open_model = $event" :ui="{content: 'max
                 icon="material-symbols:format-h2"
                 :class="editor?.isActive('heading', {level: 2}) ? 'bg-accented' : ''"
                 @click="editor?.chain().focus().toggleHeading({level: 2}).run()"
-                aria-label="Heading 2"
+                :aria-label="t('blurb_editor.h2_aria')"
             )
             //- Separator
             div(class="w-px bg-border mx-1")
@@ -66,7 +66,7 @@ UModal(:open="open_model" @update:open="open_model = $event" :ui="{content: 'max
                 icon="material-symbols:format-list-bulleted"
                 :class="editor?.isActive('bulletList') ? 'bg-accented' : ''"
                 @click="editor?.chain().focus().toggleBulletList().run()"
-                aria-label="Bullet list"
+                :aria-label="t('blurb_editor.bullet_list_aria')"
             )
             UButton(
                 type="button"
@@ -76,7 +76,7 @@ UModal(:open="open_model" @update:open="open_model = $event" :ui="{content: 'max
                 icon="material-symbols:format-list-numbered"
                 :class="editor?.isActive('orderedList') ? 'bg-accented' : ''"
                 @click="editor?.chain().focus().toggleOrderedList().run()"
-                aria-label="Ordered list"
+                :aria-label="t('blurb_editor.ordered_list_aria')"
             )
             UButton(
                 type="button"
@@ -86,7 +86,7 @@ UModal(:open="open_model" @update:open="open_model = $event" :ui="{content: 'max
                 icon="material-symbols:format-quote"
                 :class="editor?.isActive('blockquote') ? 'bg-accented' : ''"
                 @click="editor?.chain().focus().toggleBlockquote().run()"
-                aria-label="Blockquote"
+                :aria-label="t('blurb_editor.blockquote_aria')"
             )
             div(class="w-px bg-border mx-1")
             UButton(
@@ -96,7 +96,7 @@ UModal(:open="open_model" @update:open="open_model = $event" :ui="{content: 'max
                 color="neutral"
                 icon="material-symbols:horizontal-rule"
                 @click="editor?.chain().focus().setHorizontalRule().run()"
-                aria-label="Horizontal rule"
+                :aria-label="t('blurb_editor.hr_aria')"
             )
 
         //- Tiptap editor surface
@@ -110,6 +110,7 @@ UModal(:open="open_model" @update:open="open_model = $event" :ui="{content: 'max
 // form state (rendered to Typst / plain text / HTML by the pm-to-typst package)
 
 import {computed, inject, onBeforeUnmount, toRef} from 'vue'
+import {useI18n} from 'vue-i18n'
 import {useEditor, EditorContent} from '@tiptap/vue-3'
 import type {PmDoc} from 'pm-to-typst'
 import {blurb_extensions} from '../../blurb_extensions'
@@ -130,6 +131,8 @@ use_modal_tracking(toRef(props, 'open'))
 
 // Inject shared form state — editor reads and writes form.blurb
 const form = inject(FORM_KEY)!
+
+const {t} = useI18n()
 
 // Initialise Tiptap with the shared blurb extensions (defines the document schema).
 // Content is loaded from the stored JSON document; onUpdate auto-saves the JSON back.

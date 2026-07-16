@@ -12,11 +12,11 @@ div(class="flex flex-col items-center gap-3 bg-black/60 backdrop-blur-sm rounded
     )
         div(class="w-full h-0 border-t-2 border" :class="line.color")
         span(class="text-xs text-white/80 mt-1 whitespace-nowrap") {{ line.label }}
-    p(v-if="overflows" class="text-xs text-amber-400 text-center") Lines exceed viewport — increase window size for accurate comparison
+    p(v-if="overflows" class="text-xs text-amber-400 text-center") {{ t('paper_scale.overflow_warning') }}
     p(class="text-xs text-white/60 text-center")
-        | Place a piece of paper against a line. Adjust the zoom until the line matches. That is how big the actual book will be.
+        | {{ t('paper_scale.instructions_1') }}
         br
-        | (screens rarely default to the actual physical size)
+        | {{ t('paper_scale.instructions_2') }}
 
 </template>
 
@@ -27,11 +27,14 @@ div(class="flex flex-col items-center gap-3 bg-black/60 backdrop-blur-sm rounded
 
 import {computed} from 'vue'
 import {useWindowSize} from '@vueuse/core'
+import {useI18n} from 'vue-i18n'
 
 const props = defineProps<{
     zoom:number
     cover_width_mm:number
 }>()
+
+const {t} = useI18n()
 
 // Paper widths in inches
 const A4_WIDTH_IN = 210 / 25.4
@@ -45,12 +48,12 @@ const {width: vw} = useWindowSize()
 // Each line at absolute pixel width
 const lines = computed(() => [
     {
-        label: `A4 width (21 cm)`,
+        label: t('paper_scale.a4_label'),
         px: A4_WIDTH_IN * px_per_in.value,
         color: 'border-blue-400/80',
     },
     {
-        label: `US Letter width (8.5″)`,
+        label: t('paper_scale.us_letter_label'),
         px: US_LETTER_WIDTH_IN * px_per_in.value,
         color: 'border-amber-400/80',
     },

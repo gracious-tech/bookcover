@@ -14,7 +14,7 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
                     color="neutral"
                     variant="ghost"
                     class="cursor-pointer"
-                    :aria-label="`Switch to ${is_dark ? 'light' : 'dark'} mode`"
+                    :aria-label="is_dark ? t('preview.switch_to_light_aria') : t('preview.switch_to_dark_aria')"
                     @click="toggle_color_mode"
                 )
                 //- Zoom control — per-view zoom level with vertical slider
@@ -24,7 +24,7 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
                         color="neutral"
                         variant="ghost"
                         class="cursor-pointer"
-                        :aria-label="`Zoom: ${Math.round(zoom_per_view[view_mode] * 100)}%`"
+                        :aria-label="t('preview.zoom_aria', {percent: Math.round(zoom_per_view[view_mode] * 100)})"
                     )
                     template(#content)
                         div(class="flex flex-col items-center gap-2 p-3")
@@ -91,7 +91,7 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
                     :loading="is_exporting"
                     @click="view_mode === 'split' ? export_split_pdfs() : export_pdf()"
                 )
-                    template(v-if="!is_mobile") {{ view_mode === 'split' ? 'Export PDFs' : 'Export PDF' }}
+                    template(v-if="!is_mobile") {{ view_mode === 'split' ? t('preview.export_pdfs') : t('preview.export_pdf') }}
                 //- Embed mode: signals the parent to close instead of exporting a PDF locally
                 UButton(
                     v-else
@@ -101,7 +101,7 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
                     class="cursor-pointer"
                     @click="notify_finished"
                 )
-                    template(v-if="!is_mobile") Finished
+                    template(v-if="!is_mobile") {{ t('preview.finished_button') }}
                 //- Fallback download icon — redownloads whatever was last saved/exported
                 UButton(
                     v-if="last_url"
@@ -112,7 +112,7 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
                     color="warning"
                     variant="soft"
                     class="cursor-pointer"
-                    aria-label="Download last file"
+                    :aria-label="t('preview.download_last_aria')"
                 )
 
         //- Background thumbnail strip — only visible in photo mode, centred below the toolbar row
@@ -235,6 +235,7 @@ const photo_bg_urls:Record<string, string> = {
 
 import {ref, watch, inject, computed, reactive, onUnmounted} from 'vue'
 import {useDark} from '@vueuse/core'
+import {useI18n} from 'vue-i18n'
 import {zipSync} from 'fflate'
 import {get_service} from 'printing-services'
 import type {SizeId} from 'printing-services'
@@ -275,6 +276,8 @@ const is_mobile = inject(IS_MOBILE_KEY)!
 function toggle_color_mode():void {
     is_dark.value = !is_dark.value
 }
+
+const {t} = useI18n()
 
 // UI state refs
 const is_generating = ref(false)
@@ -342,27 +345,32 @@ const webgl_available = (() => {
     return !!(dom.getContext('webgl2') || dom.getContext('webgl'))
 })()
 
-const ALL_VIEW_MODES:{id:ViewMode, label:string}[] = [
-    {id: '3d', label: '3D'},
-    {id: 'photo', label: 'Mockup'},
-    {id: 'split', label: 'Parts'},
-    {id: 'full', label: 'Print'},
+const ALL_VIEW_MODES:{id:ViewMode}[] = [
+    {id: '3d'},
+    {id: 'photo'},
+    {id: 'split'},
+    {id: 'full'},
 ]
 // Hide 3D and photo modes when WebGL is unavailable
-const VIEW_MODES = webgl_available
+const RAW_VIEW_MODES = webgl_available
     ? ALL_VIEW_MODES
     : ALL_VIEW_MODES.filter(m => m.id !== '3d' && m.id !== 'photo')
+const VIEW_MODE_LABEL_KEYS:Record<ViewMode, string> = {
+    '3d': 'preview.mode_3d', photo: 'preview.mode_mockup', split: 'preview.mode_parts', full: 'preview.mode_print',
+}
+// Display labels are translated, so both the button group and the mobile USelect stay reactive
+const VIEW_MODES = computed(() => RAW_VIEW_MODES.map(m => ({id: m.id, label: t(VIEW_MODE_LABEL_KEYS[m.id])})))
 // Items formatted for USelect (mobile dropdown)
-const view_mode_items = VIEW_MODES.map(m => ({label: m.label, value: m.id}))
+const view_mode_items = computed(() => VIEW_MODES.value.map(m => ({label: m.label, value: m.id})))
 const view_mode = ref<ViewMode>(webgl_available ? '3d' : 'split')
 const split_svgs = ref<{front:string, back:string, spine:string | undefined} | null>(null)
 
 /** Label for the save button based on active view mode */
 const save_label = computed(() => ({
-    '3d': 'Save 3D Image',
-    photo: 'Save Mockup',
-    split: 'Save Images',
-    full: 'Save Image',
+    '3d': t('preview.save_3d'),
+    photo: t('preview.save_mockup'),
+    split: t('preview.save_images'),
+    full: t('preview.save_image'),
 }[view_mode.value]))
 const full_svg = inject(FULL_SVG_KEY)!
 
@@ -445,9 +453,9 @@ async function run_generate():Promise<void> {
             if (!valid_bindings.some(b => b.id === form.binding_type)) {
                 const binding_name = svc.get_binding_types().find(b => b.id === form.binding_type)?.name ?? form.binding_type
                 if (valid_bindings.length === 0) {
-                    preview_error.value = `No binding type supports ${form.page_count} pages`
+                    preview_error.value = t('preview.no_binding_supports_pages', {pages: form.page_count})
                 } else {
-                    preview_error.value = `"${binding_name}" is not available for ${form.page_count} pages`
+                    preview_error.value = t('preview.binding_not_available', {binding: binding_name, pages: form.page_count})
                 }
                 return
             }
@@ -510,7 +518,7 @@ async function run_generate():Promise<void> {
         if (err instanceof Error && err.name === 'ZodError' && 'issues' in err) {
             const issues = err.issues as {path:unknown[], message:string}[]
             const field = issues[0]?.path.join('.') ?? 'input'
-            preview_error.value = `Invalid ${field} — finish filling in the form`
+            preview_error.value = t('preview.invalid_field', {field})
         } else {
             const msg = err instanceof Error ? err.message : String(err)
             preview_error.value = msg

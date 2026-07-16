@@ -20,10 +20,15 @@ export type WorkerAction =
 export type WorkerRequest = WorkerAction & {id:number}
 
 // Response to a request: the result for generate actions, null for init/set_custom_fonts.
-// Errors keep their name and Zod issues so the UI can still detect validation failures.
+// Errors keep their name and Zod issues so the UI can still detect validation failures, plus
+// a translation code/params for errors originating in generator/ (e.g. IconCacheError), which
+// has no i18n of its own — the main thread translates using these at the point it's caught.
 export type WorkerResponse =
     | {id:number, ok:true, result:GenerateResult|null}
-    | {id:number, ok:false, error:string, error_name?:string, issues?:unknown[]}
+    | {
+        id:number, ok:false, error:string, error_name?:string, issues?:unknown[],
+        code?:string, params?:Record<string, unknown>,
+    }
 
 
 // The generator instance, created by the 'init' action (null until then)
@@ -75,6 +80,10 @@ function error_response(id:number, error:unknown):WorkerResponse {
         response.error_name = error.name
         if ('issues' in error && Array.isArray((error as {issues:unknown}).issues)){
             response.issues = (error as {issues:unknown[]}).issues
+        }
+        if ('code' in error && typeof (error as {code:unknown}).code === 'string'){
+            response.code = (error as {code:string}).code
+            response.params = (error as {params?:Record<string, unknown>}).params ?? {}
         }
     }
     return response

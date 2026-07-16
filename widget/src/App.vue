@@ -9,6 +9,7 @@ PreviewPane(:class="{'mobile-hidden': mobile_view !== 'preview'}")
 //- FAB to toggle between sidebar and preview on mobile
 UButton.mobile-fab(
     :icon="mobile_view === 'sidebar' ? 'material-symbols:visibility' : 'material-symbols:edit'"
+    :aria-label="mobile_view === 'sidebar' ? t('app.fab_show_preview_aria') : t('app.fab_show_sidebar_aria')"
     @click="mobile_view = mobile_view === 'sidebar' ? 'preview' : 'sidebar'"
 )
 
@@ -20,6 +21,7 @@ UButton.mobile-fab(
 
 import {ref, shallowRef, provide} from 'vue'
 import {useMediaQuery} from '@vueuse/core'
+import {useI18n} from 'vue-i18n'
 import {load_fonts_prefix} from 'typst-fonts/web'
 import {make_form, FORM_KEY, IS_MOBILE_KEY, FULL_SVG_KEY, GENERATOR_KEY} from './form_state'
 import {GeneratorWorkerClient} from './generator_client'
@@ -31,6 +33,8 @@ import PreviewPane from './components/preview/PreviewPane.vue'
 
 // Explicitly register components (suppresses TS unused-import warning for Pug templates)
 defineOptions({components: {SidebarPanel, PreviewPane}})
+
+const {t} = useI18n()
 
 // Create reactive form state and provide it to all child components
 const form = make_form()

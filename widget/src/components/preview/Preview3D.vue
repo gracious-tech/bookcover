@@ -5,7 +5,7 @@
 
 div(ref="container_el" class="absolute inset-0 flex items-center justify-center overflow-hidden")
     div(v-if="!has_preview" class="flex flex-col items-center justify-center gap-3 text-dimmed")
-        p(class="text-[13px] mt-24") Generating preview…
+        p(class="text-[13px] mt-24") {{ t('common.generating_preview') }}
     canvas#preview-canvas(
         v-show="has_preview"
         ref="canvas_el"
@@ -29,6 +29,7 @@ div(ref="container_el" class="absolute inset-0 flex items-center justify-center 
 // 3D book preview canvas with mouse/touch rotation and scroll zoom
 
 import {ref, watch, onMounted, onUnmounted} from 'vue'
+import {useI18n} from 'vue-i18n'
 import type {Book3DRenderer} from 'bookcover-3d'
 
 const props = defineProps<{
@@ -37,6 +38,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{(e:'update:zoom', v:number):void}>()
+
+const {t} = useI18n()
 
 // Canvas and container element references
 const canvas_el = ref<HTMLCanvasElement | null>(null)

@@ -22,7 +22,7 @@ div(
         v-if="clearable && modelValue"
         type="button"
         class="h-7 px-1.5 flex items-center cursor-pointer"
-        aria-label="Clear color"
+        :aria-label="t('common.clear_color_aria')"
         @click="emit('update:modelValue', null)"
     )
         UIcon(name="material-symbols:close" class="w-3 h-3 relative")
@@ -33,6 +33,7 @@ div(
 // ColorPicker — button whose background is the chosen color, with contrast-aware text
 
 import {computed, ref} from 'vue'
+import {useI18n} from 'vue-i18n'
 
 const props = withDefaults(defineProps<{
     modelValue:string | null
@@ -46,6 +47,8 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{
     (e:'update:modelValue', value:string | null): void
 }>()
+
+const {t} = useI18n()
 
 // CSS classes for the label button: rounding and fallback colors when no value is set
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings in new files

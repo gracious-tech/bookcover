@@ -5,7 +5,7 @@
 
 div(class="absolute inset-0 flex items-center justify-center overflow-hidden p-4")
     div(v-if="!has_preview" class="flex flex-col items-center justify-center gap-3 text-dimmed")
-        p(class="text-[13px]") Generating preview…
+        p(class="text-[13px]") {{ t('common.generating_preview') }}
     canvas#photo-canvas(
         v-show="has_preview"
         ref="photo_canvas_el"
@@ -20,6 +20,7 @@ div(class="absolute inset-0 flex items-center justify-center overflow-hidden p-4
 // Photo mode — composites the 3D book onto a background photograph
 
 import {ref} from 'vue'
+import {useI18n} from 'vue-i18n'
 import {BACKGROUNDS} from 'bookcover-3d'
 import type {Book3DRenderer} from 'bookcover-3d'
 import {make_zoom_wheel_handler} from '../../svg_utils'
@@ -31,6 +32,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{(e:'update:zoom', v:number):void}>()
+
+const {t} = useI18n()
 
 const on_wheel = make_zoom_wheel_handler(() => props.zoom, (v) => emit('update:zoom', v))
 

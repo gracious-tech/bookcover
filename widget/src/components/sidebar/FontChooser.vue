@@ -19,7 +19,7 @@ div(class="flex flex-col gap-1")
                 span(
                     class="flex-1 truncate"
                     :style="{fontFamily: font_css(selected_family)}"
-                ) {{ modelValue || "Auto" }}
+                ) {{ modelValue || t('common.auto') }}
                 //- Chevron
                 UIcon(
                     name="material-symbols:expand-more"
@@ -46,15 +46,15 @@ div(class="flex flex-col gap-1")
                         @mousedown.prevent="select(item.value)"
                     )
                         div(class="text-2xl truncate leading-tight" :style="{fontFamily: font_css(item.family)}") {{ preview_text || item.family }}
-                        div(class="text-xs text-muted truncate") {{ item.value ? item.family : 'Auto' }}
+                        div(class="text-xs text-muted truncate") {{ item.value ? item.family : t('common.auto') }}
 
         //- Upload button
         button(
             type="button"
             class="px-1.5 py-1.5 text-sm font-semibold text-muted hover:text-default cursor-pointer border border-default rounded hover:bg-elevated"
-            title="Upload custom font"
+            :title="t('font_chooser.upload_title')"
             @click="show_upload = true"
-        ) More
+        ) {{ t('font_chooser.more_button') }}
 
     //- Upload modal
     FontUploadModal(v-model:open="show_upload" @font-added="select")
@@ -65,6 +65,7 @@ div(class="flex flex-col gap-1")
 // FontChooser — select dropdown with actual font previews and custom font upload
 
 import {ref, computed, onMounted} from 'vue'
+import {useI18n} from 'vue-i18n'
 import {get_fonts} from 'bookcover-web'
 import {register_preview_fonts} from 'typst-fonts/web'
 import {custom_font_families, fonts_prefix} from '../../fonts'
@@ -79,6 +80,8 @@ const props = defineProps<{
 const emit = defineEmits<{
     'update:modelValue': [value:string]
 }>()
+
+const {t} = useI18n()
 
 // Dropdown open state
 const open = ref(false)
@@ -106,7 +109,7 @@ const font_list = computed(():FontListItem[] => {
 
     // Uploaded custom fonts with section header
     if (custom_font_families.length) {
-        items.push({type: 'header', label: 'Uploaded'})
+        items.push({type: 'header', label: t('font_chooser.uploaded_header')})
         for (const f of custom_font_families)
             items.push({type: 'font', family: f.family, value: f.family})
     }

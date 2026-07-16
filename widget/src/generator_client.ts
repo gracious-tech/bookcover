@@ -5,6 +5,7 @@
 
 import type {GenerateOptions, GenerateResult} from 'bookcover-web'
 import type {WorkerAction, WorkerResponse} from './generator_worker'
+import {i18n} from './i18n'
 
 
 // Handlers awaiting a response from the worker, keyed by request id
@@ -37,8 +38,12 @@ export class GeneratorWorkerClient {
                 handlers.resolve(response.result)
             } else {
                 // Rebuild the error with its original name and Zod issues, so the preview's
-                // ZodError detection still works across the worker boundary
-                const error = new Error(response.error)
+                // ZodError detection still works across the worker boundary. A translation
+                // code (set for errors originating in generator/, which has no i18n of its
+                // own — see IconCacheError) overrides the message with the translated string.
+                const error = new Error(
+                    response.code ? i18n.global.t(`errors.${response.code}`, response.params ?? {}) : response.error,
+                )
                 if (response.error_name){
                     error.name = response.error_name
                 }
@@ -52,7 +57,7 @@ export class GeneratorWorkerClient {
         // A crash of the worker script itself (rather than a handled compile error) fails all
         // in-flight calls, since no response will ever arrive for them
         this.worker.onerror = event => {
-            const error = new Error(event.message || "Generator worker failed")
+            const error = new Error(event.message || i18n.global.t('errors.generator_worker_failed'))
             for (const handlers of this.pending.values()){
                 handlers.reject(error)
             }

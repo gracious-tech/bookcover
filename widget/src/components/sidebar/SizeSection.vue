@@ -5,13 +5,13 @@
 
 //- Service dropdown (includes "Custom..." option)
 div(class="flex flex-col gap-1")
-    label(class="text-xs font-semibold tracking-[0.02em]") Printing service
+    label(class="text-xs font-semibold tracking-[0.02em]") {{ t('size.service_label') }}
     USelect(v-model="form.service_id" :items="service_items")
 
 //- Trim size: header + size selector grouped so they share gap-1 spacing
 div(class="flex flex-col gap-1")
     div(class="flex items-center justify-between pb-0.5")
-        span(class="text-xs font-semibold tracking-[0.02em]") Trim size
+        span(class="text-xs font-semibold tracking-[0.02em]") {{ t('size.trim_size_label') }}
         //- Unit toggle shown only in custom service mode
         div(v-if="is_custom" class="flex gap-1")
             UButton(
@@ -27,7 +27,7 @@ div(class="flex flex-col gap-1")
     div(v-if="size_items.length > 5" class="flex flex-col")
         USelect(
             :model-value="form.size_id || '__custom__'"
-            :items="[...size_items.map(s => ({label: s.name, value: s.id, dims: s.dims})), {label: 'Custom\u2026', value: '__custom__'}]"
+            :items="[...size_items.map(s => ({label: s.name, value: s.id, dims: s.dims})), {label: t('size.custom_option'), value: '__custom__'}]"
             @update:model-value="v => v === '__custom__' ? select_custom() : select_size(v)"
         )
             template(v-slot:item-trailing="{ item }")
@@ -48,12 +48,12 @@ div(class="flex flex-col gap-1")
             :color="form.size_id === '' ? 'primary' : 'neutral'"
             :variant="form.size_id === '' ? 'solid' : 'outline'"
             @click="select_custom"
-        ) Custom
+        ) {{ t('size.custom_button') }}
 
 //- Custom dimension inputs (shown only when no size_id is selected)
 div(v-show="form.size_id === ''" class="flex flex-row gap-[24px]")
     div(class="flex flex-col gap-1")
-        label(class="text-xs font-semibold tracking-[0.02em]") Width
+        label(class="text-xs font-semibold tracking-[0.02em]") {{ t('size.width_label') }}
         div(class="flex gap-[6px]")
             UInput(
                 type="number"
@@ -66,7 +66,7 @@ div(v-show="form.size_id === ''" class="flex flex-row gap-[24px]")
             div(v-if="!is_custom" class="w-[72px] shrink-0")
                 USelect(v-model="form.custom_unit" :items="unit_items")
     div(class="flex flex-col gap-1")
-        label(class="text-xs font-semibold tracking-[0.02em]") Height
+        label(class="text-xs font-semibold tracking-[0.02em]") {{ t('size.height_label') }}
         UInput(type="number" v-model.number="form.custom_trim_height" :min="1" :step="0.001")
 
 //- Custom service mode: bleed and spine fields
@@ -77,12 +77,12 @@ template(v-if="is_custom")
 template(v-else)
     //- Page count field
     div(class="flex flex-col gap-1")
-        label(class="text-xs font-semibold tracking-[0.02em]") Page count
+        label(class="text-xs font-semibold tracking-[0.02em]") {{ t('size.page_count_label') }}
         UInput(type="number" v-model.number="form.page_count" :min="1" :step="1")
 
     //- Binding type (shown when more than one option exists; select when >3 items)
     div(v-if="binding_items.length > 1" class="flex flex-col gap-1")
-        label(class="text-xs font-semibold tracking-[0.02em]") Binding
+        label(class="text-xs font-semibold tracking-[0.02em]") {{ t('size.binding_label') }}
         USelect(
             v-if="binding_items.length > 3"
             v-model="form.binding_type"
@@ -104,7 +104,7 @@ template(v-else)
 
     //- Ink type (shown only when the service requires it for dimension calculation)
     div(v-if="show_ink_type && ink_items.length > 1" class="flex flex-col gap-1")
-        label(class="text-xs font-semibold tracking-[0.02em]") Ink type
+        label(class="text-xs font-semibold tracking-[0.02em]") {{ t('size.ink_type_label') }}
         div(class="flex flex-wrap gap-1.25")
             UButton(
                 v-for="i in ink_items"
@@ -119,7 +119,7 @@ template(v-else)
 
     //- Paper type (shown only when the service requires it for dimension calculation)
     div(v-if="show_paper_type && paper_items.length > 1" class="flex flex-col gap-1")
-        label(class="text-xs font-semibold tracking-[0.02em]") Paper type
+        label(class="text-xs font-semibold tracking-[0.02em]") {{ t('size.paper_type_label') }}
         div(class="flex flex-wrap gap-1.25")
             UButton(
                 v-for="p in paper_items"
@@ -138,6 +138,7 @@ template(v-else)
 // Size & Print section — all options driven by the printing-services library
 
 import {computed, watch, inject} from 'vue'
+import {useI18n} from 'vue-i18n'
 import {list_services, get_service, get_common_sizes} from 'printing-services'
 import type {ServicePublic, BindingTypeId, SizeId, InkTypeId} from 'printing-services'
 import {FORM_KEY} from '../../form_state'
@@ -146,13 +147,15 @@ import CustomServiceFields from './CustomServiceFields.vue'
 // Inject the shared form state
 const form = inject(FORM_KEY)!
 
+const {t} = useI18n()
+
 // Unit select items for regular service custom sizes
 const unit_items = ['mm', 'inch']
 
 // Build service dropdown: real services + "Custom..." at the end
 const service_items = computed(() => [
     ...list_services().map(s => ({label: s.name, value: s.id})),
-    {label: 'Custom…', value: 'custom'},
+    {label: t('size.custom_option'), value: 'custom'},
 ])
 
 // Whether we're in custom service mode (no printing service, manual bleed/spine)

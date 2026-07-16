@@ -4,7 +4,7 @@
 //- Blurb font options popover panel — size, font, text color, background color
 div(class="p-3 flex flex-col gap-4 w-100")
     div(class="flex flex-col gap-1")
-        span(class="text-xs font-semibold") Size
+        span(class="text-xs font-semibold") {{ t('font_style.size_label') }}
         div(class="flex items-center gap-2")
             LogSlider(
                 :modelValue="size"
@@ -17,13 +17,13 @@ div(class="p-3 flex flex-col gap-4 w-100")
             span(class="text-xs w-8 text-right shrink-0") {{ size.toFixed(1) }}x
     FontChooser(
         :modelValue="font"
-        label="Font"
+        :label="t('font_style.font_label')"
         :preview_text="preview_text"
         @update:modelValue="$emit('update:font', $event)"
     )
     ColorPicker(
         :modelValue="color"
-        :label="color ? 'Text color' : 'Text color (auto)'"
+        :label="color ? t('blurb_font.text_color_label') : t('blurb_font.text_color_auto_label')"
         :clearable="true"
         @update:modelValue="$emit('update:color', $event)"
     )
@@ -31,7 +31,7 @@ div(class="p-3 flex flex-col gap-4 w-100")
     div(class="flex items-center gap-1")
         ColorPicker(
             :modelValue="bg_color === undefined ? null : bg_color"
-            :label="bg_color === undefined ? 'Background (auto)' : bg_color ? 'Background' : 'Background (none)'"
+            :label="bg_color === undefined ? t('blurb_font.bg_auto_label') : bg_color ? t('blurb_font.bg_label') : t('blurb_font.bg_none_label')"
             :clearable="bg_color !== undefined && bg_color !== null"
             @update:modelValue="$emit('update:bg_color', $event)"
         )
@@ -43,7 +43,7 @@ div(class="p-3 flex flex-col gap-4 w-100")
             color="neutral"
             variant="ghost"
             size="sm"
-            aria-label="Clear auto background"
+            :aria-label="t('blurb_font.clear_auto_bg_aria')"
             @click="$emit('update:bg_color', null)"
         )
         UButton(
@@ -53,10 +53,10 @@ div(class="p-3 flex flex-col gap-4 w-100")
             variant="ghost"
             size="sm"
             @click="$emit('update:bg_color', undefined)"
-        ) Auto
+        ) {{ t('common.auto') }}
     //- Alignment toggle buttons (left / center / right / justified)
     div(class="flex flex-col gap-1")
-        span(class="text-xs font-semibold") Alignment
+        span(class="text-xs font-semibold") {{ t('font_style.alignment_label') }}
         div(class="flex gap-1")
             UButton(
                 type="button"
@@ -64,7 +64,7 @@ div(class="p-3 flex flex-col gap-4 w-100")
                 :color="alignment === 'left' ? 'primary' : 'neutral'"
                 :variant="alignment === 'left' ? 'soft' : 'ghost'"
                 size="sm"
-                aria-label="Align left"
+                :aria-label="t('font_style.align_left_aria')"
                 @click="$emit('update:alignment', 'left')"
             )
             UButton(
@@ -73,7 +73,7 @@ div(class="p-3 flex flex-col gap-4 w-100")
                 :color="alignment === 'center' ? 'primary' : 'neutral'"
                 :variant="alignment === 'center' ? 'soft' : 'ghost'"
                 size="sm"
-                aria-label="Align center"
+                :aria-label="t('font_style.align_center_aria')"
                 @click="$emit('update:alignment', 'center')"
             )
             UButton(
@@ -82,7 +82,7 @@ div(class="p-3 flex flex-col gap-4 w-100")
                 :color="alignment === 'right' ? 'primary' : 'neutral'"
                 :variant="alignment === 'right' ? 'soft' : 'ghost'"
                 size="sm"
-                aria-label="Align right"
+                :aria-label="t('font_style.align_right_aria')"
                 @click="$emit('update:alignment', 'right')"
             )
             UButton(
@@ -91,7 +91,7 @@ div(class="p-3 flex flex-col gap-4 w-100")
                 :color="alignment === 'justified' ? 'primary' : 'neutral'"
                 :variant="alignment === 'justified' ? 'soft' : 'ghost'"
                 size="sm"
-                aria-label="Justify"
+                :aria-label="t('blurb_font.justify_aria')"
                 @click="$emit('update:alignment', 'justified')"
             )
 
@@ -99,6 +99,7 @@ div(class="p-3 flex flex-col gap-4 w-100")
 
 <script setup lang="ts">
 // Popover panel for blurb font styling — size, font, text color, background color
+import {useI18n} from 'vue-i18n'
 import FontChooser from './FontChooser.vue'
 import ColorPicker from './ColorPicker.vue'
 import LogSlider from '../LogSlider.vue'
@@ -119,5 +120,7 @@ defineEmits<{
     'update:bg_color': [value:string | null | undefined]
     'update:alignment': [value:'center' | 'left' | 'right' | 'justified']
 }>()
+
+const {t} = useI18n()
 
 </script>

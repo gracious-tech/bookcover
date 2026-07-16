@@ -5,26 +5,26 @@
 
 UModal(:open="open_model" @update:open="open_model = $event" :ui="{content: 'max-w-sm'}")
     template(#header)
-        p(class="text-lg font-semibold") Upload custom fonts
+        p(class="text-lg font-semibold") {{ t('font_upload.title') }}
 
     template(#body)
         div(class="flex flex-col gap-4 text-sm")
 
             //- Instructions
             div(class="flex flex-col gap-2")
-                p(class="font-semibold") How to get fonts from Google Fonts:
+                p(class="font-semibold") {{ t('font_upload.instructions_heading') }}
                 ol(class="flex flex-col gap-1.5 list-decimal list-inside text-muted")
                     li
-                        | Visit&nbsp;
+                        | {{ t('font_upload.step1_prefix') }}&nbsp;
                         a(
                             href="https://fonts.google.com"
                             target="_blank"
                             rel="noopener"
                             class="text-highlighted underline"
                         ) fonts.google.com
-                        | &nbsp;and find a font family.
-                    li Click "Get font", then "Download all".
-                    li Upload the .zip file below.
+                        | &nbsp;{{ t('font_upload.step1_suffix') }}
+                    li {{ t('font_upload.step2') }}
+                    li {{ t('font_upload.step3') }}
 
             //- File upload area
             label(
@@ -36,8 +36,8 @@ UModal(:open="open_model" @update:open="open_model = $event" :ui="{content: 'max
                 @drop.prevent="on_drop"
             )
                 UIcon(name="material-symbols:upload-file" class="w-8 h-8 text-muted")
-                span(class="text-muted text-center") Drop files here or click to browse
-                span(class="text-xs text-dimmed") .zip, .ttf, or .otf files
+                span(class="text-muted text-center") {{ t('font_upload.dropzone_text') }}
+                span(class="text-xs text-dimmed") {{ t('font_upload.dropzone_filetypes') }}
                 input(
                     ref="file_input"
                     type="file"
@@ -54,7 +54,7 @@ UModal(:open="open_model" @update:open="open_model = $event" :ui="{content: 'max
 
             //- Action buttons
             div(class="flex gap-2 justify-end")
-                UButton(type="button" color="neutral" variant="subtle" size="sm" @click="open_model = false") Close
+                UButton(type="button" color="neutral" variant="subtle" size="sm" @click="open_model = false") {{ t('common.close') }}
 
 </template>
 
@@ -62,6 +62,7 @@ UModal(:open="open_model" @update:open="open_model = $event" :ui="{content: 'max
 // FontUploadModal — dialog for uploading custom font files (zip or individual)
 
 import {ref, computed, toRef} from 'vue'
+import {useI18n} from 'vue-i18n'
 import {process_uploaded_files} from '../../fonts'
 import {use_modal_tracking} from '../../modal_state'
 
@@ -70,6 +71,8 @@ const emit = defineEmits<{
     (e:'update:open', val:boolean):void
     (e:'font-added', family:string):void
 }>()
+
+const {t} = useI18n()
 
 // Two-way binding for modal open state
 const open_model = computed({
@@ -109,7 +112,7 @@ async function handle_files(files:File[]):Promise<void> {
     if (!files.length)
         return
 
-    status.value = 'Processing fonts...'
+    status.value = t('font_upload.status_processing')
     status_type.value = 'loading'
 
     try {
@@ -118,11 +121,11 @@ async function handle_files(files:File[]):Promise<void> {
             emit('font-added', added[0]!)
             open_model.value = false
         } else {
-            status.value = 'No new font families found in the uploaded files'
+            status.value = t('font_upload.status_no_new_fonts')
             status_type.value = 'error'
         }
     } catch (err:unknown) {
-        status.value = err instanceof Error ? err.message : 'Failed to process fonts'
+        status.value = err instanceof Error ? err.message : t('font_upload.status_failed')
         status_type.value = 'error'
     }
 }

@@ -9,7 +9,7 @@ div(class="relative shrink-0")
         class="w-8 h-8 rounded hover:bg-accented cursor-pointer flex items-center justify-center relative overflow-hidden block"
         :class="modelValue ? 'border-transparent' : 'border-default'"
         :style="modelValue ? {background: modelValue} : {}"
-        :title="modelValue ?? 'Set color'"
+        :title="modelValue ?? t('common.set_color_title')"
     )
         input(
             type="color"
@@ -23,7 +23,7 @@ div(class="relative shrink-0")
         v-if="clearable && modelValue"
         type="button"
         class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-inverted text-inverted border border-default flex items-center justify-center cursor-pointer z-10"
-        aria-label="Clear color"
+        :aria-label="t('common.clear_color_aria')"
         @click.stop="emit('update:modelValue', null)"
     )
         UIcon(name="material-symbols:remove" class="w-2.5 h-2.5")
@@ -34,6 +34,7 @@ div(class="relative shrink-0")
 // ColorSwatch — compact square swatch that opens a native color picker on click
 
 import {ref} from 'vue'
+import {useI18n} from 'vue-i18n'
 
 const props = withDefaults(defineProps<{
     modelValue:string | null
@@ -45,6 +46,8 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{
     (e:'update:modelValue', value:string | null): void
 }>()
+
+const {t} = useI18n()
 
 // Debounce timer — emit only after 2s of no changes
 const debounce_timer = ref<ReturnType<typeof setTimeout> | null>(null)

@@ -4,6 +4,7 @@
 
 import {ref, watch} from 'vue'
 import type {FormState} from './form_state'
+import type {AppLocale} from './i18n'
 import {debounce} from './svg_utils'
 
 /** JSON-safe mirror of FormState — bg_image becomes a base64 data URL instead of a File */
@@ -14,6 +15,7 @@ type InitMessage = {
     preset?: Partial<EmbedFormState>
     finished_mode?: boolean
     hide_size_section?: boolean
+    locale?: AppLocale
 }
 type WidgetMessage =
     | {type: 'ready'}
@@ -25,6 +27,10 @@ export const finished_mode = ref(false)
 
 // Hides the Book Size sidebar section entirely
 export const hide_size_section = ref(false)
+
+// Parent-provided locale override, captured from the 'init' message — read by main.ts before
+// the app mounts, via resolve_initial_locale()
+export const embed_locale = ref<AppLocale | null>(null)
 
 // True when running inside an iframe — standalone usage no-ops the whole embed API
 const embedded = window.parent !== window
@@ -113,6 +119,7 @@ export function wait_for_embed_init():Promise<void> {
             parent_origin = event.origin
             if (msg.finished_mode !== undefined) finished_mode.value = msg.finished_mode
             if (msg.hide_size_section !== undefined) hide_size_section.value = msg.hide_size_section
+            if (msg.locale !== undefined) embed_locale.value = msg.locale
             if (msg.preset) pending_preset = msg.preset
             finish()
         })

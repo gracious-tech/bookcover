@@ -3,12 +3,12 @@
 
 //- Background image
 div(class="flex flex-col gap-1")
-    label(class="text-xs font-semibold tracking-[0.02em] mb-1") Background image
+    label(class="text-xs font-semibold tracking-[0.02em] mb-1") {{ t('background.image_label') }}
 
     //- Suggested images and upload/paste buttons
     div(class="flex gap-1 items-center")
         UPopover(v-model:open="bg_picker_open")
-            button(type="button" class="flex rounded border border-default overflow-hidden cursor-pointer shrink-0 hover:opacity-80 transition-opacity" aria-label="Choose suggested background")
+            button(type="button" class="flex rounded border border-default overflow-hidden cursor-pointer shrink-0 hover:opacity-80 transition-opacity" :aria-label="t('background.choose_suggested_aria')")
                 img(
                     v-if="bg_image_url"
                     :src="bg_image_url"
@@ -37,8 +37,8 @@ div(class="flex flex-col gap-1")
                                 img(:src="bg_thumb_url(bg)" class="w-full h-full object-cover block")
         label(class="cursor-pointer")
             input(type="file" accept=".jpg,.jpeg,.png,.webp" class="sr-only" @change="on_image_change")
-            UButton(as="span" color="neutral" variant="outline" size="sm") Upload
-        UButton(type="button" color="neutral" variant="outline" size="sm" @click="on_paste_click") Paste
+            UButton(as="span" color="neutral" variant="outline" size="sm") {{ t('background.upload_button') }}
+        UButton(type="button" color="neutral" variant="outline" size="sm" @click="on_paste_click") {{ t('background.paste_button') }}
         UButton(
             type="button"
             color="neutral"
@@ -46,7 +46,7 @@ div(class="flex flex-col gap-1")
             size="md"
             icon="material-symbols:close"
             class="ml-2"
-            aria-label="Remove image"
+            :aria-label="t('background.remove_image_aria')"
             @click="form.bg_image = null"
         )
 
@@ -64,7 +64,7 @@ div(class="flex flex-col gap-1")
 
 //- Background image coverage
 div(v-if='form.bg_image' class="flex flex-col gap-1")
-    div(class="text-xs font-semibold tracking-[0.02em]") Background position
+    div(class="text-xs font-semibold tracking-[0.02em]") {{ t('background.position_label') }}
     div(v-if='form.bg_image' class="flex mt-3")
         UButton(
             type="button"
@@ -73,7 +73,7 @@ div(v-if='form.bg_image' class="flex flex-col gap-1")
             size="sm"
             class="rounded-r-none w-[50px] justify-center"
             @click="form.bg_image_coverage = 'full'"
-        ) Full
+        ) {{ t('background.coverage_full') }}
         UButton(
             type="button"
             color="neutral"
@@ -81,7 +81,7 @@ div(v-if='form.bg_image' class="flex flex-col gap-1")
             size="sm"
             class="rounded-none w-[50px] justify-center"
             @click="form.bg_image_coverage = 'front'"
-        ) Front
+        ) {{ t('background.coverage_front') }}
         UButton(
             type="button"
             color="neutral"
@@ -89,7 +89,7 @@ div(v-if='form.bg_image' class="flex flex-col gap-1")
             size="sm"
             class="rounded-none"
             @click="form.bg_image_coverage = 'front_partial'"
-        ) Front 2/3
+        ) {{ t('background.coverage_front_partial') }}
         UButton(
             type="button"
             color="neutral"
@@ -97,7 +97,7 @@ div(v-if='form.bg_image' class="flex flex-col gap-1")
             size="sm"
             class="rounded-none"
             @click="form.bg_image_coverage = 'feature'"
-        ) Feature
+        ) {{ t('background.coverage_feature') }}
         UButton(
             type="button"
             color="neutral"
@@ -105,12 +105,12 @@ div(v-if='form.bg_image' class="flex flex-col gap-1")
             size="sm"
             class="rounded-l-none"
             @click="form.bg_image_coverage = 'painted'"
-        ) Painted
+        ) {{ t('background.coverage_painted') }}
 
 
 //- Background color
 div(class="flex flex-col gap-1")
-    label(class="text-xs font-semibold tracking-[0.02em] mb-1") Background color
+    label(class="text-xs font-semibold tracking-[0.02em] mb-1") {{ t('background.color_label') }}
     div(class="flex items-center gap-[12px]")
 
         input(
@@ -135,21 +135,21 @@ div(class="flex flex-col gap-1")
 
 //- Background gradient toggle
 div(class="flex items-center gap-2 pt-0.5")
-    UCheckbox(v-model="form.bg_color_gradient" label="Make background color a gradient" :ui="{base: 'border-1 border-gray-400'}")
+    UCheckbox(v-model="form.bg_color_gradient" :label="t('background.gradient_checkbox')" :ui="{base: 'border-1 border-gray-400'}")
 
 
 //- Spine color
 div(class="flex flex-col gap-1")
     ColorPicker(
         v-model="form.spine_color"
-        label='Spine color'
+        :label="t('background.spine_color_label')"
         :clearable="true"
     )
 
 
 //- Pattern
 div(class="flex flex-col gap-1")
-    label(class="text-xs font-semibold tracking-[0.02em] mb-1") Background pattern
+    label(class="text-xs font-semibold tracking-[0.02em] mb-1") {{ t('background.pattern_label') }}
     div(class="flex items-center gap-[5px]")
         //- Trigger: square swatch showing the selected pattern, or a "+" placeholder
         UPopover(v-model:open="pattern_picker_open")
@@ -160,7 +160,7 @@ div(class="flex flex-col gap-1")
                 :style="{backgroundImage: get_preview_url(get_selected_pattern(), is_dark ? '#fff': '#000'), backgroundSize: get_preview_size(get_selected_pattern())}"
             )
             //- Placeholder when no pattern selected: 4 example swatches + label
-            button(v-else type="button" class="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity" aria-label="Choose a pattern")
+            button(v-else type="button" class="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity" :aria-label="t('background.choose_pattern_aria')")
                 div(class="flex rounded border border-default overflow-hidden shrink-0 gap-1")
                     div(
                         v-for="pat in PREVIEW_PATTERNS"
@@ -168,7 +168,7 @@ div(class="flex flex-col gap-1")
                         class="w-10 h-10 shrink-0"
                         :style="{backgroundImage: get_preview_url(pat, is_dark ? '#fff': '#000'), backgroundSize: get_preview_size(pat)}"
                     )
-                span(class="text-sm text-muted pl-2") Choose a pattern...
+                span(class="text-sm text-muted pl-2") {{ t('background.choose_pattern_placeholder') }}
             //- Popover content: grid of all patterns
             template(#content)
                 div(class="p-2")
@@ -202,13 +202,13 @@ div(class="flex flex-col gap-1")
                 variant="ghost"
                 size="md"
                 icon="material-symbols:close"
-                aria-label="Remove pattern"
+                :aria-label="t('background.remove_pattern_aria')"
                 @click="form.pattern_id = null"
             )
 
 //- Icon
 div(class="flex flex-col gap-1")
-    label(class="text-xs font-semibold tracking-[0.02em]") Front cover icon
+    label(class="text-xs font-semibold tracking-[0.02em]") {{ t('background.icon_label') }}
     div(class="flex items-center gap-1.25")
         //- 4 example thumbnails + text input, both open the same suggestions popover
         UPopover(v-model:open="icon_picker_open")
@@ -237,7 +237,7 @@ div(class="flex flex-col gap-1")
                     ref="icon_input_ref"
                     :value="form.icon_id ?? ''"
                     type="text"
-                    placeholder="Enter Iconify id..."
+                    :placeholder="t('background.icon_input_placeholder')"
                     class="flex-1 text-xs px-2 py-1.5 border border-default rounded-md bg-default outline-none min-w-0"
                     @input="on_icon_input"
                     @focus.stop="icon_picker_open = true"
@@ -247,7 +247,7 @@ div(class="flex flex-col gap-1")
                     v-else-if='!form.icon_id'
                     class="flex-1 text-sm px-2 py-1.5 text-muted cursor-pointer"
                     @click.stop="icon_picker_open = true"
-                ) Choose an icon...
+                ) {{ t('background.choose_icon_placeholder') }}
             //- Popover content: scrollable grid of all icons
             template(#content)
                 div(class="p-2 overflow-y-auto overscroll-contain" style="max-height: min(320px, 60dvh)")
@@ -268,7 +268,7 @@ div(class="flex flex-col gap-1")
                             style="grid-column: span 2"
                             class="h-12 rounded p-1 flex items-center justify-center text-sm font-bold text-primary hover:bg-accented cursor-pointer"
                             @click.stop="icon_help_open = true"
-                        ) MORE
+                        ) {{ t('background.more_button') }}
         //- Size slider for the icon — only shown when an icon is selected and popover closed
         LogSlider(
             v-if="form.icon_id && !icon_picker_open"
@@ -289,13 +289,13 @@ div(class="flex flex-col gap-1")
             variant="ghost"
             size="md"
             icon="material-symbols:close"
-            aria-label="Remove icon"
+            :aria-label="t('background.remove_icon_aria')"
             @click="form.icon_id = null"
         )
 
 //- Icon mode toggle
 div(v-if="form.icon_id" class="flex flex-col gap-2")
-    label(class="text-xs font-semibold tracking-[0.02em]") Icon placement
+    label(class="text-xs font-semibold tracking-[0.02em]") {{ t('background.icon_placement_label') }}
     div(class="flex")
         UButton(
             v-for="m in ICON_MODES"
@@ -307,7 +307,7 @@ div(v-if="form.icon_id" class="flex flex-col gap-2")
             class="flex-1"
             :class="m.value === 'center' ? 'rounded-r-none' : m.value === 'background' ? 'rounded-l-none' : 'rounded-none'"
             @click="form.icon_mode = m.value"
-        ) {{ m.label }}
+        ) {{ t(`background.icon_mode_${m.value}`) }}
 
 
 //- Iconify help modal — opened by the "more" button in the icon picker
@@ -322,17 +322,17 @@ UModal(v-model:open="low_res_dialog_open" :ui="{content: 'max-w-sm'}")
             p(class="text-sm text-muted") {{ bg_dpi_warning?.body }}
             dl(class="text-xs text-muted flex flex-col gap-0.5")
                 div(class="flex justify-between gap-2")
-                    dt Image size
+                    dt {{ t('background.dpi_modal_image_size') }}
                     dd {{ bg_dpi_warning?.actual_size }}
                 div(v-if="bg_dpi_warning?.acceptable_size" class="flex justify-between gap-2")
-                    dt Acceptable size
+                    dt {{ t('background.dpi_modal_acceptable_size') }}
                     dd {{ bg_dpi_warning?.acceptable_size }}
                 div(class="flex justify-between gap-2")
-                    dt Recommended size
+                    dt {{ t('background.dpi_modal_recommended_size') }}
                     dd {{ bg_dpi_warning?.recommended_size }}
     template(#footer)
         div(class="flex justify-end w-full")
-            UButton(type="button" color="neutral" variant="subtle" size="sm" @click="low_res_dialog_open = false") Understood
+            UButton(type="button" color="neutral" variant="subtle" size="sm" @click="low_res_dialog_open = false") {{ t('background.understood_button') }}
 
 </template>
 
@@ -346,6 +346,7 @@ let bg_loaded = false
 
 import {inject, ref, computed, watch, nextTick, onMounted, onUnmounted} from 'vue'
 import {useDark} from '@vueuse/core'
+import {useI18n} from 'vue-i18n'
 import {FORM_KEY} from '../../form_state'
 import type {FormState} from '../../form_state'
 import {suggested_icons} from '../../services/icons'
@@ -364,6 +365,7 @@ import IconifyHelpModal from './IconifyHelpModal.vue'
 // Inject the shared form state
 const form = inject(FORM_KEY)!
 const is_dark = useDark()
+const {t} = useI18n()
 
 // Available icon swatches — rendered via Iconify SVG API
 const ICONS: {id:string, url:string}[] = suggested_icons.map(id => {
@@ -412,7 +414,7 @@ const bg_dpi_warning = computed<BgImageDpiWarning | null>(() => {
 // Short clickable label for the inline warning — full detail lives in the dialog it opens
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
 const dpi_warning_short = computed(() => (
-    bg_dpi_warning.value?.level === 'very_low' ? 'Very low resolution - should change' : 'Low resolution - may look soft'
+    bg_dpi_warning.value?.level === 'very_low' ? t('background.dpi_short_very_low') : t('background.dpi_short_low')
 ))
 
 // Inline warning styling — amber for the mild tier, red for the severe tier
@@ -513,12 +515,13 @@ function select_icon(id:string): void {
     icon_picker_open.value = false
 }
 
-// Icon placement mode options
-const ICON_MODES: {label:string, value:FormState['icon_mode']}[] = [
-    {label: 'Center', value: 'center'},
-    {label: 'Offset', value: 'offset'},
-    {label: 'Echo', value: 'echo'},
-    {label: 'Background', value: 'background'},
+// Icon placement mode options — display labels are translated in the template via
+// t(`background.icon_mode_${value}`)
+const ICON_MODES: {value:FormState['icon_mode']}[] = [
+    {value: 'center'},
+    {value: 'offset'},
+    {value: 'echo'},
+    {value: 'background'},
 ]
 
 // Preset primary swatches: row 0 = light colors, row 1 = dark colors
