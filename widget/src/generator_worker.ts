@@ -11,7 +11,7 @@ import type {CoverGenerator, GenerateOptions, GenerateResult} from 'bookcover-we
 // fonts.ts) rather than bundled — they're large and shared with related apps. Each URL embeds
 // the installed package's own version so the bytes always match the bundled JS glue (a
 // mismatched version 404s loudly instead of failing in confusing ways)
-const TYPST_VERSION = '0.7.0'  // WARN Must match shared version (preferably own typst.ts too)
+const TYPST_VERSION = '0.7.0'  // WARN Must match shared version and generator-web versions
 const typst_prefix = import.meta.env.PROD
     ? 'https://assets.paper.bible/typst'
     : 'http://localhost:5300/generator_assets/typst'

@@ -94,7 +94,7 @@ client.init(assets_prefix, fonts_prefix).then(async () => {
     console.error('WASM init failed:', err)
     // The worker fetches the same manifest — don't overwrite a more specific fonts error
     if (!init_error.value) {
-        init_error.value = 'The cover generator failed to start. Check the browser console for details.'
+        init_error.value = 'The cover generator failed to start. Typst wasm failed to load.'
     }
 })
 
