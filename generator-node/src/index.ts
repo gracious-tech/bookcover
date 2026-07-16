@@ -8,21 +8,21 @@ import * as crypto from 'node:crypto'
 import {fileURLToPath} from 'node:url'
 import {spawn} from 'node:child_process'
 import {build, cover_schema, split_svg, split_png, split_pdf,
-    asset_path, TYPST_DIR, TEMPLATE_FILES, collect_all_fonts} from 'bookcover'
-import type {OutputFormat, Templates} from 'bookcover'
-import type {CoverSchema} from 'bookcover'
+    asset_path, TYPST_DIR, TEMPLATE_FILES, collect_all_fonts} from 'bookcover-core'
+import type {OutputFormat, Templates} from 'bookcover-core'
+import type {CoverSchema} from 'bookcover-core'
 import {load_fonts_dir, resolve_font_dirs as resolve_font_dirs_generic} from 'typst-fonts/node'
 import sharp from 'sharp'
 
 export type {CoverSchema, TitlePosition, FontConfig,
-    OutputFormat, SplitResult, PatternDef} from 'bookcover'
+    OutputFormat, SplitResult, PatternDef} from 'bookcover-core'
 export type {BundledFont} from 'typst-fonts'
 export {get_fonts, get_bundled_font} from 'typst-fonts'
-export {list_patterns, collect_fonts, collect_all_fonts, default_spine_title} from 'bookcover'
+export {list_patterns, collect_fonts, collect_all_fonts, default_spine_title} from 'bookcover-core'
 
 // Resolve the generator package's assets directory
 const ASSETS_BASE = path.join(
-    path.dirname(fileURLToPath(import.meta.resolve('bookcover'))),
+    path.dirname(fileURLToPath(import.meta.resolve('bookcover-core'))),
     '..', 'assets',
 )
 

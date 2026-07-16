@@ -42,7 +42,7 @@ Without a bundler, copy the files from `node_modules` into your `public/` dir an
 **`assets_prefix`** — points to the `generator/assets/` directory (fonts, Typst templates, frame images). The easiest setup is a symlink from your `public/` dir:
 
 ```bash
-ln -s ../node_modules/bookcover/assets public/generator_assets
+ln -s ../node_modules/bookcover-core/assets public/generator_assets
 ```
 
 Then pass `assets_prefix: '/generator_assets/'`. With Vite the symlink is served automatically at dev time and included in the production build.

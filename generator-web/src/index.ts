@@ -7,18 +7,18 @@ import type {TypstCompiler} from '@myriaddreamin/typst.ts/compiler'
 import type {TypstRenderer} from '@myriaddreamin/typst.ts/renderer'
 import {loadFonts} from '@myriaddreamin/typst.ts'
 import {build, cover_schema, split_svg, split_png, split_pdf, frame_image, frame_asset_path,
-    asset_path, TYPST_DIR, TEMPLATE_FILES, collect_all_fonts} from 'bookcover'
-import type {OutputFormat, SplitResult, Templates} from 'bookcover'
+    asset_path, TYPST_DIR, TEMPLATE_FILES, collect_all_fonts} from 'bookcover-core'
+import type {OutputFormat, SplitResult, Templates} from 'bookcover-core'
 import {base_font} from 'typst-fonts'
 import {load_fonts_prefix, font_urls_for as build_font_urls, fetch_font_bytes,
     fonts_to_blob_urls, revoke_blob_urls} from 'typst-fonts/web'
 
 export type {CoverSchema, TitlePosition, FontConfig,
-    OutputFormat, SplitResult, PatternDef} from 'bookcover'
+    OutputFormat, SplitResult, PatternDef} from 'bookcover-core'
 export type {BundledFont, CjkVariant} from 'typst-fonts'
 export {font_file_url} from 'typst-fonts/web'
 export {get_fonts, get_bundled_font} from 'typst-fonts'
-export {list_patterns, collect_fonts, collect_all_fonts, default_spine_title} from 'bookcover'
+export {list_patterns, collect_fonts, collect_all_fonts, default_spine_title} from 'bookcover-core'
 
 const decoder = new TextDecoder()
 

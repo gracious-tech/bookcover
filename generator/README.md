@@ -1,5 +1,5 @@
 
-# bookcover — schema reference
+# bookcover-core — schema reference
 
 Part of the [bookcover](https://github.com/gracious-tech/bookcover) generation system.
 
