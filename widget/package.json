@@ -10,7 +10,7 @@
     },
     "dependencies": {
         "@iconify-json/material-symbols": "^1.2.73",
-        "@nuxt/ui": "^4.6.0",
+        "@nuxt/ui": "https://pkg.pr.new/@nuxt/ui@f419731",
         "@tiptap/starter-kit": "^3.22.5",
         "@tiptap/vue-3": "^3.22.5",
         "bookcover-3d": "file:../3d",

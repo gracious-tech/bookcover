@@ -228,6 +228,16 @@ custom_trim_width: 152, custom_trim_height: 229, custom_unit: 'mm', page_count: 
 - **Vue Pug + TS**: Volar can't trace Pug template bindings, so components/refs used only
   in templates get `@ts-ignore TS6133` comments. `SidebarPanel.vue` uses `defineOptions({components})`
   to register its children explicitly.
+- **UI icons (widget)**: All app-chrome icons are Material Symbols, bundled locally at build
+  time — no iconify API requests at runtime (unlike cover *background* icons, which the
+  generator fetches from iconify). Handled by the `@nuxt/ui` vite plugin's
+  `icon.clientBundle` option: `scan: true` picks up icons named in components automatically
+  (from `@iconify-json/material-symbols`), and `widget/ui_icons.ts` holds Material
+  replacements for Nuxt UI's default lucide icons, applied via `ui.icons` AND listed in
+  `clientBundle.icons` (auto-inclusion only trusts the default lucide collection). Keep
+  everything material-symbols so only one collection is needed. NOTE: `clientBundle` on the
+  Vue side needs `@nuxt/ui` > 4.9.0 — widget pins a pkg.pr.new commit build until the next
+  release; swap back to a semver range when it ships.
 
 ## .bin/ scripts
 
