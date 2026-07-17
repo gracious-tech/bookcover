@@ -73,7 +73,9 @@ by the same vite plugin). `widget/src/generator_worker.ts` derives each URL from
 generate time).
 
 The rest of the top-level `assets/` tree IS committed: `docs/` (the Typst templates —
-`typst/` is the WASM, see above), `backgrounds/` and `frames/`. In dev the whole tree is
+`typst/` is the WASM, see above), `backgrounds/`, `frames/` and `3d/` (photo-preview
+background JPGs + originals — the `bookcover-3d-web` package ships only their metadata, see
+`3d/src/photo.ts`). In dev the whole tree is
 served under `/generator_assets/` by `widget/vite_plugin_assets.ts`; in production the widget
 fetches it from `https://assets.paper.bible/` (see `widget/src/assets.ts`), and
 `generator-node` reads `assets/docs/` from disk directly (npm consumers point `assets_dir`

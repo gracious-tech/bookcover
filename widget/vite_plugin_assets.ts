@@ -1,6 +1,6 @@
 
 // A vite plugin that serves this repo's top-level assets/ tree under /generator_assets/
-// during development — docs/ (typst templates), backgrounds/ and frames/ (committed),
+// during development — docs/ (typst templates), backgrounds/, frames/ and 3d/ (committed),
 // fonts/ (see .bin/download_fonts) and typst/ (see .bin/add_typst_version) — mirroring the
 // URL layout of the public assets bucket they're deployed to (see .bin/deploy_fonts /
 // .bin/deploy_typst)

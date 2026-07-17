@@ -11,8 +11,9 @@ export const PHOTO_ELEVATION = 35
 // Book render width as a fraction of the background image width
 export const PHOTO_BOOK_SCALE = 0.55
 
-// Available background photos (images live in src/backgrounds/).
-// Each entry can override azimuth, elevation, and book_scale for a natural fit.
+// Available background photos — metadata only; the JPGs themselves live in the repo's shared
+// assets tree (assets/3d/backgrounds/<id>.jpg) and consumers fetch them from wherever they
+// serve that tree. Each entry can override azimuth, elevation, and book_scale for a natural fit.
 export const BACKGROUNDS: Background[] = [
     {
         id: 'table_with_book',

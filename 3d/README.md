@@ -113,10 +113,13 @@ background image, with a shadow derived from the light direction. It returns an
 
 ![Example photo](./README_mockup.webp)
 
-The library ships a set of built-in background photos via `BACKGROUNDS`. Each entry has
-an `id` (to identify which image to load) and pre-tuned camera/lighting options that
-make the book look natural in that scene. Pass the background entry directly as the
-`options` argument — it extends `PhotoCompositeOptions`.
+The library describes a set of background photos via `BACKGROUNDS` (metadata only — the
+JPGs themselves are not bundled in the npm package; they live in the repo's
+[assets tree](https://github.com/gracious-tech/bookcover/tree/main/assets/3d/backgrounds)
+for you to host alongside your other static assets). Each entry has an `id` (to identify
+which image to load) and pre-tuned camera/lighting options that make the book look
+natural in that scene. Pass the background entry directly as the `options` argument — it
+extends `PhotoCompositeOptions`.
 
 ```ts
 import {Book3DRenderer, BACKGROUNDS} from 'bookcover-3d-web'
@@ -126,7 +129,7 @@ import type {Background} from 'bookcover-3d-web'
 const bg: Background = BACKGROUNDS.find(b => b.id === 'coffee_table')!
 
 // Load the image however you serve your assets
-const img = await fetch(`/assets/backgrounds/${bg.id}.webp`)
+const img = await fetch(`/assets/3d/backgrounds/${bg.id}.jpg`)
 const blob = await img.blob()
 const bitmap = await createImageBitmap(blob)
 

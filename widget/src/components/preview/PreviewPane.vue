@@ -243,20 +243,12 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
 import {Book3DRenderer, BACKGROUNDS} from 'bookcover-3d-web'
 import type {CoverType} from 'bookcover-3d-web'
 
-// Background photo URLs — imported as Vite asset references so they get hashed/served correctly
-import url_coffee_table from '../../../../3d/src/backgrounds/coffee_table.jpg?url'
-import url_table_side from '../../../../3d/src/backgrounds/table_side.jpg?url'
-import url_table_with_book from '../../../../3d/src/backgrounds/table_with_book.jpg?url'
-import url_table_with_laptop from '../../../../3d/src/backgrounds/table_with_laptop.jpg?url'
-import url_wood from '../../../../3d/src/backgrounds/wood.jpg?url'
+// Background photo URLs — fetched from the shared static assets tree (assets/3d/backgrounds/
+// in this repo, served under the assets prefix in dev and prod alike)
+import {assets_prefix} from '../../assets'
 
-const photo_bg_urls:Record<string, string> = {
-    coffee_table: url_coffee_table,
-    table_side: url_table_side,
-    table_with_book: url_table_with_book,
-    table_with_laptop: url_table_with_laptop,
-    wood: url_wood,
-}
+const photo_bg_urls:Record<string, string> = Object.fromEntries(
+    BACKGROUNDS.map(bg => [bg.id, `${assets_prefix}3d/backgrounds/${bg.id}.jpg`]))
 
 import {ref, watch, inject, computed, reactive, onUnmounted} from 'vue'
 import {useDark} from '@vueuse/core'
