@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Bumps generator, generator-node, generator-web, and 3d to the same version, builds them,
+# and publishes each to npm in dependency order (generator first, since generator-node and
+# generator-web depend on it).
+#
+# Usage:
+#   .bin/publish_modules          # auto-bump patch number
+#   .bin/publish_modules 0.3.0    # set an explicit version
+set -euo pipefail
+
+BIN="$(dirname "$0")"
+ROOT="$(cd "$BIN/.." && pwd)"
+MODULES=(generator generator-node generator-web 3d)
+
+if [ $# -gt 1 ]; then
+    echo "Usage: $0 [new-version]" >&2
+    exit 1
+fi
+
+if [ $# -eq 1 ]; then
+    NEW_VERSION="$1"
+else
+    # Highest current version across the 4 packages (they may not all match yet)
+    CURRENT="$(grep -h -oE '"version": *"[0-9]+\.[0-9]+\.[0-9]+"' "$ROOT"/{generator,generator-node,generator-web,3d}/package.json \
+        | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -V | tail -1)"
+    if [[ ! "$CURRENT" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+        echo "Could not parse current version: $CURRENT" >&2
+        exit 1
+    fi
+    NEW_VERSION="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.$((${BASH_REMATCH[3]} + 1))"
+fi
+
+echo "Publishing all modules at version $NEW_VERSION"
+
+for module in "${MODULES[@]}"; do
+    pkg="$ROOT/$module/package.json"
+    sed -i -E "s/(\"version\": *\")[0-9]+\.[0-9]+\.[0-9]+(\")/\1$NEW_VERSION\2/" "$pkg"
+    # generator-node/generator-web depend on generator (bookcover-core) — keep it in sync too
+    sed -i -E "s/(\"bookcover-core\": *\"\^)[0-9]+\.[0-9]+\.[0-9]+(\")/\1$NEW_VERSION\2/" "$pkg"
+done
+
+echo "Refreshing lockfile..."
+cd "$ROOT"
+npm install --package-lock-only
+
+echo "Building all modules..."
+"$BIN/build_modules"
+
+echo "Publishing to npm..."
+for module in "${MODULES[@]}"; do
+    echo "-> $module"
+    npm publish --workspace="$module"
+done
+
+echo "Published version $NEW_VERSION for: ${MODULES[*]}"

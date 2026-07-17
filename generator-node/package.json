@@ -1,6 +1,6 @@
 {
     "name": "bookcover-node",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "license": "MIT-0",
     "repository": {"type": "git", "url": "https://github.com/gracious-tech/bookcover.git", "directory": "generator-node"},
     "homepage": "https://github.com/gracious-tech/bookcover/tree/main/generator-node#readme",
@@ -13,7 +13,7 @@
         "dev": "tsc --watch"
     },
     "dependencies": {
-        "bookcover-core": "^0.2.0",
+        "bookcover-core": "^0.2.1",
         "sharp": "^0.34.5",
         "typst-fonts": "^0.1.0"
     }
