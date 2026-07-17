@@ -99,7 +99,7 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
                     color="primary"
                     variant='solid'
                     class="cursor-pointer"
-                    @click="notify_finished"
+                    @click="notify_finished(form)"
                 )
                     template(v-if="!is_mobile") {{ t('preview.finished_button') }}
                 //- Fallback download icon — redownloads whatever was last saved/exported

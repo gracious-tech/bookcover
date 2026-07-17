@@ -47,6 +47,10 @@ export interface GenerateOptions {
     ppi?:number
     // Whether to split the result into front/back/spine panels
     split?:boolean
+    // Root of the published fonts tree (default: the repo-local top-level fonts/ dir)
+    fonts_dir?:string
+    // Path to the typst CLI binary (default: 'typst' resolved from PATH)
+    typst_path?:string
 }
 
 export interface GenerateResult {
@@ -81,20 +85,24 @@ async function find_background_image(
 }
 
 // Resolve the on-disk font directories a schema needs, via typst-fonts/node — one per family,
-// curated fonts under FONTS_ROOT/<family>/, Noto fallback families under
-// FONTS_ROOT/_noto/<family>/. Passed to typst as one --font-path per directory so it only
+// curated fonts under fonts_root/<family>/, Noto fallback families under
+// fonts_root/_noto/<family>/. Passed to typst as one --font-path per directory so it only
 // scans the fonts actually referenced, instead of the whole fonts/ tree (which can hold
 // 150+ MB of Noto CJK fallback fonts).
-function resolve_font_dirs(schema:CoverSchema):string[] {
-    return resolve_font_dirs_generic(FONTS_ROOT, collect_all_fonts(schema))
+function resolve_font_dirs(schema:CoverSchema, fonts_root:string):string[] {
+    return resolve_font_dirs_generic(fonts_root, collect_all_fonts(schema))
 }
 
-// Load the curated font manifest from FONTS_ROOT once per process — every function that
-// resolves fonts (collect_all_fonts, resolve_font_dirs, ...) requires this to have run first
-let fonts_loaded:Promise<void> | undefined
-function ensure_fonts_loaded():Promise<void> {
-    fonts_loaded ??= load_fonts_dir(FONTS_ROOT)
-    return fonts_loaded
+// Load the curated font manifest once per fonts root — every function that resolves fonts
+// (collect_all_fonts, resolve_font_dirs, ...) requires this to have run first
+const fonts_loaded = new Map<string, Promise<void>>()
+function ensure_fonts_loaded(fonts_root:string):Promise<void> {
+    let loaded = fonts_loaded.get(fonts_root)
+    if (!loaded) {
+        loaded = load_fonts_dir(fonts_root)
+        fonts_loaded.set(fonts_root, loaded)
+    }
+    return loaded
 }
 
 // Load typst template files from the generator package assets
@@ -112,6 +120,7 @@ async function run_typst(
     format:OutputFormat,
     ppi:number,
     font_dirs:string[] = [],
+    typst_path = 'typst',
 ):Promise<void> {
     const ext = FORMAT_EXT[format]
     const args = ['compile']
@@ -129,7 +138,7 @@ async function run_typst(
     }
 
     return new Promise((resolve, reject) => {
-        const proc = spawn('typst', args, {
+        const proc = spawn(typst_path, args, {
             cwd: work_dir,
             stdio: ['ignore', 'ignore', 'pipe'],
         })
@@ -153,7 +162,8 @@ async function run_typst(
         })
 
         proc.on('error', (err) => {
-            reject(new Error(`Failed to spawn typst: ${err.message}\nIs typst on your PATH?`))
+            reject(new Error(
+                `Failed to spawn ${typst_path}: ${err.message}\nIs typst on your PATH?`))
         })
     })
 }
@@ -206,10 +216,11 @@ export async function generate(options:GenerateOptions):Promise<GenerateResult> 
     // Default to 144 PPI (2x typographic resolution, 2 × 72pt/in)
     const ppi = options.ppi ?? 144
     const split = options.split ?? false
+    const fonts_root = options.fonts_dir ?? FONTS_ROOT
 
     // Fonts must be loaded before anything below resolves a font family (build(), then
     // resolve_font_dirs() further down)
-    await ensure_fonts_loaded()
+    await ensure_fonts_loaded(fonts_root)
 
     // Parse schema and get dimensions from printing-services
     const parsed = cover_schema.parse(options.schema)
@@ -243,8 +254,8 @@ export async function generate(options:GenerateOptions):Promise<GenerateResult> 
         }
 
         // Point typst at only the font directories this schema actually needs
-        const font_dirs = resolve_font_dirs(parsed)
-        await run_typst(tmp_dir, format, ppi, font_dirs)
+        const font_dirs = resolve_font_dirs(parsed, fonts_root)
+        await run_typst(tmp_dir, format, ppi, font_dirs, options.typst_path)
         await move_file(tmp_output, options.output_path)
         await fs.rm(tmp_dir, {recursive: true, force: true})
     }

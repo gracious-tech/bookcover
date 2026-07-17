@@ -1,6 +1,6 @@
 {
     "name": "bookcover-core",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "license": "MIT-0",
     "repository": {"type": "git", "url": "https://github.com/gracious-tech/bookcover.git", "directory": "generator"},
     "homepage": "https://github.com/gracious-tech/bookcover/tree/main/generator#readme",

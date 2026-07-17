@@ -5,6 +5,7 @@
 import {ref, watch} from 'vue'
 import type {FormState} from './form_state'
 import type {AppLocale} from './i18n'
+import {build_schema} from './schema'
 import {debounce} from './svg_utils'
 
 /** JSON-safe mirror of FormState — bg_image becomes a base64 data URL instead of a File */
@@ -19,8 +20,8 @@ type InitMessage = {
 }
 type WidgetMessage =
     | {type: 'ready'}
-    | {type: 'data', data: EmbedFormState}
-    | {type: 'finished'}
+    | {type: 'data', data: EmbedFormState, schema: Record<string, unknown>}
+    | {type: 'finished', data: EmbedFormState, schema: Record<string, unknown>}
 
 // Swaps the primary export button into a "Finished" signal instead of a PDF download
 export const finished_mode = ref(false)
@@ -46,9 +47,10 @@ function post(msg:WidgetMessage):void {
     window.parent.postMessage(msg, parent_origin ?? '*')
 }
 
-/** Notify the parent the user is done — used by the "Finished" button */
-export function notify_finished():void {
-    post({type: 'finished'})
+/** Notify the parent the user is done — used by the "Finished" button. Posts the final form
+ *  and schema so edits made within the debounce window before clicking aren't lost. */
+export async function notify_finished(form:FormState):Promise<void> {
+    post({type: 'finished', data: await serialize_form(form), schema: renderable_schema(form)})
 }
 
 // Cache the bg_image -> data URL conversion by File identity, so unrelated form edits don't
@@ -86,6 +88,12 @@ async function serialize_form(form:FormState):Promise<EmbedFormState> {
     const {bg_image, ...rest} = form
     const plain = JSON.parse(JSON.stringify(rest)) as Omit<EmbedFormState, 'bg_image'>
     return {...plain, bg_image: await bg_image_data_url(bg_image)}
+}
+
+/** Build the renderable generator schema from the form, as plain JSON — the round-trip strips
+ *  undefined values (which build_schema emits and e.g. Firestore rejects) */
+function renderable_schema(form:FormState):Record<string, unknown> {
+    return JSON.parse(JSON.stringify(build_schema(form))) as Record<string, unknown>
 }
 
 /** Apply a parent-supplied preset onto the existing reactive form, in place */
@@ -145,7 +153,7 @@ export function init_embed(form:FormState):void {
             const json = JSON.stringify(data)
             if (json === last_sent_json) return
             last_sent_json = json
-            post({type: 'data', data})
+            post({type: 'data', data, schema: renderable_schema(form)})
         })
     }, 500)
     watch(() => form, notify_change, {deep: true})
