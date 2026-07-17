@@ -14,7 +14,7 @@ function join_path(base:string, ...segments:string[]):string {
 }
 
 // Thrown when the manifest URL answers with something other than the manifest JSON — e.g. in
-// dev the fonts repo's server isn't running and another server on port 5300 returns an HTML page
+// dev the fonts tree hasn't been downloaded yet and the server answers with an HTML fallback page
 export class FontsServerError extends Error {
     override name = 'FontsServerError'
 }

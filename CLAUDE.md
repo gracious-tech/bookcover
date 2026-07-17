@@ -12,17 +12,18 @@ platform wrappers compile it to PDF/SVG/PNG. The widget provides a live 3D previ
 | `generator-web/` | Browser wrapper — compiles via WASM (`typst.ts`) |
 | `widget/` | Vue 3 web UI — sidebar form, preview pane, 3D book view |
 | `3d/` | WebGL 3D book renderer — custom shaders, no external graphics libs |
+| `typst/typst-utils/` | Zero-dep Typst string escaping (`escape_typst_str`, `escape_typst`) |
+| `typst/typst-fonts/` | Generic font manifest/fallback/sfnt logic for any Typst app |
+| `typst/pm-to-typst/` | Pure ProseMirror/Tiptap doc JSON → Typst renderer |
 
 Dependency graph: `generator` < `generator-node`, `generator-web` < `widget`; `3d` < `widget`.
 `generator` and `3d` have no local deps on each other.
 
-Three helpers are published npm packages (each maintained in its own separate repo, not
-workspaces here): `typst-utils` (zero-dep Typst string escaping — `escape_typst_str`,
-`escape_typst`; used by `generator` and `widget`), `pm-to-typst` (a pure ProseMirror/Tiptap
-doc JSON → Typst renderer; used by `widget`), and `typst-fonts` (generic font
-manifest/fallback/sfnt-parsing logic for any Typst app; used by `generator`, both platform
-wrappers, and `widget` — see its API notes below). All Typst escaping lives in `typst-utils` —
-don't re-implement it.
+The three `typst/` helpers are generic (nothing cover-specific) and published to npm — they're
+maintained here as workspaces (adopted from paper_bible, which now depends on this repo, not
+the other way round): `typst-utils` is used by `generator` and `widget`, `pm-to-typst` by
+`widget`, and `typst-fonts` by `generator`, both platform wrappers, and `widget` — see its API
+notes below. All Typst escaping lives in `typst-utils` — don't re-implement it.
 
 The blurb is a WYSIWYG field. `pm-to-typst` is renderer-only — it does NOT own the editor
 schema. The shared Tiptap schema lives in `widget/src/blurb_extensions.ts` (`blurb_extensions`
@@ -43,27 +44,33 @@ Each package compiles TypeScript to `dist/` via `tsc`. The packages are npm work
 repo root. Build in dependency order using the `.bin/` scripts:
 
 ```bash
-.bin/build_modules       # generator -> generator-node -> generator-web -> 3d
+.bin/build_modules       # typst helpers -> generator -> generator-node -> generator-web -> 3d
 .bin/build_widget        # vite build (widget/dist/)
 .bin/build_site          # build_modules + build_widget
 .bin/build_deploy        # npm ci all packages + build everything (for CI)
 ```
 
-The fonts collection (curated fonts + Noto fallback set + `manifest.json`) is NOT managed in
-this repo — it lives in its own repo and is published at `https://assets.paper.bible/fonts`. Font
-manifests are runtime-loaded, not baked into the build, so `typst-fonts`'s
-`init_fonts()`/`load_fonts_dir()`/`load_fonts_prefix()` need real manifest data to resolve
-against: the widget loads `http://localhost:5300/generator_assets/fonts/manifest.json` in dev
-(the fonts repo's own dev server) and `https://assets.paper.bible/fonts` in production (see
-`widget/src/fonts.ts`), while `generator-node` reads a local top-level `fonts/` dir
-(gitignored) that must be populated from the fonts repo before `.bin/test` works.
+The fonts collection (curated fonts + Noto fallback set + `manifest.json`) is managed by this
+repo but NOT committed: `font_config.json` names the curated families, `.bin/download_fonts`
+populates `assets/fonts/` (gitignored) via the `typst-fonts-download` CLI, and
+`.bin/deploy_fonts` syncs that tree to the public assets bucket at
+`https://assets.paper.bible/fonts`. Font manifests are runtime-loaded, not baked into the
+build, so `typst-fonts`'s `init_fonts()`/`load_fonts_dir()`/`load_fonts_prefix()` need real
+manifest data to resolve against: the widget loads `/generator_assets/fonts/manifest.json` in
+dev (served by its own vite server — see `widget/vite_plugin_assets.ts`, which also sets the
+CORS headers consumer apps like paper_bible need to fetch these cross-origin in dev) and
+`https://assets.paper.bible/fonts` in production (see `widget/src/fonts.ts`), while
+`generator-node` reads `assets/fonts/` directly — run `.bin/download_fonts` before `.bin/test`.
 
-The typst.ts WASM binaries (compiler ~28MB + renderer ~1MB) are likewise NOT bundled — the
-same assets repo hosts them at `https://assets.paper.bible/typst/<version>/<file>.wasm`
-(immutable version directories matching the npm package versions; localhost:5300 equivalent
-in dev). `widget/src/generator_worker.ts` derives each URL from the installed
-`@myriaddreamin/*` package's own version, so bumping those deps requires the assets repo to
-have published that version's wasm first (a stale assets repo 404s at generate time).
+The typst.ts WASM binaries (compiler ~28MB + renderer ~1MB) are likewise NOT bundled or
+committed — `.bin/add_typst_version` vendors a published npm version into
+`assets/typst/<version>/` (gitignored) and `.bin/deploy_typst` uploads it to
+`https://assets.paper.bible/typst/<version>/<file>.wasm` (immutable write-once version
+directories matching the npm package versions; served under `/generator_assets/typst/` in dev
+by the same vite plugin). `widget/src/generator_worker.ts` derives each URL from the installed
+`@myriaddreamin/*` package's own version, so bumping those deps requires running
+`.bin/add_typst_version` + `.bin/deploy_typst` for that version first (a stale bucket 404s at
+generate time).
 
 For development:
 
@@ -72,15 +79,18 @@ cd widget && npm run dev  # starts vite dev server with HMR
 ```
 
 Individual package builds: `.bin/build_generator`, `.bin/build_generator-node`,
-`.bin/build_generator-web`, `.bin/build_3d`.
+`.bin/build_generator-web`, `.bin/build_3d`, `.bin/build_typst-utils`,
+`.bin/build_typst-fonts`, `.bin/build_pm-to-typst`.
 
 Type-check a package: `cd <package> && npx tsc --noEmit`
 
 ### Tests
 
-No test suite. `.bin/test` generates PDF/SVG/PNG files in the project root for manual
-visual inspection. It builds `generator` and `generator-node` first, then runs a Node
-script that calls `generate()` with a sample schema.
+The `typst/` helper packages have vitest suites (`cd typst/<pkg> && npx vitest run`). The
+cover packages have no test suite: `.bin/test` generates PDF/SVG/PNG files in the project root
+for manual visual inspection. It builds `generator` and `generator-node` first, then runs a
+Node script that calls `generate()` with a sample schema (needs `assets/fonts/` populated —
+see Build).
 
 ## Architecture
 
@@ -123,11 +133,11 @@ script that calls `generate()` with a sample schema.
   (blurb + barcode) -> spine text -> front content (title/subtitle/author in position boxes)
 - `_helpers.typ` — `fit-to-width` and `shrink-to-width` scaling helpers used by cover.typ
 
-### Font logic (`typst-fonts` npm package)
+### Font logic (`typst/typst-fonts/` workspace)
 
-Generic, cover-app-agnostic font manifest/fallback logic, maintained in its own repo and
-installed from npm. Nothing in it knows about `CoverSchema`/`FontConfig`. The API surface this
-repo uses:
+Generic, cover-app-agnostic font manifest/fallback logic, maintained here as a workspace and
+published to npm. Nothing in it knows about `CoverSchema`/`FontConfig`. The API surface the
+cover packages use:
 
 - Main export — Noto per-script fallback + CJK/script detection (`detect_scripts`,
   `resolve_fallback_chain`, `cjk_segments`, `cjk_family`, `detect_cjk_variant`, etc.; backed by
@@ -143,8 +153,8 @@ repo uses:
   `font_file_url`/`font_urls_for`/`fetch_font_bytes`/`fonts_to_blob_urls`/`revoke_blob_urls`/
   `register_preview_fonts`/`register_custom_font_preview` on web.
 - `typst-fonts-download` CLI (+ `typst-fonts/download` API) — downloads a fonts tree for an
-  app. Not used by this repo: the fonts collection paper_cover consumes is managed and
-  published by its own separate repo (see Build above).
+  app. This is what `.bin/download_fonts` runs (with `font_config.json`) to populate
+  `assets/fonts/` (see Build above).
 
 ### Platform wrappers
 
@@ -254,15 +264,21 @@ custom_trim_width: 152, custom_trim_height: 229, custom_unit: 'mm', page_count: 
 | `build_generator-node` | `tsc` in generator-node/ |
 | `build_generator-web` | `tsc` in generator-web/ |
 | `build_3d` | `tsc` in 3d/ |
-| `build_modules` | All four above in dependency order |
+| `build_typst-utils` / `build_typst-fonts` / `build_pm-to-typst` | `tsc` in typst/<pkg>/ |
+| `build_modules` | All package builds above in dependency order |
 | `build_widget` | `vite build` in widget/ |
-| `build_web` | generator + generator-web + 3d (no node) |
+| `build_web` | typst helpers + generator + generator-web + 3d (no node) |
 | `build_site` | build_modules + build_widget |
 | `build_deploy` | npm ci all + full build (for CI/Netlify) |
+| `publish_modules` | Version-bump + build + npm publish the four cover packages |
 | `serve_widget` | `vite` dev server in widget/ |
 | `serve_site` | `vite` dev server in site/ |
 | `test` | Generate test covers (PDF/SVG/PNG) for visual inspection |
 | `setup_typst` | Download latest typst binary to .bin/ |
+| `download_fonts` | Populate assets/fonts/ from font_config.json (typst-fonts-download) |
+| `deploy_fonts` | Sync assets/fonts/ to the public assets bucket (gcloud) |
+| `add_typst_version` | Vendor a typst.ts npm version's wasm into assets/typst/<version>/ |
+| `deploy_typst` | Upload assets/typst/ version dirs to the assets bucket (gcloud) |
 | `gen_bg_thumbnails` | Generate 160x120 thumbnails for background images via sharp |
 
 ## Gotchas
@@ -278,8 +294,10 @@ custom_trim_width: 152, custom_trim_height: 229, custom_unit: 'mm', page_count: 
 - **npm v9 bug**: `widget/` fails `npm install` on npm 9.x due to nested `file:` dep
   resolution; use `npx npm@latest install` as a workaround.
 - **generator_assets symlink**: `widget/public/generator_assets` is a symlink to
-  `../../generator/assets` so Vite can serve backgrounds and templates at dev time (fonts are
-  NOT served from here — they come from the separate fonts repo's server, see Build).
+  `../../generator/assets` so Vite can serve backgrounds and templates at dev time. The
+  `fonts/` and `typst/` subpaths of `/generator_assets/` are instead served from the repo's
+  `assets/` dir by `widget/vite_plugin_assets.ts` (registered first; anything it can't find
+  falls through to the symlink).
 - **No semicolons**: All TypeScript uses no semicolons, snake_case for variables/functions.
 - **Patterns file**: `generator/src/patterns.ts` is ~810 lines / 167K tokens — almost
   entirely inline SVG data strings. Don't try to read the whole file.

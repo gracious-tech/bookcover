@@ -2,6 +2,9 @@
     "private": true,
     "type": "module",
     "workspaces": [
+        "typst/typst-utils",
+        "typst/typst-fonts",
+        "typst/pm-to-typst",
         "generator",
         "generator-node",
         "generator-web",
@@ -10,6 +13,6 @@
     ],
     "dependencies": {
         "@types/node": "^25.5.0",
-        "typescript": "^5.9.3"
+        "typescript": "^7.0.2"
     }
 }

@@ -38,10 +38,10 @@ export interface InitOptions {
     // URL prefix for generator assets (e.g. '/generator_assets/').
     // Used to load typst templates, frames, backgrounds, etc.
     assets_prefix?:string
-    // URL prefix for fonts — curated and Noto fallback alike (e.g.
-    // 'http://localhost:5300/generator_assets/fonts' in dev, 'https://assets.paper.bible/fonts' in
-    // production). Kept separate from assets_prefix since the fonts tree is managed and
-    // published by its own separate repo.
+    // URL prefix for fonts — curated and Noto fallback alike (e.g. '/generator_assets/fonts'
+    // in dev, 'https://assets.paper.bible/fonts' in production). Kept separate from
+    // assets_prefix since the fonts tree is published separately from the app (see the repo's
+    // .bin/download_fonts / .bin/deploy_fonts).
     fonts_prefix?:string
 }
 

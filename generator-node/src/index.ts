@@ -33,10 +33,9 @@ const ASSETS_BASE = path.join(
     '..', 'assets',
 )
 
-// Fonts live in a top-level fonts/ directory (sibling of generator/, gitignored) — the fonts
-// collection is managed in a separate repo, so populate this locally from there (e.g. via the
-// typst-fonts-download CLI or a symlink to that repo's tree).
-const FONTS_ROOT = path.join(ASSETS_BASE, '..', '..', 'fonts')
+// Fonts live in the repo's top-level assets/fonts/ directory (gitignored) — populate it via
+// .bin/download_fonts before generating (or pass fonts_dir explicitly).
+const FONTS_ROOT = path.join(ASSETS_BASE, '..', '..', 'assets', 'fonts')
 
 // Image extensions to try when auto-discovering a background image
 const IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.webp']
@@ -54,7 +53,7 @@ export interface GenerateOptions {
     ppi?:number
     // Whether to split the result into front/back/spine panels
     split?:boolean
-    // Root of the published fonts tree (default: the repo-local top-level fonts/ dir)
+    // Root of the published fonts tree (default: the repo-local assets/fonts/ dir)
     fonts_dir?:string
     // Path to the typst CLI binary (default: 'typst' resolved from PATH)
     typst_path?:string

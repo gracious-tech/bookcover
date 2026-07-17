@@ -7,12 +7,13 @@ import {process_font_files} from 'typst-fonts'
 import type {CustomFont} from 'typst-fonts'
 import {register_custom_font_preview} from 'typst-fonts/web'
 
-// URL prefix for the separately-published fonts tree (curated + Noto fallback). The fonts
-// collection is managed in its own repo, not here — in production it's published at
-// assets.paper.bible/fonts, and in dev that repo's own dev server serves the same tree
+// URL prefix for the separately-published fonts tree (curated + Noto fallback). The tree is
+// managed in this repo at assets/fonts/ (populated via .bin/download_fonts, deployed to the
+// public assets bucket via .bin/deploy_fonts) — in production it's fetched from that bucket,
+// and in dev the widget's own vite server serves it (see vite_plugin_assets.ts)
 export const fonts_prefix = import.meta.env.PROD
     ? 'https://assets.paper.bible/fonts'
-    : 'http://localhost:5300/generator_assets/fonts'
+    : '/generator_assets/fonts'
 
 // Module-level reactive list of uploaded font families
 export const custom_font_families:CustomFont[] = reactive([])

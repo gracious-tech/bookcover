@@ -4,6 +4,9 @@ set -euo pipefail
 
 BIN="$(dirname "$0")"
 
+"$BIN/build_typst-utils"
+"$BIN/build_typst-fonts"
+"$BIN/build_pm-to-typst"
 "$BIN/build_generator"
 "$BIN/build_generator-node"
 "$BIN/build_generator-web"

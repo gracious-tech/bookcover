@@ -10,6 +10,11 @@ echo "📦 Installing dependencies (all workspaces)..."
 cd "$PROJECT_ROOT"
 npm ci
 
+echo "🔨 Building typst helper packages..."
+"$BIN/build_typst-utils"
+"$BIN/build_typst-fonts"
+"$BIN/build_pm-to-typst"
+
 echo "🔨 Building generator module..."
 "$BIN/build_generator"
 
