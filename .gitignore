@@ -5,3 +5,6 @@ dist/
 /.bin/typst
 /widget/components.d.ts
 /widget/auto-imports.d.ts
+
+/assets/fonts/
+/assets/typst/
