@@ -12,7 +12,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(join(root, 'generator-node/package.json'))
 const sharp = require('sharp')
 
-const src_dir = join(root, 'generator/assets/backgrounds')
+const src_dir = join(root, 'assets/backgrounds')
 const out_dir = join(src_dir, 'thumbnails')
 
 console.log('Generating background thumbnails...')

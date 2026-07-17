@@ -1,8 +1,9 @@
 
-// A vite plugin that serves this repo's shared generator assets under /generator_assets/
-// during development — assets/fonts/ (see .bin/download_fonts) and assets/typst/ (see
-// .bin/add_typst_version, served as typst/) — mirroring the URL layout of the public assets
-// bucket they're deployed to (see .bin/deploy_fonts / .bin/deploy_typst)
+// A vite plugin that serves this repo's top-level assets/ tree under /generator_assets/
+// during development — docs/ (typst templates), backgrounds/ and frames/ (committed),
+// fonts/ (see .bin/download_fonts) and typst/ (see .bin/add_typst_version) — mirroring the
+// URL layout of the public assets bucket they're deployed to (see .bin/deploy_fonts /
+// .bin/deploy_typst)
 
 import {createReadStream} from 'node:fs'
 import {stat} from 'node:fs/promises'
@@ -20,7 +21,7 @@ const MIME_TYPES:Record<string, string> = {
     '.woff': 'font/woff',
     '.woff2': 'font/woff2',
     '.wasm': 'application/wasm',  // Required for WebAssembly.instantiateStreaming()
-    // bookcover-core assets (Typst templates, frame/background images, pattern SVGs)
+    // static cover assets (Typst templates, frame/background images, pattern SVGs)
     '.typ': 'text/plain',
     '.png': 'image/png',
     '.jpg': 'image/jpeg',
@@ -29,8 +30,8 @@ const MIME_TYPES:Record<string, string> = {
 }
 
 
-export default function(roots:Record<string, string>):Plugin{
-    // Return config for plugin (`roots` maps a URL subdir, e.g. 'typst', to a local dir)
+export default function(root:string):Plugin{
+    // Return config for plugin (`root` is the local dir served under the assets URL prefix)
 
     return {
         name: 'serve-generator-assets',
@@ -43,18 +44,10 @@ export default function(roots:Record<string, string>):Plugin{
                     return
                 }
 
-                // Match the first path segment to a configured root
+                // Resolve the requested file, rejecting any attempt to escape the root dir
                 const rel_url = decodeURIComponent(
                     req.url.slice(URL_PREFIX.length).split('?')[0] ?? '')
-                const subdir = rel_url.split('/')[0] ?? ''
-                const root = roots[subdir]
-                if (!root){
-                    next()
-                    return
-                }
-
-                // Resolve the requested file, rejecting any attempt to escape the root dir
-                const file_path = path.join(root, rel_url.slice(subdir.length + 1))
+                const file_path = path.join(root, rel_url)
                 if (!file_path.startsWith(root + path.sep)){
                     res.statusCode = 403
                     res.end()

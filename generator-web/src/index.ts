@@ -7,7 +7,7 @@ import type {TypstCompiler} from '@myriaddreamin/typst.ts/compiler'
 import type {TypstRenderer} from '@myriaddreamin/typst.ts/renderer'
 import {loadFonts} from '@myriaddreamin/typst.ts'
 import {build, cover_schema, split_svg, split_png, split_pdf, frame_image, frame_asset_path,
-    asset_path, TYPST_DIR, TEMPLATE_FILES, collect_all_fonts} from 'bookcover-core'
+    asset_path, DOCS_DIR, TEMPLATE_FILES, collect_all_fonts} from 'bookcover-core'
 import type {OutputFormat, SplitResult, Templates} from 'bookcover-core'
 import {base_font} from 'typst-fonts'
 import {load_fonts_prefix, font_urls_for as build_font_urls, fetch_font_bytes,
@@ -35,8 +35,9 @@ export interface InitOptions {
     wasm_url:string
     // URL or path to typst_ts_renderer_bg.wasm — required for SVG/PNG output
     renderer_wasm_url?:string
-    // URL prefix for generator assets (e.g. '/generator_assets/').
-    // Used to load typst templates, frames, backgrounds, etc.
+    // URL prefix for the static assets tree (e.g. '/generator_assets/' in dev,
+    // 'https://assets.paper.bible/' in production). Used to load typst templates (docs/),
+    // frames, backgrounds, etc.
     assets_prefix?:string
     // URL prefix for fonts — curated and Noto fallback alike (e.g. '/generator_assets/fonts'
     // in dev, 'https://assets.paper.bible/fonts' in production). Kept separate from
@@ -332,10 +333,10 @@ export class CoverGenerator {
             image_input = {data: new Uint8Array(await blob.arrayBuffer()), ext}
         }
 
-        // Load typst templates from assets
+        // Load typst templates from assets (docs/ subdir)
         const [cover_typ, helpers_typ] = await Promise.all([
-            fetch(asset_path(assets, TYPST_DIR, TEMPLATE_FILES.cover)).then(r => r.text()),
-            fetch(asset_path(assets, TYPST_DIR, TEMPLATE_FILES.helpers)).then(r => r.text()),
+            fetch(asset_path(assets, DOCS_DIR, TEMPLATE_FILES.cover)).then(r => r.text()),
+            fetch(asset_path(assets, DOCS_DIR, TEMPLATE_FILES.helpers)).then(r => r.text()),
         ])
         const templates:Templates = {cover: cover_typ, helpers: helpers_typ}
 

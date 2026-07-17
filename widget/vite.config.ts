@@ -11,14 +11,10 @@ import serve_assets from './vite_plugin_assets'
 // Vite configuration for the book cover generator widget
 export default defineConfig({
     plugins: [
-        // Serve the repo's fonts and typst wasm trees (assets/fonts/, assets/typst/) under
-        // /generator_assets/ in dev, mirroring the public assets bucket's URL layout. Other
-        // /generator_assets/ paths fall through to the public/generator_assets symlink
-        // (generator/assets — templates, backgrounds, etc.)
-        serve_assets({
-            fonts: path.resolve(import.meta.dirname, '../assets/fonts'),
-            typst: path.resolve(import.meta.dirname, '../assets/typst'),
-        }),
+        // Serve the repo's top-level assets/ tree (docs templates, backgrounds, frames,
+        // fonts, typst wasm) under /generator_assets/ in dev, mirroring the public assets
+        // bucket's URL layout
+        serve_assets(path.resolve(import.meta.dirname, '../assets')),
         ui({
             router: false,
             colorMode: true,

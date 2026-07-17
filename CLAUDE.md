@@ -72,6 +72,13 @@ by the same vite plugin). `widget/src/generator_worker.ts` derives each URL from
 `.bin/add_typst_version` + `.bin/deploy_typst` for that version first (a stale bucket 404s at
 generate time).
 
+The rest of the top-level `assets/` tree IS committed: `docs/` (the Typst templates —
+`typst/` is the WASM, see above), `backgrounds/` and `frames/`. In dev the whole tree is
+served under `/generator_assets/` by `widget/vite_plugin_assets.ts`; in production the widget
+fetches it from `https://assets.paper.bible/` (see `widget/src/assets.ts`), and
+`generator-node` reads `assets/docs/` from disk directly (npm consumers point `assets_dir`
+at their own copy — see generator-node/README.md).
+
 For development:
 
 ```bash
@@ -126,7 +133,7 @@ see Build).
 - `frame.ts` — Composites background images into decorative frames (painted, torn edges)
 - `icon_cache.ts` — Fetches and caches Iconify SVGs with size/color stripping
 
-### Typst templates (`generator/assets/typst/`)
+### Typst templates (`assets/docs/`)
 
 - `cover.typ` — Main template; receives all variables from `_data.typ` (generated at build
   time). Layers: background fills -> pattern -> image -> spine bg -> icons -> back content
@@ -293,11 +300,9 @@ custom_trim_width: 152, custom_trim_height: 229, custom_unit: 'mm', page_count: 
 - **Pug comments**: Use `//-` not `//` in `<template lang="pug">` blocks.
 - **npm v9 bug**: `widget/` fails `npm install` on npm 9.x due to nested `file:` dep
   resolution; use `npx npm@latest install` as a workaround.
-- **generator_assets symlink**: `widget/public/generator_assets` is a symlink to
-  `../../generator/assets` so Vite can serve backgrounds and templates at dev time. The
-  `fonts/` and `typst/` subpaths of `/generator_assets/` are instead served from the repo's
-  `assets/` dir by `widget/vite_plugin_assets.ts` (registered first; anything it can't find
-  falls through to the symlink).
+- **Assets dir naming**: in the top-level `assets/` tree, the Typst *templates* live under
+  `docs/` — `typst/` holds the vendored typst.ts WASM binaries (see Build). The generator
+  core's `DOCS_DIR` constant reflects this.
 - **No semicolons**: All TypeScript uses no semicolons, snake_case for variables/functions.
 - **Patterns file**: `generator/src/patterns.ts` is ~810 lines / 167K tokens — almost
   entirely inline SVG data strings. Don't try to read the whole file.

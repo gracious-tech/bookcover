@@ -1,6 +1,8 @@
 
-// All suggested background images from generator/assets/backgrounds/
+// All suggested background images from assets/backgrounds/
 // Run .bin/gen_bg_thumbnails to generate the thumbnails directory
+
+import {assets_prefix} from '../assets'
 
 export const BACKGROUNDS: string[] = [
 
@@ -92,10 +94,10 @@ export const PREVIEW_BGS = [
 
 /** Get the thumbnail URL for a background filename */
 export function bg_thumb_url(filename:string):string {
-    return `/generator_assets/backgrounds/thumbnails/${filename}`
+    return `${assets_prefix}backgrounds/thumbnails/${filename}`
 }
 
 /** Get the full-size background URL for a background filename */
 export function bg_url(filename:string):string {
-    return `/generator_assets/backgrounds/${filename}`
+    return `${assets_prefix}backgrounds/${filename}`
 }

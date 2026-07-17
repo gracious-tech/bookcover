@@ -28,6 +28,7 @@ import {
 } from './form_state'
 import {GeneratorWorkerClient} from './generator_client'
 import {fonts_prefix, all_custom_font_bytes} from './fonts'
+import {assets_prefix} from './assets'
 import {init_embed} from './embed'
 
 import SidebarPanel from './components/sidebar/SidebarPanel.vue'
@@ -63,10 +64,6 @@ provide(GENERATOR_KEY, generator)
 // Fatal startup failure (fonts server / WASM init) — PreviewPane shows it instead of a preview
 const init_error = ref<string | null>(null)
 provide(INIT_ERROR_KEY, init_error)
-
-// Generator assets (typst templates, frames, backgrounds) served via symlink; fonts are
-// published separately and resolved via fonts_prefix (see fonts.ts)
-const assets_prefix = new URL('/generator_assets/', window.location.href).href
 
 // Load the font manifest on the main thread too — the worker loads its own copy, but the
 // font pickers/previews (get_fonts, register_preview_fonts) resolve against this one.

@@ -26,26 +26,48 @@ Create a generator instance with an initialised WASM compiler and optional rende
 interface InitOptions {
     wasm_url: string              // URL to typst_ts_web_compiler_bg.wasm
     renderer_wasm_url?: string    // URL to typst_ts_renderer_bg.wasm (required for SVG/PNG)
-    assets_prefix?: string        // URL prefix for generator assets (fonts, templates, frames)
+    assets_prefix?: string        // URL prefix for static assets (templates, frames, backgrounds)
+    fonts_prefix?: string         // URL prefix for the fonts tree (manifest.json + families)
 }
 ```
 
-**`wasm_url` / `renderer_wasm_url`** — serve the `.wasm` files from your origin. With Vite, import them directly:
+## Assets
+
+Generating fetches four kinds of assets at runtime, none of which ship inside the npm
+packages: the WASM binaries, the Typst templates (`docs/`), frame images (`frames/`), and the
+fonts tree. The easiest setup is the hosted tree at `https://assets.paper.bible/` (CORS
+enabled):
 
 ```ts
-import wasm_url from '@myriaddreamin/typst-ts-web-compiler/pkg/typst_ts_web_compiler_bg.wasm?url'
-import renderer_wasm_url from '@myriaddreamin/typst-ts-renderer/pkg/typst_ts_renderer_bg.wasm?url'
+// Match the wasm version to your installed @myriaddreamin/typst-ts-web-compiler version
+const typst_version = '0.7.0'
+
+const generator = await init({
+    wasm_url: `https://assets.paper.bible/typst/${typst_version}/typst_ts_web_compiler_bg.wasm`,
+    renderer_wasm_url: `https://assets.paper.bible/typst/${typst_version}/typst_ts_renderer_bg.wasm`,
+    assets_prefix: 'https://assets.paper.bible/',
+    fonts_prefix: 'https://assets.paper.bible/fonts',
+})
 ```
 
-Without a bundler, copy the files from `node_modules` into your `public/` dir and reference by path.
+To self-host instead, serve the same layout under any prefix on your origin:
 
-**`assets_prefix`** — points to the `generator/assets/` directory (fonts, Typst templates, frame images). The easiest setup is a symlink from your `public/` dir:
+- **WASM** — with Vite, import the URLs straight from the installed packages (no hosting
+  needed): `import wasm_url from
+  '@myriaddreamin/typst-ts-web-compiler/pkg/typst_ts_web_compiler_bg.wasm?url'` (and likewise
+  for the renderer). Without a bundler, copy them from `node_modules` into your `public/` dir.
+- **`<assets_prefix>/docs/`** — `cover.typ` and `_helpers.typ`, copied from the
+  [repo's `assets/docs/`](https://github.com/gracious-tech/bookcover/tree/main/assets/docs).
+- **`<assets_prefix>/frames/`** — `painted.png` and `torn.png`, copied from the repo's
+  `assets/frames/`. (`backgrounds/` is only needed if your UI offers the suggested
+  background images.)
+- **`<fonts_prefix>/`** — the fonts tree (`manifest.json`, one dir per family, Noto fallbacks
+  under `_noto/`). Generate it with the repo's font config:
 
-```bash
-ln -s ../node_modules/bookcover-core/assets public/generator_assets
-```
-
-Then pass `assets_prefix: '/generator_assets/'`. With Vite the symlink is served automatically at dev time and included in the production build.
+  ```bash
+  curl -O https://raw.githubusercontent.com/gracious-tech/bookcover/main/font_config.json
+  npx typst-fonts-download --fonts public/fonts --config font_config.json
+  ```
 
 
 ## `CoverGenerator.generate(options): Promise<GenerateResult>`
@@ -76,9 +98,10 @@ Revoke blob URLs to free memory. Call when the instance is no longer needed.
 import {init} from 'bookcover-web'
 
 const generator = await init({
-    wasm_url: '/typst_ts_web_compiler_bg.wasm',
-    renderer_wasm_url: '/typst_ts_renderer_bg.wasm',
-    assets_prefix: '/generator_assets/',
+    wasm_url: 'https://assets.paper.bible/typst/0.7.0/typst_ts_web_compiler_bg.wasm',
+    renderer_wasm_url: 'https://assets.paper.bible/typst/0.7.0/typst_ts_renderer_bg.wasm',
+    assets_prefix: 'https://assets.paper.bible/',
+    fonts_prefix: 'https://assets.paper.bible/fonts',
 })
 
 const result = await generator.generate({

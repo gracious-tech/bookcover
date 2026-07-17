@@ -24,7 +24,7 @@ export {default_spine_title} from './utils.js'
 export {collect_fonts, collect_all_fonts, collect_fallback_fonts, all_fonts_bundled,
     resolve_cjk_variant, resolve_field_cjk_variant} from './fonts.js'
 export {asset_path, FRAMES_DIR, BACKGROUNDS_DIR,
-    TYPST_DIR, TEMPLATE_FILES} from './assets.js'
+    DOCS_DIR, TEMPLATE_FILES} from './assets.js'
 export {list_patterns, find_pattern} from './patterns.js'
 export type {PatternDef} from './patterns.js'
 export {make_blank_form_values} from './form_state.js'

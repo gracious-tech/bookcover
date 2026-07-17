@@ -8,7 +8,7 @@ import * as crypto from 'node:crypto'
 import {fileURLToPath} from 'node:url'
 import {spawn} from 'node:child_process'
 import {build, cover_schema, split_svg, split_png, split_pdf,
-    asset_path, TYPST_DIR, TEMPLATE_FILES, collect_all_fonts} from 'bookcover-core'
+    asset_path, DOCS_DIR, TEMPLATE_FILES, collect_all_fonts} from 'bookcover-core'
 import type {OutputFormat, Templates} from 'bookcover-core'
 import type {CoverSchema} from 'bookcover-core'
 import {load_fonts_dir, write_custom_fonts,
@@ -27,15 +27,14 @@ export {make_blank_form_values, build_schema, curly_quotes, parse_font_family, f
     derive_colors, hex_override_to_hsl} from 'bookcover-core'
 export type {FormState, EmbedFormState, CustomFontStyle} from 'bookcover-core'
 
-// Resolve the generator package's assets directory
+// Default assets root: the repo's top-level assets/ directory (typst templates in docs/,
+// fonts/, etc — the same tree deployed to the public assets bucket), resolved relative to the
+// installed bookcover-core package. Only valid in this repo's workspace layout — npm
+// consumers must pass assets_dir instead (see README)
 const ASSETS_BASE = path.join(
     path.dirname(fileURLToPath(import.meta.resolve('bookcover-core'))),
-    '..', 'assets',
+    '..', '..', 'assets',
 )
-
-// Fonts live in the repo's top-level assets/fonts/ directory (gitignored) — populate it via
-// .bin/download_fonts before generating (or pass fonts_dir explicitly).
-const FONTS_ROOT = path.join(ASSETS_BASE, '..', '..', 'assets', 'fonts')
 
 // Image extensions to try when auto-discovering a background image
 const IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.webp']
@@ -53,7 +52,10 @@ export interface GenerateOptions {
     ppi?:number
     // Whether to split the result into front/back/spine panels
     split?:boolean
-    // Root of the published fonts tree (default: the repo-local assets/fonts/ dir)
+    // Root of the static assets tree, containing at least docs/ (the typst templates) and
+    // fonts/ (default: the repo-local assets/ dir — see the README for how to obtain a copy)
+    assets_dir?:string
+    // Root of the fonts tree, if kept outside assets_dir (default: <assets_dir>/fonts)
     fonts_dir?:string
     // Path to the typst CLI binary (default: 'typst' resolved from PATH)
     typst_path?:string
@@ -114,12 +116,12 @@ function ensure_fonts_loaded(fonts_root:string):Promise<void> {
     return loaded
 }
 
-// Load typst template files from the generator package assets
-async function load_templates():Promise<Templates> {
+// Load typst template files from the assets tree's docs/ dir
+async function load_templates(assets_base:string):Promise<Templates> {
     const cover = await fs.readFile(
-        asset_path(ASSETS_BASE, TYPST_DIR, TEMPLATE_FILES.cover), 'utf8')
+        asset_path(assets_base, DOCS_DIR, TEMPLATE_FILES.cover), 'utf8')
     const helpers = await fs.readFile(
-        asset_path(ASSETS_BASE, TYPST_DIR, TEMPLATE_FILES.helpers), 'utf8')
+        asset_path(assets_base, DOCS_DIR, TEMPLATE_FILES.helpers), 'utf8')
     return {cover, helpers}
 }
 
@@ -225,7 +227,8 @@ export async function generate(options:GenerateOptions):Promise<GenerateResult> 
     // Default to 144 PPI (2x typographic resolution, 2 × 72pt/in)
     const ppi = options.ppi ?? 144
     const split = options.split ?? false
-    const fonts_root = options.fonts_dir ?? FONTS_ROOT
+    const assets_base = options.assets_dir ?? ASSETS_BASE
+    const fonts_root = options.fonts_dir ?? path.join(assets_base, 'fonts')
 
     // Fonts must be loaded before anything below resolves a font family (build(), then
     // resolve_font_dirs() further down)
@@ -246,7 +249,7 @@ export async function generate(options:GenerateOptions):Promise<GenerateResult> 
     }
 
     // Load templates and build all typst files in memory
-    const templates = await load_templates()
+    const templates = await load_templates(assets_base)
     const {files, dims} = await build(templates, parsed, image)
 
     // Write to a temp directory and compile
