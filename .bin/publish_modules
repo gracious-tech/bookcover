@@ -4,8 +4,9 @@
 # generator-web depend on it).
 #
 # Usage:
-#   .bin/publish_modules          # auto-bump patch number
-#   .bin/publish_modules 0.3.0    # set an explicit version
+#   .bin/publish_modules                     # publish current versions as-is, no bump
+#   .bin/publish_modules patch|minor|major    # bump all packages together
+#   .bin/publish_modules 0.3.0                # set an explicit version
 set -euo pipefail
 
 BIN="$(dirname "$0")"
@@ -13,35 +14,45 @@ ROOT="$(cd "$BIN/.." && pwd)"
 MODULES=(generator generator-node generator-web 3d)
 
 if [ $# -gt 1 ]; then
-    echo "Usage: $0 [new-version]" >&2
+    echo "Usage: $0 [patch|minor|major|new-version]" >&2
     exit 1
 fi
 
-if [ $# -eq 1 ]; then
-    NEW_VERSION="$1"
-else
-    # Highest current version across the 4 packages (they may not all match yet)
-    CURRENT="$(grep -h -oE '"version": *"[0-9]+\.[0-9]+\.[0-9]+"' "$ROOT"/{generator,generator-node,generator-web,3d}/package.json \
-        | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -V | tail -1)"
+# Highest current version across the 4 packages (they may not all match yet)
+CURRENT="$(grep -h -oE '"version": *"[0-9]+\.[0-9]+\.[0-9]+"' "$ROOT"/{generator,generator-node,generator-web,3d}/package.json \
+    | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -V | tail -1)"
+
+if [ $# -eq 0 ]; then
+    NEW_VERSION="$CURRENT"
+    echo "Publishing without changing version (current: $NEW_VERSION)"
+elif [[ "$1" =~ ^(patch|minor|major)$ ]]; then
     if [[ ! "$CURRENT" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
         echo "Could not parse current version: $CURRENT" >&2
         exit 1
     fi
-    NEW_VERSION="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.$((${BASH_REMATCH[3]} + 1))"
+    MAJOR="${BASH_REMATCH[1]}"
+    MINOR="${BASH_REMATCH[2]}"
+    PATCH="${BASH_REMATCH[3]}"
+    case "$1" in
+        major) NEW_VERSION="$((MAJOR + 1)).0.0" ;;
+        minor) NEW_VERSION="$MAJOR.$((MINOR + 1)).0" ;;
+        patch) NEW_VERSION="$MAJOR.$MINOR.$((PATCH + 1))" ;;
+    esac
+else
+    NEW_VERSION="$1"
 fi
 
-echo "Publishing all modules at version $NEW_VERSION"
-
-for module in "${MODULES[@]}"; do
-    pkg="$ROOT/$module/package.json"
-    sed -i -E "s/(\"version\": *\")[0-9]+\.[0-9]+\.[0-9]+(\")/\1$NEW_VERSION\2/" "$pkg"
-    # generator-node/generator-web depend on generator (bookcover-core) — keep it in sync too
-    sed -i -E "s/(\"bookcover-core\": *\"\^)[0-9]+\.[0-9]+\.[0-9]+(\")/\1$NEW_VERSION\2/" "$pkg"
-done
-
-echo "Refreshing lockfile..."
-cd "$ROOT"
-npm install --package-lock-only
+if [ $# -gt 0 ]; then
+    echo "Bumping all modules to version $NEW_VERSION"
+    for module in "${MODULES[@]}"; do
+        pkg="$ROOT/$module/package.json"
+        sed -i -E "s/(\"version\": *\")[0-9]+\.[0-9]+\.[0-9]+(\")/\1$NEW_VERSION\2/" "$pkg"
+        # generator-node/generator-web depend on generator (bookcover-core) — keep it in sync too
+        sed -i -E "s/(\"bookcover-core\": *\"\^)[0-9]+\.[0-9]+\.[0-9]+(\")/\1$NEW_VERSION\2/" "$pkg"
+    done
+    echo "Refreshing lockfile..."
+    (cd "$ROOT" && npm install --package-lock-only)
+fi
 
 echo "Building all modules..."
 "$BIN/build_modules"
