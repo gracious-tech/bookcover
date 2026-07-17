@@ -15,10 +15,18 @@ import {load_fonts_prefix, font_urls_for as build_font_urls, fetch_font_bytes,
 
 export type {CoverSchema, TitlePosition, FontConfig,
     OutputFormat, SplitResult, PatternDef} from 'bookcover-core'
-export type {BundledFont, CjkVariant} from 'typst-fonts'
+export type {BundledFont, CjkVariant, CustomFont} from 'typst-fonts'
 export {font_file_url} from 'typst-fonts/web'
 export {get_fonts, get_bundled_font} from 'typst-fonts'
 export {list_patterns, collect_fonts, collect_all_fonts, default_spine_title} from 'bookcover-core'
+
+// Form state + form->schema conversion, so hosts can derive the renderable schema themselves
+export {make_blank_form_values, build_schema, curly_quotes, parse_font_family, find_pattern,
+    derive_colors, hex_override_to_hsl, hex_to_hsl, is_dark_color} from 'bookcover-core'
+export type {FormState, EmbedFormState, CustomFontStyle, DerivedColors} from 'bookcover-core'
+
+// Embed protocol types for iframing the widget
+export type {InitMessage, WidgetMessage, AppLocale} from './embed_types.js'
 
 const decoder = new TextDecoder()
 

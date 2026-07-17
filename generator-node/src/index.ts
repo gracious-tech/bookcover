@@ -11,14 +11,21 @@ import {build, cover_schema, split_svg, split_png, split_pdf,
     asset_path, TYPST_DIR, TEMPLATE_FILES, collect_all_fonts} from 'bookcover-core'
 import type {OutputFormat, Templates} from 'bookcover-core'
 import type {CoverSchema} from 'bookcover-core'
-import {load_fonts_dir, resolve_font_dirs as resolve_font_dirs_generic} from 'typst-fonts/node'
+import {load_fonts_dir, write_custom_fonts,
+    resolve_font_dirs as resolve_font_dirs_generic} from 'typst-fonts/node'
+import type {CustomFont} from 'typst-fonts'
 import sharp from 'sharp'
 
 export type {CoverSchema, TitlePosition, FontConfig,
     OutputFormat, SplitResult, PatternDef} from 'bookcover-core'
-export type {BundledFont} from 'typst-fonts'
+export type {BundledFont, CustomFont} from 'typst-fonts'
 export {get_fonts, get_bundled_font} from 'typst-fonts'
 export {list_patterns, collect_fonts, collect_all_fonts, default_spine_title} from 'bookcover-core'
+
+// Form state + form->schema conversion, so hosts can derive the renderable schema server-side
+export {make_blank_form_values, build_schema, curly_quotes, parse_font_family, find_pattern,
+    derive_colors, hex_override_to_hsl} from 'bookcover-core'
+export type {FormState, EmbedFormState, CustomFontStyle} from 'bookcover-core'
 
 // Resolve the generator package's assets directory
 const ASSETS_BASE = path.join(
@@ -51,6 +58,9 @@ export interface GenerateOptions {
     fonts_dir?:string
     // Path to the typst CLI binary (default: 'typst' resolved from PATH)
     typst_path?:string
+    // User-uploaded font families (bytes + sniffed style), e.g. from the widget's embed
+    // protocol — written to the work dir and scanned by typst alongside the fonts tree
+    custom_fonts?:CustomFont[]
 }
 
 export interface GenerateResult {
@@ -255,6 +265,14 @@ export async function generate(options:GenerateOptions):Promise<GenerateResult> 
 
         // Point typst at only the font directories this schema actually needs
         const font_dirs = resolve_font_dirs(parsed, fonts_root)
+
+        // Write uploaded font families into the work dir so typst can scan them — one subdir
+        // per family under _fonts/ (a name the flat virtual-FS filenames never use)
+        if (options.custom_fonts?.length) {
+            font_dirs.push(
+                ...await write_custom_fonts(path.join(tmp_dir, '_fonts'), options.custom_fonts))
+        }
+
         await run_typst(tmp_dir, format, ppi, font_dirs, options.typst_path)
         await move_file(tmp_output, options.output_path)
         await fs.rm(tmp_dir, {recursive: true, force: true})

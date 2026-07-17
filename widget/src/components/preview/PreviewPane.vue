@@ -80,6 +80,16 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
                     :disabled="is_saving"
                     @click="save_image"
                 )
+                //- Embed mode: abandon edits and signal the parent to close (confirm if dirty)
+                UButton(
+                    v-if="finished_mode"
+                    :icon="is_mobile ? 'material-symbols:close' : undefined"
+                    color="neutral"
+                    variant="outline"
+                    class="cursor-pointer"
+                    @click="on_cancel"
+                )
+                    template(v-if="!is_mobile") {{ t('preview.cancel_button') }}
                 //- Export PDF (single) or Export PDFs (split parts as zip)
                 UButton(
                     v-if="!finished_mode"
@@ -209,6 +219,21 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
                 )
                     PaperScaleLines(:zoom="zoom_per_view[view_mode]" :cover_width_mm="cover_width_mm")
 
+    //- Confirmation dialog for cancelling with unsaved edits (embed mode)
+    UModal(
+        :open="cancel_confirm_open"
+        @update:open="cancel_confirm_open = $event"
+        :title="t('preview.cancel_confirm_title')"
+        :close="false"
+        :ui="{content: 'max-w-sm', footer: 'justify-between gap-2'}"
+    )
+        template(#body)
+            p(class="text-sm") {{ t('preview.cancel_confirm_body') }}
+
+        template(#footer)
+            UButton(type="button" color="neutral" variant="subtle" size="lg" @click="cancel_confirm_open = false") {{ t('common.cancel') }}
+            UButton(type="button" color="error" variant="soft" size="lg" @click="do_cancel") {{ t('preview.cancel_confirm_discard') }}
+
 </template>
 
 <script setup lang="ts">
@@ -247,7 +272,7 @@ import {all_custom_font_bytes} from '../../fonts'
 import {compute_cover_dims} from '../../dimensions'
 import {debounce} from '../../svg_utils'
 import {modal_open_count} from '../../modal_state'
-import {finished_mode, notify_finished} from '../../embed'
+import {finished_mode, notify_finished, notify_cancelled, is_form_dirty} from '../../embed'
 
 import LogSlider from '../LogSlider.vue'
 import Preview3D from './Preview3D.vue'
@@ -280,6 +305,27 @@ function toggle_color_mode():void {
 }
 
 const {t} = useI18n()
+
+// Controls the cancel confirmation modal (embed mode)
+const cancel_confirm_open = ref(false)
+
+/** Cancel: confirm when there are unsaved edits, otherwise signal the parent immediately */
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+function on_cancel():void {
+    if (is_form_dirty(form)) {
+        cancel_confirm_open.value = true
+    }
+    else {
+        notify_cancelled()
+    }
+}
+
+/** Confirmed cancel: close the dialog and signal the parent to discard the session */
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+function do_cancel():void {
+    cancel_confirm_open.value = false
+    notify_cancelled()
+}
 
 // UI state refs
 const is_generating = ref(false)

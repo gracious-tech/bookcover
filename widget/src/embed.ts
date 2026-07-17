@@ -1,27 +1,17 @@
 
 // Embed API — lets a parent frame preset the form, receive live updates, and control the
 // primary button / Book Size section via postMessage. No-ops entirely when not in an iframe.
+// The message types are published from bookcover-web (embed_types.ts) so hosts share them.
+// Binaries (bg image File, custom font bytes) ride as structured-clone fields beside the
+// pure-JSON form values — see WidgetMessage's doc comment for the send policy.
 
-import {ref, watch} from 'vue'
+import {ref, watch, toRaw} from 'vue'
+import type {EmbedFormState, InitMessage, WidgetMessage, AppLocale} from 'bookcover-web'
+import type {CustomFont} from 'typst-fonts'
 import type {FormState} from './form_state'
-import type {AppLocale} from './i18n'
 import {build_schema} from './schema'
+import {add_custom_fonts, custom_font_families} from './fonts'
 import {debounce} from './svg_utils'
-
-/** JSON-safe mirror of FormState — bg_image becomes a base64 data URL instead of a File */
-export type EmbedFormState = Omit<FormState, 'bg_image'> & {bg_image: string | null}
-
-type InitMessage = {
-    type: 'init'
-    preset?: Partial<EmbedFormState>
-    finished_mode?: boolean
-    hide_size_section?: boolean
-    locale?: AppLocale
-}
-type WidgetMessage =
-    | {type: 'ready'}
-    | {type: 'data', data: EmbedFormState, schema: Record<string, unknown>}
-    | {type: 'finished', data: EmbedFormState, schema: Record<string, unknown>}
 
 // Swaps the primary export button into a "Finished" signal instead of a PDF download
 export const finished_mode = ref(false)
@@ -39,55 +29,22 @@ const embedded = window.parent !== window
 // Trusted parent origin, captured from the first validated 'init' message
 let parent_origin:string | null = null
 
-// Preset captured by wait_for_embed_init(), applied once the form exists (in init_embed)
+// Preset + binaries captured by wait_for_embed_init(), applied once the form exists (in
+// init_embed). bg_image distinguishes absent (undefined) from an explicit null
 let pending_preset:Partial<EmbedFormState> | null = null
+let pending_bg_image:File | null | undefined
+let pending_fonts:CustomFont[] | undefined
 
 /** Post a message to the parent frame, once its origin is known (falls back to '*' for 'ready') */
 function post(msg:WidgetMessage):void {
     window.parent.postMessage(msg, parent_origin ?? '*')
 }
 
-/** Notify the parent the user is done — used by the "Finished" button. Posts the final form
- *  and schema so edits made within the debounce window before clicking aren't lost. */
-export async function notify_finished(form:FormState):Promise<void> {
-    post({type: 'finished', data: await serialize_form(form), schema: renderable_schema(form)})
-}
-
-// Cache the bg_image -> data URL conversion by File identity, so unrelated form edits don't
-// re-encode a multi-MB image via FileReader on every debounced change
-let last_bg_image_file:File | null = null
-let last_bg_image_data_url:string | null = null
-
-/** Read a File as a base64 data URL */
-function file_to_data_url(file:File):Promise<string> {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => resolve(reader.result as string)
-        reader.onerror = () => reject(reader.error)
-        reader.readAsDataURL(file)
-    })
-}
-
-/** Convert a base64 data URL back into a File */
-async function data_url_to_file(data_url:string):Promise<File> {
-    const blob = await (await fetch(data_url)).blob()
-    return new File([blob], 'bg_image', {type: blob.type})
-}
-
-/** Resolve bg_image to a data URL, reusing the cached encoding when the File is unchanged */
-async function bg_image_data_url(file:File | null):Promise<string | null> {
-    if (file === last_bg_image_file)
-        return last_bg_image_data_url
-    last_bg_image_file = file
-    last_bg_image_data_url = file ? await file_to_data_url(file) : null
-    return last_bg_image_data_url
-}
-
-/** Serialize the reactive form into a JSON-safe, postMessage-able snapshot */
-async function serialize_form(form:FormState):Promise<EmbedFormState> {
+/** Serialize the reactive form into a JSON-safe, postMessage-able snapshot (binaries excluded) */
+function serialize_form(form:FormState):EmbedFormState {
     const {bg_image, ...rest} = form
-    const plain = JSON.parse(JSON.stringify(rest)) as Omit<EmbedFormState, 'bg_image'>
-    return {...plain, bg_image: await bg_image_data_url(bg_image)}
+    // The JSON round-trip strips undefined values and Vue reactivity proxies
+    return JSON.parse(JSON.stringify(rest)) as EmbedFormState
 }
 
 /** Build the renderable generator schema from the form, as plain JSON — the round-trip strips
@@ -96,13 +53,69 @@ function renderable_schema(form:FormState):Record<string, unknown> {
     return JSON.parse(JSON.stringify(build_schema(form))) as Record<string, unknown>
 }
 
-/** Apply a parent-supplied preset onto the existing reactive form, in place */
-async function apply_preset(form:FormState, preset:Partial<EmbedFormState>):Promise<void> {
-    const {bg_image, ...rest} = preset
-    Object.assign(form, rest)
-    if (bg_image !== undefined) {
-        form.bg_image = bg_image ? await data_url_to_file(bg_image) : null
-    }
+/** Raw (deproxied) snapshot of the custom font store — structured clone can't serialize Vue
+ *  proxies, and identity comparisons must use the raw objects to be meaningful */
+function raw_fonts():CustomFont[] {
+    return toRaw(custom_font_families).map(f => toRaw(f))
+}
+
+// Last-sent state, for skipping no-op messages and omitting unchanged font bytes
+let last_sent_json:string | null = null
+let last_sent_bg:File | null = null
+let last_sent_fonts:CustomFont[] | null = null
+
+/** Whether the font store differs from what was last posted (by length + element identity) */
+function fonts_changed():boolean {
+    const current = raw_fonts()
+    if (last_sent_fonts === null || last_sent_fonts.length !== current.length)
+        return true
+    return current.some((font, i) => font !== last_sent_fonts![i])
+}
+
+// Baseline captured after the init preset is applied, for dirty detection (Cancel button)
+let baseline_json:string | null = null
+let baseline_bg:File | null = null
+let baseline_fonts:CustomFont[] = []
+
+/** Whether the user has edited anything since the parent's preset was applied */
+export function is_form_dirty(form:FormState):boolean {
+    if (baseline_json === null)
+        return true
+    if (form.bg_image !== baseline_bg)
+        return true
+    const fonts = raw_fonts()
+    if (fonts.length !== baseline_fonts.length || fonts.some((f, i) => f !== baseline_fonts[i]))
+        return true
+    return JSON.stringify(serialize_form(form)) !== baseline_json
+}
+
+/** Notify the parent the user is done — used by the "Finished" button. Posts the final form,
+ *  schema, and binaries so edits made within the debounce window before clicking aren't lost
+ *  and a host that only persists on finish gets the complete state. */
+export function notify_finished(form:FormState):void {
+    post({
+        type: 'finished',
+        data: serialize_form(form),
+        schema: renderable_schema(form),
+        bg_image: form.bg_image,
+        custom_fonts: raw_fonts(),
+    })
+}
+
+/** Notify the parent the user abandoned their edits — used by the "Cancel" button */
+export function notify_cancelled():void {
+    post({type: 'cancelled'})
+}
+
+/** Apply a parent-supplied preset (form values + binaries) onto the existing reactive form */
+function apply_preset(form:FormState):void {
+    if (pending_preset)
+        Object.assign(form, pending_preset)
+    if (pending_bg_image !== undefined)
+        form.bg_image = pending_bg_image
+    // Families land in the store synchronously; only preview @font-face registration is async
+    if (pending_fonts?.length)
+        void add_custom_fonts(pending_fonts)
 }
 
 /** Wait for the parent's 'init' message before the app mounts, so form fields set by a preset
@@ -129,6 +142,8 @@ export function wait_for_embed_init():Promise<void> {
             if (msg.hide_size_section !== undefined) hide_size_section.value = msg.hide_size_section
             if (msg.locale !== undefined) embed_locale.value = msg.locale
             if (msg.preset) pending_preset = msg.preset
+            pending_bg_image = msg.bg_image
+            if (msg.custom_fonts) pending_fonts = msg.custom_fonts
             finish()
         })
 
@@ -143,18 +158,34 @@ export function init_embed(form:FormState):void {
     if (!embedded)
         return
 
-    if (pending_preset)
-        void apply_preset(form, pending_preset)
+    apply_preset(form)
 
-    // Live change notifications, deduped so unrelated re-renders don't spam the parent
-    let last_sent_json:string | null = null
+    // Snapshot the post-preset state as the Cancel button's "no edits yet" baseline
+    baseline_json = JSON.stringify(serialize_form(form))
+    baseline_bg = form.bg_image
+    baseline_fonts = raw_fonts()
+
+    // Live change notifications, deduped so unrelated re-renders don't spam the parent.
+    // Font bytes are expensive to structured-clone, so they're only included when changed
     const notify_change = debounce(() => {
-        void serialize_form(form).then((data) => {
-            const json = JSON.stringify(data)
-            if (json === last_sent_json) return
-            last_sent_json = json
-            post({type: 'data', data, schema: renderable_schema(form)})
+        const data = serialize_form(form)
+        const json = JSON.stringify(data)
+        const send_fonts = fonts_changed()
+        if (json === last_sent_json && form.bg_image === last_sent_bg && !send_fonts)
+            return
+        last_sent_json = json
+        last_sent_bg = form.bg_image
+        post({
+            type: 'data',
+            data,
+            schema: renderable_schema(form),
+            bg_image: form.bg_image,
+            ...(send_fonts ? {custom_fonts: raw_fonts()} : {}),
         })
+        if (send_fonts)
+            last_sent_fonts = raw_fonts()
     }, 500)
     watch(() => form, notify_change, {deep: true})
+    // Font uploads don't touch the form, so the deep form watcher alone would miss them
+    watch(custom_font_families, notify_change)
 }

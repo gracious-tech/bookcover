@@ -23,6 +23,31 @@ export const all_custom_font_bytes = computed(() =>
 )
 
 /**
+ * Add already-processed font families to the store, skipping duplicates by family name.
+ * Also the entry point for restoring an embed host's stored fonts (see embed.ts).
+ * Returns the names of the new families added. Families land in the store synchronously
+ * (before any await) so callers can rely on the store being current on return of the promise
+ * — only the @font-face preview registration is async.
+ */
+export function add_custom_fonts(fonts:CustomFont[]):Promise<string[]> {
+    // Add new families to the store (skip duplicates)
+    const added:CustomFont[] = []
+    const existing = new Set(custom_font_families.map(f => f.family))
+    for (const font of fonts) {
+        if (existing.has(font.family))
+            continue
+        custom_font_families.push(font)
+        existing.add(font.family)
+        added.push(font)
+    }
+
+    // Register each new family for @font-face preview (on failure it falls back to default)
+    return Promise.all(added.map(font =>
+        register_custom_font_preview(font).catch(() => {})
+    )).then(() => added.map(font => font.family))
+}
+
+/**
  * Process uploaded files via typst-fonts — extracts font families from raw file data,
  * handling both individual .ttf/.otf files and .zip archives.
  * Returns the names of the new families added.
@@ -34,19 +59,5 @@ export async function process_uploaded_files(file_list:File[]):Promise<string[]>
         data: new Uint8Array(await file.arrayBuffer()),
     })))
 
-    // Add new families to the store (skip duplicates)
-    const added:string[] = []
-    const existing = new Set(custom_font_families.map(f => f.family))
-    for (const font of process_font_files(files)) {
-        if (existing.has(font.family))
-            continue
-        custom_font_families.push(font)
-        existing.add(font.family)
-        added.push(font.family)
-
-        // Register the family for @font-face preview (on failure it falls back to default)
-        await register_custom_font_preview(font).catch(() => {})
-    }
-
-    return added
+    return add_custom_fonts(process_font_files(files))
 }

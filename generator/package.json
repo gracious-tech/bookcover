@@ -1,8 +1,12 @@
 {
     "name": "bookcover-core",
-    "version": "0.1.1",
+    "version": "0.2.0",
     "license": "MIT-0",
-    "repository": {"type": "git", "url": "https://github.com/gracious-tech/bookcover.git", "directory": "generator"},
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/gracious-tech/bookcover.git",
+        "directory": "generator"
+    },
     "homepage": "https://github.com/gracious-tech/bookcover/tree/main/generator#readme",
     "bugs": "https://github.com/gracious-tech/bookcover/issues",
     "type": "module",
@@ -21,6 +25,7 @@
         "big.js": "^7.0.1",
         "bwip-js": "^4.9.0",
         "chroma-js": "^3.2.0",
+        "pm-to-typst": "^0.1.0",
         "printing-services": "^1.5.1",
         "typst-fonts": "^0.1.0",
         "typst-utils": "^0.1.0",
