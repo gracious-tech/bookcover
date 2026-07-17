@@ -1,6 +1,6 @@
 {
     "name": "bookcover-web",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "license": "MIT-0",
     "repository": {
         "type": "git",
@@ -23,7 +23,7 @@
         "@myriaddreamin/typst-ts-renderer": "^0.7.0",
         "@myriaddreamin/typst-ts-web-compiler": "^0.7.0",
         "@myriaddreamin/typst.ts": "^0.7.0",
-        "bookcover-core": "^0.3.0",
+        "bookcover-core": "^0.4.0",
         "typst-fonts": "^0.1.0"
     }
 }
