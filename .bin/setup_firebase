@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+# One-time provisioning for this app's hosting + public assets bucket, both living in the
+# paper-bible Firebase/GCP project (shared with the paper_bible app). Safe to re-run — the
+# resource-creation steps are idempotent (`|| true` on already-exists errors).
+#
+# Creates:
+#   - the "cover" Firebase Hosting site (serves widget/dist, see firebase.json/.firebaserc)
+#   - the assets.paper.bible GCS bucket (public read, CORS'd for GET/HEAD) that
+#     .bin/deploy_assets syncs assets/ to and the widget/generator-node read from at runtime
+#
+# Requires: gcloud and firebase CLIs authenticated against the paper-bible project.
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+PROJECT="paper-bible"
+HOSTING_SITE="cover"
+ASSETS_BUCKET="assets.paper.bible"
+
+# Create the Firebase Hosting site and wire it to the "cover" deploy target used by
+# firebase.json/.firebaserc
+firebase hosting:sites:create "$HOSTING_SITE" --project "$PROJECT" || true
+firebase target:apply hosting "$HOSTING_SITE" "$HOSTING_SITE" --project "$PROJECT"
+
+# Create the public assets bucket and make every object world-readable
+gcloud storage buckets create "gs://$ASSETS_BUCKET" --project "$PROJECT" \
+    --location=us-west1 --uniform-bucket-level-access || true
+gcloud storage buckets add-iam-policy-binding "gs://$ASSETS_BUCKET" \
+    --member=allUsers --role=roles/storage.objectViewer
+
+# Allow cross-origin GET/HEAD (the widget and generator-node fetch fonts/typst wasm/backgrounds
+# from this bucket directly, including from other origins like paper_bible's dev server)
+tmp_cors="$(mktemp)"
+cat > "$tmp_cors" <<'EOF'
+[
+    {
+        "origin": ["*"],
+        "method": ["GET", "HEAD"],
+        "responseHeader": ["Content-Type"],
+        "maxAgeSeconds": 3600
+    }
+]
+EOF
+gcloud storage buckets update "gs://$ASSETS_BUCKET" --cors-file="$tmp_cors"
+rm "$tmp_cors"
+
+echo "Done. Run .bin/deploy_assets to populate $ASSETS_BUCKET, and .bin/build_site + \
+firebase deploy --only hosting:$HOSTING_SITE --project $PROJECT to deploy the widget."

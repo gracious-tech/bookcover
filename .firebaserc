@@ -1,0 +1,14 @@
+{
+    "projects": {
+        "default": "paper-bible"
+    },
+    "targets": {
+        "paper-bible": {
+            "hosting": {
+                "cover": [
+                    "cover"
+                ]
+            }
+        }
+    }
+}
