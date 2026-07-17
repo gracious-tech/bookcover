@@ -53,7 +53,7 @@ repo root. Build in dependency order using the `.bin/` scripts:
 The fonts collection (curated fonts + Noto fallback set + `manifest.json`) is managed by this
 repo but NOT committed: `font_config.json` names the curated families, `.bin/download_fonts`
 populates `assets/fonts/` (gitignored) via the `typst-fonts-download` CLI, and
-`.bin/deploy_fonts` syncs that tree to the public assets bucket at
+`.bin/deploy_assets fonts` syncs that tree to the public assets bucket at
 `https://assets.paper.bible/fonts`. Font manifests are runtime-loaded, not baked into the
 build, so `typst-fonts`'s `init_fonts()`/`load_fonts_dir()`/`load_fonts_prefix()` need real
 manifest data to resolve against: the widget loads `/generator_assets/fonts/manifest.json` in
@@ -64,12 +64,13 @@ CORS headers consumer apps like paper_bible need to fetch these cross-origin in 
 
 The typst.ts WASM binaries (compiler ~28MB + renderer ~1MB) are likewise NOT bundled or
 committed — `.bin/add_typst_version` vendors a published npm version into
-`assets/typst/<version>/` (gitignored) and `.bin/deploy_typst` uploads it to
+`assets/typst/<version>/` (gitignored) and `.bin/deploy_assets typst` uploads it to
 `https://assets.paper.bible/typst/<version>/<file>.wasm` (immutable write-once version
 directories matching the npm package versions; served under `/generator_assets/typst/` in dev
 by the same vite plugin). `widget/src/generator_worker.ts` derives each URL from the installed
 `@myriaddreamin/*` package's own version, so bumping those deps requires running
-`.bin/add_typst_version` + `.bin/deploy_typst` for that version first (a stale bucket 404s at
+`.bin/add_typst_version` + `.bin/deploy_assets typst` for that version first (a stale bucket
+404s at
 generate time).
 
 The rest of the top-level `assets/` tree IS committed: `docs/` (the Typst templates —
@@ -77,7 +78,8 @@ The rest of the top-level `assets/` tree IS committed: `docs/` (the Typst templa
 background JPGs + originals — the `bookcover-3d-web` package ships only their metadata, see
 `3d/src/photo.ts`). In dev the whole tree is
 served under `/generator_assets/` by `widget/vite_plugin_assets.ts`; in production the widget
-fetches it from `https://assets.paper.bible/` (see `widget/src/assets.ts`), and
+fetches it from `https://assets.paper.bible/` (deployed via `.bin/deploy_assets static`, see
+`widget/src/assets.ts`), and
 `generator-node` reads `assets/docs/` from disk directly (npm consumers point `assets_dir`
 at their own copy — see generator-node/README.md).
 
@@ -285,9 +287,8 @@ custom_trim_width: 152, custom_trim_height: 229, custom_unit: 'mm', page_count: 
 | `test` | Generate test covers (PDF/SVG/PNG) for visual inspection |
 | `setup_typst` | Download latest typst binary to .bin/ |
 | `download_fonts` | Populate assets/fonts/ from font_config.json (typst-fonts-download) |
-| `deploy_fonts` | Sync assets/fonts/ to the public assets bucket (gcloud) |
 | `add_typst_version` | Vendor a typst.ts npm version's wasm into assets/typst/<version>/ |
-| `deploy_typst` | Upload assets/typst/ version dirs to the assets bucket (gcloud) |
+| `deploy_assets` | Sync assets/ to the public bucket (gcloud); sections: static/fonts/typst |
 | `gen_bg_thumbnails` | Generate 160x120 thumbnails for background images via sharp |
 
 ## Gotchas

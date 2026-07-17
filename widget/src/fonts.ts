@@ -9,7 +9,7 @@ import {register_custom_font_preview} from 'typst-fonts/web'
 
 // URL prefix for the separately-published fonts tree (curated + Noto fallback). The tree is
 // managed in this repo at assets/fonts/ (populated via .bin/download_fonts, deployed to the
-// public assets bucket via .bin/deploy_fonts) — in production it's fetched from that bucket,
+// public assets bucket via .bin/deploy_assets) — in production it's fetched from that bucket,
 // and in dev the widget's own vite server serves it (see vite_plugin_assets.ts)
 export const fonts_prefix = import.meta.env.PROD
     ? 'https://assets.paper.bible/fonts'

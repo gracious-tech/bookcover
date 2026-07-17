@@ -42,7 +42,7 @@ export interface InitOptions {
     // URL prefix for fonts — curated and Noto fallback alike (e.g. '/generator_assets/fonts'
     // in dev, 'https://assets.paper.bible/fonts' in production). Kept separate from
     // assets_prefix since the fonts tree is published separately from the app (see the repo's
-    // .bin/download_fonts / .bin/deploy_fonts).
+    // .bin/download_fonts / .bin/deploy_assets).
     fonts_prefix?:string
 }
 

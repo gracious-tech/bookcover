@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Vendor the typst.ts WASM binaries for a published npm version into assets/typst/<version>/
-# (published to the assets bucket by deploy_typst, served in dev under
+# (published to the assets bucket by deploy_assets, served in dev under
 # /generator_assets/typst/). Consumer apps (paper_cover etc) construct URLs as
 # `<assets prefix>/typst/<their installed npm version>/<wasm filename>` and cache them as
 # immutable, so version dirs are write-once: never modify or delete a published one — adding

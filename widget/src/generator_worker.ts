@@ -10,7 +10,7 @@ import type {CoverGenerator, GenerateOptions, GenerateResult} from 'bookcover-we
 // URL prefix for the typst.ts WASM binaries, hosted on the same server as fonts (see
 // fonts.ts) rather than bundled — they're large and shared with related apps. The tree is
 // managed in this repo at assets/typst/ (vendored via .bin/add_typst_version, deployed via
-// .bin/deploy_typst; served by the widget's own vite server in dev). Each URL embeds the
+// .bin/deploy_assets; served by the widget's own vite server in dev). Each URL embeds the
 // installed package's own version so the bytes always match the bundled JS glue (a
 // mismatched version 404s loudly instead of failing in confusing ways)
 const TYPST_VERSION = '0.7.0'  // WARN Must match shared version and generator-web versions

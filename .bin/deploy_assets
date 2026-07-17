@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+
+# Sync the local assets/ tree to the public assets bucket served at https://assets.paper.bible/
+# (replaces the old deploy_fonts/deploy_typst pair). Each subdir is synced under a matching
+# object prefix, so URLs keep the same `${assets_prefix}<subdir>/<path>` shape the app uses in
+# dev (see widget/vite_plugin_assets.ts). Deletion flags are scoped per-prefix, so deploying
+# one section never touches the others.
+#
+# Sections:
+#   static — docs/ backgrounds/ frames/ 3d/ (committed; mirrored with deletion, 1h cache)
+#   fonts  — assets/fonts/ (gitignored, see download_fonts; mirrored with deletion,
+#            immutable cache except manifest.json which updates in place)
+#   typst  — assets/typst/ (gitignored, see add_typst_version; version dirs are write-once so
+#            nothing is ever deleted, immutable cache + explicit application/wasm content-type)
+#
+# Usage:
+#   .bin/deploy_assets                 # deploy all sections present locally
+#   .bin/deploy_assets fonts typst     # deploy only the named sections
+#   BUCKET=other-bucket .bin/deploy_assets
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+BUCKET="${BUCKET:-assets.paper.bible}"
+PROJECT="paper-bible"
+GCLOUD=(gcloud --project="$PROJECT" storage)
+
+# Sections to deploy: args if given, otherwise everything
+if [ $# -gt 0 ]; then
+    SECTIONS=("$@")
+else
+    SECTIONS=(static fonts typst)
+fi
+
+# Deploy the committed static assets (mirrored with deletion; they change in place so use a
+# short-ish cache rather than immutable)
+deploy_static(){
+    for subdir in docs backgrounds frames 3d; do
+        "${GCLOUD[@]}" rsync "assets/$subdir" "gs://$BUCKET/$subdir" \
+            --recursive --delete-unmatched-destination-objects
+        "${GCLOUD[@]}" objects update "gs://$BUCKET/$subdir/**" \
+            --cache-control='public, max-age=3600'
+    done
+}
+
+# Deploy the fonts tree (mirror with deletion so the bucket matches font_config.json exactly)
+deploy_fonts(){
+    if [ ! -f assets/fonts/manifest.json ]; then
+        echo "Skipping fonts: assets/fonts/ not populated (run .bin/download_fonts)" >&2
+        return
+    fi
+    "${GCLOUD[@]}" rsync assets/fonts "gs://$BUCKET/fonts" \
+        --recursive --delete-unmatched-destination-objects
+
+    # Font binaries are immutable per filename, so cache aggressively (manifest.json changes
+    # in place though, so give it a short TTL)
+    "${GCLOUD[@]}" objects update "gs://$BUCKET/fonts/**" \
+        --cache-control='public, max-age=31536000, immutable'
+    "${GCLOUD[@]}" objects update "gs://$BUCKET/fonts/manifest.json" \
+        --cache-control='public, max-age=300'
+}
+
+# Deploy the typst.ts WASM version dirs (write-once — no deletion flag; files already in the
+# bucket are skipped/unchanged)
+deploy_typst(){
+    if [ ! -d assets/typst ]; then
+        echo "Skipping typst: assets/typst/ not populated (run .bin/add_typst_version)" >&2
+        return
+    fi
+    "${GCLOUD[@]}" rsync assets/typst "gs://$BUCKET/typst" --recursive
+
+    # WebAssembly.instantiateStreaming() requires an exact application/wasm content-type
+    # (gcloud won't infer it for .wasm), and version dirs are immutable so cache as hard as
+    # possible. Access-Control-Allow-Origin is bucket-wide CORS — see setup_firebase.
+    "${GCLOUD[@]}" objects update "gs://$BUCKET/typst/**" \
+        --content-type='application/wasm' \
+        --cache-control='public, max-age=31536000, immutable'
+
+    # GCS can't attach arbitrary response headers, so Cross-Origin-Resource-Policy:
+    # cross-origin must be added by whatever fronts the bucket (Cloudflare/LB — see
+    # setup_firebase notes). Also verify the CDN actually compresses these (application/wasm
+    # is missing from some CDNs' default compressible-types lists, and the compiler is
+    # ~28 MB → ~9 MB under brotli):
+    echo 'Typst deployed. Verify CDN compression + CORP header, e.g.:'
+    echo "  curl -sI -H 'Accept-Encoding: br, gzip' \\"
+    echo "      https://assets.paper.bible/typst/0.7.0-rc2/typst_ts_web_compiler_bg.wasm \\"
+    echo "      | grep -iE 'content-encoding|cross-origin-resource-policy'"
+}
+
+# Run each requested section
+for section in "${SECTIONS[@]}"; do
+    case "$section" in
+        static) deploy_static ;;
+        fonts) deploy_fonts ;;
+        typst) deploy_typst ;;
+        *)
+            echo "Unknown section: $section (expected static, fonts, or typst)" >&2
+            exit 1
+            ;;
+    esac
+done
