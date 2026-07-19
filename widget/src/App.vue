@@ -24,12 +24,13 @@ import {useMediaQuery} from '@vueuse/core'
 import {useI18n} from 'vue-i18n'
 import {load_fonts_prefix, FontsServerError} from 'typst-fonts/web'
 import {
-    make_form, FORM_KEY, IS_MOBILE_KEY, FULL_SVG_KEY, GENERATOR_KEY, INIT_ERROR_KEY,
+    make_form, make_blank_form, FORM_KEY, IS_MOBILE_KEY, FULL_SVG_KEY, GENERATOR_KEY, INIT_ERROR_KEY,
 } from './form_state'
 import {GeneratorWorkerClient} from './generator_client'
 import {fonts_prefix, all_custom_font_bytes} from './fonts'
 import {assets_prefix} from './assets'
-import {init_embed} from './embed'
+import {init_embed, embed_seeded} from './embed'
+import {fetch_bg_file} from './services/backgrounds'
 
 import SidebarPanel from './components/sidebar/SidebarPanel.vue'
 import PreviewPane from './components/preview/PreviewPane.vue'
@@ -39,12 +40,24 @@ defineOptions({components: {SidebarPanel, PreviewPane}})
 
 const {t} = useI18n()
 
-// Create reactive form state and provide it to all child components
-const form = make_form()
+// Create reactive form state and provide it to all child components. An embed host that
+// seeded the form (preset and/or bg_image) gets a blank base so unset fields come out empty
+// rather than leaking demo text/colors; a bare/standalone launch shows the demo cover
+const form = embed_seeded.value ? make_blank_form() : make_form()
 provide(FORM_KEY, form)
 
 // Wire up the postMessage embed API — no-ops when not running inside an iframe
 init_embed(form)
+
+// Load the demo background image for the initial preview — never over a parent-seeded form,
+// where an absent image means the cover deliberately has none (icon/pattern/color covers)
+if (!embed_seeded.value && !form.bg_image) {
+    void fetch_bg_file('black_beach.jpg').then(file => {
+        // Don't clobber an image the user added while the demo one was still downloading
+        if (!form.bg_image)
+            form.bg_image = file
+    })
+}
 
 // Mobile breakpoint — matches the 1000px threshold used in CSS
 const is_mobile = useMediaQuery('(max-width: 1000px)')

@@ -101,3 +101,10 @@ export function bg_thumb_url(filename:string):string {
 export function bg_url(filename:string):string {
     return `${assets_prefix}backgrounds/${filename}`
 }
+
+/** Fetch a suggested background by filename and wrap it as a File for the form's image slot */
+export async function fetch_bg_file(filename:string):Promise<File> {
+    const res = await fetch(bg_url(filename))
+    const blob = await res.blob()
+    return new File([blob], filename, {type: 'image/jpeg'})
+}

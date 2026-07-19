@@ -23,6 +23,11 @@ export const hide_size_section = ref(false)
 // the app mounts, via resolve_initial_locale()
 export const embed_locale = ref<AppLocale | null>(null)
 
+// True when the parent's init message seeded the form (preset and/or explicit bg image) —
+// read by App.vue so the standalone demo background never fires over a seeded form, where an
+// absent image means the cover deliberately has none
+export const embed_seeded = ref(false)
+
 // True when running inside an iframe — standalone usage no-ops the whole embed API
 const embedded = window.parent !== window
 
@@ -144,6 +149,7 @@ export function wait_for_embed_init():Promise<void> {
             if (msg.preset) pending_preset = msg.preset
             pending_bg_image = msg.bg_image
             if (msg.custom_fonts) pending_fonts = msg.custom_fonts
+            if (msg.preset || msg.bg_image !== undefined) embed_seeded.value = true
             finish()
         })
 

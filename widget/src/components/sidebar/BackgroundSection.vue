@@ -336,11 +336,6 @@ UModal(v-model:open="low_res_dialog_open" :ui="{content: 'max-w-sm'}")
 
 </template>
 
-<script lang="ts">
-// Module-scoped flag so default bg only loads on first mount
-let bg_loaded = false
-</script>
-
 <script setup lang="ts">
 // Background section — image, icon picker, icon mode, and color controls
 
@@ -353,7 +348,7 @@ import {suggested_icons} from '../../services/icons'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
 import {PATTERNS, PREVIEW_PATTERNS, get_preview_url, get_preview_size} from '../../services/patterns'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
-import {BACKGROUNDS, PREVIEW_BGS, bg_thumb_url, bg_url} from '../../services/backgrounds'
+import {BACKGROUNDS, PREVIEW_BGS, bg_thumb_url, fetch_bg_file} from '../../services/backgrounds'
 import {check_bg_image_dpi} from '../../dpi'
 import type {BgImageDpiWarning} from '../../dpi'
 import ColorPicker from './ColorPicker.vue'
@@ -433,7 +428,7 @@ const dpi_warning_icon = computed(() => (
 const low_res_dialog_open = ref(false)
 
 // Set right before a user-initiated upload/paste so the watcher below only pops the one-time
-// dialog for images the user actually chose — not suggested backgrounds or the mount default
+// dialog for images the user actually chose — not suggested backgrounds or the demo default
 let bg_image_is_user_upload = false
 
 /** Decode a File's intrinsic pixel dimensions */
@@ -466,19 +461,9 @@ watch(() => form.bg_image, async (file) => {
     } catch { /* print dimensions not resolvable yet */ }
 })
 
-// Load a default background on first mount only (module-scoped to survive remounts)
-onMounted(() => {
-    if (!bg_loaded && !form.bg_image) {
-        bg_loaded = true
-        select_suggested_bg('black_beach.jpg')
-    }
-})
-
 /** Fetch a suggested background by filename, convert to File, and apply it */
 async function select_suggested_bg(filename:string): Promise<void> {
-    const res = await fetch(bg_url(filename))
-    const blob = await res.blob()
-    form.bg_image = new File([blob], filename, {type: 'image/jpeg'})
+    form.bg_image = await fetch_bg_file(filename)
     bg_picker_open.value = false
 }
 

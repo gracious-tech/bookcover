@@ -75,6 +75,12 @@ const default_blurb:PmDoc = {
 }
 
 
+/** Create a reactive FormState with no demo content — used when an embed host seeds the form,
+ *  so fields the preset doesn't cover come out blank rather than leaking demo text/colors */
+export function make_blank_form(): FormState {
+    return reactive(make_blank_form_values())
+}
+
 /** Create a reactive FormState with demo values for initial preview */
 export function make_form(): FormState {
     return reactive({
