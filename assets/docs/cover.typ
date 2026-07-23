@@ -257,6 +257,7 @@
             width: blurb_width,
             fill: color_blurb_bg,
             stroke: none,
+            radius: 1.5mm,
             inset: blurb_padding,
             context {
                 let avail_w = blurb_width - blurb_padding * 2
