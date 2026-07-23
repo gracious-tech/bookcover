@@ -337,10 +337,13 @@
 // Small icon at the bottom of the spine (when spine is wide enough for text)
 #if has_spine_icon {
     let spine_icon_size = spine_width * 0.7
+    let spine_icon_side_margin = (spine_width - spine_icon_size) / 2
+    // Bottom margin is twice the side margin
+    let spine_icon_bottom_margin = spine_icon_side_margin * 2
     place(
         top + left,
-        dx: spine_x + (spine_width - spine_icon_size) / 2,
-        dy: bleed + face_height - spine_icon_size - spine_width * 0.2,
+        dx: spine_x + spine_icon_side_margin,
+        dy: bleed + face_height - spine_icon_size - spine_icon_bottom_margin,
         image("icon_spine.svg", width: spine_icon_size, height: spine_icon_size),
     )
 }
