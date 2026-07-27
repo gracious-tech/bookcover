@@ -91,6 +91,10 @@ div(class="flex flex-col gap-2")
         span(class="text-[11px] text-muted w-10 shrink-0") {{ t('advanced.margin_back') }}
         LogSlider(v-model="form.margin_back" :min="0" :max="40" :step="1" suffix="%" class="flex-1")
 
+//- White margin with rounded corners for home inkjet printers that can't print edge-to-edge
+div(class="flex items-center gap-2")
+    UCheckbox(v-model="form.home_print_margin" :label="t('advanced.home_margin_checkbox')")
+
 //- Title spacing and margins
 div(class="flex flex-col gap-2")
     label(class="text-xs font-semibold tracking-[0.02em]") {{ t('advanced.title_margins_label') }}

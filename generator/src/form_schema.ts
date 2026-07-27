@@ -213,6 +213,7 @@ export function build_schema(
 
         margin_front: form.margin_front !== 10 ? form.margin_front : undefined,
         margin_back: form.margin_back !== 10 ? form.margin_back : undefined,
+        home_print_margin: form.home_print_margin || undefined,
 
         // Background
         bg_image_coverage: form.bg_image_coverage,

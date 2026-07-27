@@ -108,6 +108,7 @@ const vie:Messages = {
         positioning_help_1: 'Điều chỉnh lề và khoảng cách theo tỷ lệ với chiều cao sách.',
         positioning_help_2: 'Một số mục có giá trị tối thiểu không thể giảm thêm.',
         page_margins_label: 'Lề trang',
+        home_margin_checkbox: 'Lề in tại nhà',
         margin_front: 'Trước',
         margin_back: 'Sau',
         title_margins_label: 'Lề tiêu đề',

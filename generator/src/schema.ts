@@ -117,6 +117,7 @@ export interface CoverSchema {
 
     margin_back?:number
     margin_front?:number
+    home_print_margin?:boolean    // white rounded margin for home inkjet printers
 
     // BACKGROUND
 
@@ -260,6 +261,7 @@ export const cover_schema = z.object({
 
     margin_back: z.number().nonnegative().max(50).optional(),
     margin_front: z.number().nonnegative().max(50).optional(),
+    home_print_margin: z.boolean().optional(),
 
     // Background
     bg_image_coverage: z.enum(['full', 'front', 'painted', 'feature', 'front_partial']).optional(),

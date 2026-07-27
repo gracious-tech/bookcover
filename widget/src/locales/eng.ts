@@ -123,6 +123,8 @@ const eng = {
         positioning_help_1: 'Adjust margins and spacing relative to the height of the book.',
         positioning_help_2: "Some of these have minimum values that can't be removed.",
         page_margins_label: 'Page margins',
+        // toggle: white rounded border for home inkjet printers that can't print to the edge
+        home_margin_checkbox: 'Home printing margin',
         // page-margin slider: front-cover margin
         margin_front: 'Front',
         // page-margin slider: back-cover margin

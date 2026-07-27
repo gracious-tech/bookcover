@@ -489,3 +489,26 @@
         make_pos_box(bot_has_title, bot_has_subtitle, bot_has_author),
     )
 }
+
+
+// ============================================================
+// Layer 6 — Home-print margin (white rounded borders for home inkjet printers)
+// ============================================================
+
+#if home_print {
+    // Render the back and front as two separate rounded cards, each with a white
+    // border, so a home printer that can't reach the paper edge still prints
+    // cleanly. One white matte covers the spread with two rounded windows punched
+    // out — one per trim face, each inset by `home_margin` on all sides with
+    // `home_corner`-rounded corners. Windows track the trim faces (not a spine-
+    // centre split), so the bleed and spine become white gutter and every side —
+    // including the inner/gutter edge — gets a real margin. A single matte (vs.
+    // two abutting ones) avoids a hairline seam down the gutter.
+    let m = home_margin
+    let win_w = face_width - 2 * m
+    let win_h = face_height - 2 * m
+    let win_y = bleed + m
+    let back_win = (bleed + m, win_y, win_w, win_h)
+    let front_win = (total_width - bleed - face_width + m, win_y, win_w, win_h)
+    home-print-matte(total_width, total_height, (back_win, front_win), home_corner)
+}

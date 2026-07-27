@@ -105,6 +105,7 @@ export interface EmbedFormState {
 
     margin_front:number
     margin_back:number
+    home_print_margin:boolean    // white rounded margin for home inkjet printers
 
     // BACKGROUND
 
@@ -239,6 +240,7 @@ export function make_blank_form_values(): FormState {
 
         margin_front: 8,
         margin_back: 8,
+        home_print_margin: false,
 
         // BACKGROUND — white, no image, no icon, no pattern
 

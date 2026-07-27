@@ -92,6 +92,11 @@ export function build_data_file(
     lines.push(bool('has_spine', dims.cover_has_spine))
     lines.push(bool('has_spine_text', dims.cover_has_spine_text))
     lines.push(bool('has_bleed', dims.cover_has_bleed))
+    // Home-print white margin: a fixed white border with rounded inner corners
+    // overlaid on the whole cover for home inkjet printers that can't print to the edge
+    lines.push(bool('home_print', schema.home_print_margin ?? false))
+    lines.push(mmval('home_margin', 8))   // white border width
+    lines.push(mmval('home_corner', 6))   // rounded-corner radius of the artwork
     lines.push('')
 
     const {subtitle_lines} = font_sizes
