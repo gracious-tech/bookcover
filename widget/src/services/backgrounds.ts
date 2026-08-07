@@ -82,6 +82,7 @@ export const BACKGROUNDS: string[] = [
     'white_church.jpg',
     'white_bible.jpg',
     'white_lost_sheep.jpg',
+    'white_cross.jpg',
 ]
 
 // Diverse backgrounds shown as the trigger button strip
