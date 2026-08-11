@@ -135,6 +135,8 @@ export interface CoverSchema {
     pattern_tile_mm?:number  // Tile size in mm (square); defaults to 80
     pattern_color?:string
 
+    bg_vector_id?:string     // Built-in procedural vector background ID (see vector_backgrounds.ts)
+
     spine_color?:string | null   // null → no separate spine color (spine uses primary)
 
     // OTHER
@@ -277,6 +279,8 @@ export const cover_schema = z.object({
     pattern: z.string().optional(),
     pattern_tile_mm: z.number().positive().optional(),
     pattern_color: z.string().optional(),
+
+    bg_vector_id: z.string().optional(),
 
     spine_color: hsl_color.nullable().optional(),
 

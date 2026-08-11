@@ -46,6 +46,7 @@ const eng = {
     background: {
         image_label: 'Background image',
         choose_suggested_aria: 'Choose suggested background',
+        designs_label: 'Designs',
         upload_button: 'Upload',
         paste_button: 'Paste',
         remove_image_aria: 'Remove image',

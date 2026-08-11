@@ -71,7 +71,7 @@
                 image_filename,
                 width: total_width,
                 height: total_height,
-                fit: "cover",
+                fit: if image_is_vector { "stretch" } else { "cover" },
             ),
         )
     } else if image_coverage == "painted" {
@@ -135,7 +135,7 @@
                 image_filename,
                 width: face_width + bleed,
                 height: total_height,
-                fit: "cover",
+                fit: if image_is_vector { "stretch" } else { "cover" },
             ),
         )
     }

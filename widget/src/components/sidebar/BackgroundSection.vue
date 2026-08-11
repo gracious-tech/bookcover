@@ -15,6 +15,11 @@ div(class="flex flex-col gap-1")
                     alt="Current background"
                     class="w-12 h-12 object-cover block"
                 )
+                div(
+                    v-else-if="selected_vector_bg"
+                    class="w-12 h-12 block"
+                    :style="{backgroundImage: get_vector_preview_url(selected_vector_bg, form.bg_color), backgroundSize: 'cover'}"
+                )
                 img(
                     v-else
                     v-for="bg in PREVIEW_BGS"
@@ -35,6 +40,19 @@ div(class="flex flex-col gap-1")
                                 @click="select_suggested_bg(bg)"
                             )
                                 img(:src="bg_thumb_url(bg)" class="w-full h-full object-cover block")
+                        div(class="mt-2 pt-2 border-t border-default")
+                            div(class="text-xs font-semibold tracking-[0.02em] mb-1.5 px-0.5") {{ t('background.designs_label') }}
+                            div(class="grid gap-1.5" style="grid-template-columns: repeat(2, 160px)")
+                                button(
+                                    v-for="v in VECTOR_BACKGROUNDS"
+                                    :key="v.id"
+                                    type="button"
+                                    class="w-[160px] h-[120px] rounded border-2 overflow-hidden cursor-pointer touch-manipulation transition-transform duration-100 hover:scale-[1.05]"
+                                    :class="form.bg_vector_id === v.id ? 'border-(--ui-text)' : 'border-transparent'"
+                                    :style="{backgroundImage: get_vector_preview_url(v, form.bg_color), backgroundSize: 'cover'}"
+                                    :title="v.name"
+                                    @click="select_vector_bg(v.id)"
+                                )
         label(class="cursor-pointer")
             input(type="file" accept=".jpg,.jpeg,.png,.webp" class="sr-only" @change="on_image_change")
             UButton(as="span" color="neutral" variant="outline" size="sm") {{ t('background.upload_button') }}
@@ -47,7 +65,7 @@ div(class="flex flex-col gap-1")
             icon="material-symbols:close"
             class="ml-2"
             :aria-label="t('background.remove_image_aria')"
-            @click="form.bg_image = null"
+            @click="clear_background()"
         )
 
     //- Inline resolution warning — short label, click opens the full-detail dialog
@@ -63,9 +81,9 @@ div(class="flex flex-col gap-1")
 
 
 //- Background image coverage
-div(v-if='form.bg_image' class="flex flex-col gap-1")
+div(v-if='form.bg_image || form.bg_vector_id' class="flex flex-col gap-1")
     div(class="text-xs font-semibold tracking-[0.02em]") {{ t('background.position_label') }}
-    div(v-if='form.bg_image' class="flex mt-3")
+    div(class="flex mt-3")
         UButton(
             type="button"
             color="neutral"
@@ -79,33 +97,35 @@ div(v-if='form.bg_image' class="flex flex-col gap-1")
             color="neutral"
             :variant="form.bg_image_coverage === 'front' ? 'solid' : 'outline'"
             size="sm"
-            class="rounded-none w-[50px] justify-center"
+            class="w-[50px] justify-center"
+            :class="form.bg_image ? 'rounded-none' : 'rounded-l-none'"
             @click="form.bg_image_coverage = 'front'"
         ) {{ t('background.coverage_front') }}
-        UButton(
-            type="button"
-            color="neutral"
-            :variant="form.bg_image_coverage === 'front_partial' ? 'solid' : 'outline'"
-            size="sm"
-            class="rounded-none"
-            @click="form.bg_image_coverage = 'front_partial'"
-        ) {{ t('background.coverage_front_partial') }}
-        UButton(
-            type="button"
-            color="neutral"
-            :variant="form.bg_image_coverage === 'feature' ? 'solid' : 'outline'"
-            size="sm"
-            class="rounded-none"
-            @click="form.bg_image_coverage = 'feature'"
-        ) {{ t('background.coverage_feature') }}
-        UButton(
-            type="button"
-            color="neutral"
-            :variant="form.bg_image_coverage === 'painted' ? 'solid' : 'outline'"
-            size="sm"
-            class="rounded-l-none"
-            @click="form.bg_image_coverage = 'painted'"
-        ) {{ t('background.coverage_painted') }}
+        template(v-if="form.bg_image")
+            UButton(
+                type="button"
+                color="neutral"
+                :variant="form.bg_image_coverage === 'front_partial' ? 'solid' : 'outline'"
+                size="sm"
+                class="rounded-none"
+                @click="form.bg_image_coverage = 'front_partial'"
+            ) {{ t('background.coverage_front_partial') }}
+            UButton(
+                type="button"
+                color="neutral"
+                :variant="form.bg_image_coverage === 'feature' ? 'solid' : 'outline'"
+                size="sm"
+                class="rounded-none"
+                @click="form.bg_image_coverage = 'feature'"
+            ) {{ t('background.coverage_feature') }}
+            UButton(
+                type="button"
+                color="neutral"
+                :variant="form.bg_image_coverage === 'painted' ? 'solid' : 'outline'"
+                size="sm"
+                class="rounded-l-none"
+                @click="form.bg_image_coverage = 'painted'"
+            ) {{ t('background.coverage_painted') }}
 
 
 //- Background color
@@ -349,6 +369,8 @@ import {suggested_icons} from '../../services/icons'
 import {PATTERNS, PREVIEW_PATTERNS, get_preview_url, get_preview_size} from '../../services/patterns'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
 import {BACKGROUNDS, PREVIEW_BGS, bg_thumb_url, fetch_bg_file} from '../../services/backgrounds'
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+import {VECTOR_BACKGROUNDS, find_vector_background, get_preview_url as get_vector_preview_url} from '../../services/vector_backgrounds'
 import {check_bg_image_dpi} from '../../dpi'
 import type {BgImageDpiWarning} from '../../dpi'
 import ColorPicker from './ColorPicker.vue'
@@ -390,6 +412,12 @@ const bg_picker_open = ref(false)
 // Object URL for current bg_image File — revokes previous URL on change
 const bg_image_url = computed(() => form.bg_image ? URL.createObjectURL(form.bg_image) : '')
 watch(bg_image_url, (_new, old) => { if (old) URL.revokeObjectURL(old) })
+
+// Currently selected vector background, if any — used for the trigger preview thumbnail
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+const selected_vector_bg = computed(() => (
+    form.bg_vector_id ? find_vector_background(form.bg_vector_id) : undefined
+))
 
 // Intrinsic pixel dimensions of the current bg_image, decoded async whenever the file changes
 const bg_image_px = ref<{width:number, height:number} | null>(null)
@@ -464,7 +492,24 @@ watch(() => form.bg_image, async (file) => {
 /** Fetch a suggested background by filename, convert to File, and apply it */
 async function select_suggested_bg(filename:string): Promise<void> {
     form.bg_image = await fetch_bg_file(filename)
+    form.bg_vector_id = null
     bg_picker_open.value = false
+}
+
+/** Select a built-in vector background — mutually exclusive with a photo image */
+function select_vector_bg(id:string): void {
+    form.bg_image = null
+    form.bg_vector_id = id
+    if (form.bg_image_coverage !== 'full' && form.bg_image_coverage !== 'front')
+        form.bg_image_coverage = 'full'
+    bg_picker_open.value = false
+}
+
+/** Clear whichever background (photo or vector design) is currently active */
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+function clear_background(): void {
+    form.bg_image = null
+    form.bg_vector_id = null
 }
 
 // Controls pattern popover open state
@@ -533,6 +578,7 @@ function on_image_change(event:Event): void {
     const file = input.files?.[0] ?? null
     if (file) bg_image_is_user_upload = true
     form.bg_image = file
+    form.bg_vector_id = null
 }
 
 /** Extract an image file from a DataTransferItemList, if present */
@@ -555,6 +601,7 @@ async function on_paste_click(): Promise<void> {
             const blob = await item.getType(image_type)
             bg_image_is_user_upload = true
             form.bg_image = new File([blob], 'pasted', {type: image_type})
+            form.bg_vector_id = null
             return
         }
     }
@@ -570,6 +617,7 @@ function on_global_paste(event:ClipboardEvent): void {
         event.preventDefault()
         bg_image_is_user_upload = true
         form.bg_image = file
+        form.bg_vector_id = null
     }
 }
 

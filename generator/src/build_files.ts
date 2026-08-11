@@ -17,6 +17,9 @@ export interface ImageInput {
     ext:string
     // Natural width/height ratio — used for pattern SVGs to preserve aspect ratio when tiling
     aspect_ratio?:number
+    // True when this is a procedurally-generated vector background rather than a photo —
+    // drives cover.typ to stretch (not crop) the image to fill its placement box
+    is_vector?:boolean
 }
 
 /**
@@ -91,7 +94,8 @@ export function build_cover_files(
         font_title1_family, font_title2_family, font_title3_family,
         font_subtitle_family, font_author_family, font_blurb_family,
         font_spine_title_family, font_spine_author_family,
-        font_sizes, image_filename, has_barcode, icon_main !== undefined, pattern !== undefined, pattern?.aspect_ratio,
+        font_sizes, image_filename, image?.is_vector ?? false,
+        has_barcode, icon_main !== undefined, pattern !== undefined, pattern?.aspect_ratio,
     )
     files.set('_data.typ', encoder.encode(data_content))
 

@@ -66,6 +66,7 @@ export function build_data_file(
     font_spine_author_family:string[],
     font_sizes:FontSizes,
     image_filename:string | null,
+    image_is_vector:boolean,
     has_barcode:boolean,
     has_icon:boolean,
     has_pattern:boolean,
@@ -251,6 +252,7 @@ export function build_data_file(
     lines.push(bool('has_image', image_filename !== null))
     lines.push(str('image_filename', image_filename ?? ''))
     lines.push(str('image_coverage', schema.bg_image_coverage ?? 'front'))
+    lines.push(bool('image_is_vector', image_is_vector))
     lines.push(bool('has_icon', has_icon))
     lines.push(str('icon_mode', schema.icon_mode ?? 'center'))
     lines.push(num('icon_size_mod', schema.icon_size ?? 1))

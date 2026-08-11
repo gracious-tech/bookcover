@@ -7,11 +7,12 @@ import type {GetDimensionsResult} from './dimensions.js'
 import type {CoverSchema} from './schema.js'
 import {default_spine_title} from './utils.js'
 import {calculate_font_sizes} from './font_sizes.js'
-import {resolve_colors, resolve_font_configs, darken_hsl, mix_hsl} from './design.js'
+import {resolve_colors, resolve_font_configs, darken_hsl, mix_hsl, generate_palette} from './design.js'
 import {build_cover_files} from './build_files.js'
 import type {Templates, ImageInput} from './build_files.js'
 import {resolve_icon} from './icon_cache.js'
 import {find_pattern} from './patterns.js'
+import {find_vector_background} from './vector_backgrounds.js'
 import type {FrameImageFn} from './frame.js'
 import {resolve_fallback_chain, cjk_segments, cjk_family, font_style} from 'typst-fonts'
 import type {CjkVariant, FontStyle} from 'typst-fonts'
@@ -27,6 +28,10 @@ export {asset_path, FRAMES_DIR, BACKGROUNDS_DIR,
     DOCS_DIR, TEMPLATE_FILES} from './assets.js'
 export {list_patterns, find_pattern} from './patterns.js'
 export type {PatternDef} from './patterns.js'
+export {list_vector_backgrounds, find_vector_background} from './vector_backgrounds.js'
+export type {VectorBackgroundDef} from './vector_backgrounds.js'
+export {generate_palette} from './design.js'
+export type {PaletteScheme} from './design.js'
 export {make_blank_form_values} from './form_state.js'
 export type {FormState, EmbedFormState} from './form_state.js'
 export {build_schema, curly_quotes, parse_font_family} from './form_schema.js'
@@ -200,8 +205,20 @@ export async function build(
         pattern_file = {data: encoder.encode(svg), ext: '.svg', aspect_ratio}
     }
 
-    // Pre-process image with frame effect when bg_image_coverage is 'painted' and a frame_fn was injected
-    let processed_image = image
+    // Resolve a built-in vector background into SVG bytes when no photo was supplied — the
+    // palette is derived from the resolved front background color so it always tracks bg_color
+    let vector_image:ImageInput | undefined
+    if (!image && schema_resolved.bg_vector_id) {
+        const design = find_vector_background(schema_resolved.bg_vector_id)
+        if (design) {
+            const palette = generate_palette(colors.front_background, design.color_count, design.scheme)
+            vector_image = {data: encoder.encode(design.render(palette)), ext: '.svg', is_vector: true}
+        }
+    }
+
+    // Pre-process image with frame effect when bg_image_coverage is 'painted' and a frame_fn was
+    // injected — never applies to a generated vector background (canvas framing needs a photo)
+    let processed_image = image ?? vector_image
     if (image && schema_resolved.bg_image_coverage === 'painted' && frame_fn) {
         const margin_mm = 15
         const painted_w = dims.cover_face_width.toNumber() - 2 * margin_mm

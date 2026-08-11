@@ -40,6 +40,7 @@ const vie:Messages = {
     background: {
         image_label: 'Ảnh nền',
         choose_suggested_aria: 'Chọn ảnh nền gợi ý',
+        designs_label: 'Hình nền',
         upload_button: 'Tải lên',
         paste_button: 'Dán',
         remove_image_aria: 'Xóa ảnh',

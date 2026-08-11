@@ -124,6 +124,8 @@ export interface EmbedFormState {
     pattern_scale: number
     pattern_color: string | null
 
+    bg_vector_id: string | null
+
     spine_color: string | null
 
     // OTHER
@@ -259,6 +261,8 @@ export function make_blank_form_values(): FormState {
         pattern_id: null,
         pattern_scale: 1,
         pattern_color: null,
+
+        bg_vector_id: null,
 
         spine_color: null,
 

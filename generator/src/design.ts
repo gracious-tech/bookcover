@@ -64,6 +64,52 @@ function shift_hue(hsl_str:string, degrees:number):string {
     return to_hsl(chroma.hsl(((h || 0) + degrees + 360) % 360, s - 0.4, l))
 }
 
+export type PaletteScheme = 'triadic' | 'analogous' | 'split_complementary' | 'complementary'
+
+// Fixed hue offsets (degrees from the base hue) per harmony scheme
+const PALETTE_HUE_OFFSETS:Record<PaletteScheme, number[]> = {
+    triadic: [0, 120, 240],
+    analogous: [0, -30, 30, -60],
+    split_complementary: [0, 150, 210],
+    complementary: [0, 180],
+}
+
+// Clamp bands applied to every generated palette color, regardless of the base color's own
+// S/L — keeps the palette visibly colorful even when the base is near-white or near-black
+const PALETTE_SATURATION_RANGE:[number, number] = [0.4, 0.65]
+const PALETTE_LIGHTNESS_RANGE:[number, number] = [0.35, 0.65]
+
+/**
+ * Derive `count` aesthetically-harmonious hex colors from a base color (hex or hsl() string),
+ * using a fixed hue-harmony scheme. Saturation/lightness are clamped into a mid-range band so
+ * the palette stays visibly colorful even when the base is near-white or near-black.
+ */
+export function generate_palette(base:string, count:number, scheme:PaletteScheme):string[] {
+    const [base_h] = parse_color(base).hsl()
+    const hue = base_h || 0
+    const offsets = PALETTE_HUE_OFFSETS[scheme]
+    const colors:string[] = []
+    for (let i = 0; i < count; i++) {
+        const offset = offsets[i % offsets.length]
+        // Extra cycles past the scheme's natural hue count vary lightness instead of repeating
+        // the same tone verbatim, so a design asking for more colors than the scheme provides
+        // still gets a tint/shade rather than a visible duplicate
+        const cycle = Math.floor(i / offsets.length)
+        const h = (hue + offset + 360) % 360
+        const s = PALETTE_SATURATION_RANGE[0]
+            + (PALETTE_SATURATION_RANGE[1] - PALETTE_SATURATION_RANGE[0]) * 0.5
+        const l_mid = PALETTE_LIGHTNESS_RANGE[0]
+            + (PALETTE_LIGHTNESS_RANGE[1] - PALETTE_LIGHTNESS_RANGE[0]) * 0.5
+        const l_step = cycle % 2 === 0 ? 1 : -1
+        const l = Math.min(
+            PALETTE_LIGHTNESS_RANGE[1],
+            Math.max(PALETTE_LIGHTNESS_RANGE[0], l_mid + l_step * cycle * 0.1),
+        )
+        colors.push(chroma.hsl(h, s, l).hex())
+    }
+    return colors
+}
+
 /** Return white or near-black, whichever has more WCAG contrast against the given background */
 function auto_contrast_text(bg:string):string {
     const L = from_hsl(bg).luminance()

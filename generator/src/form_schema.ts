@@ -228,6 +228,8 @@ export function build_schema(
         ...pattern_fields,
         pattern_color: form.pattern_color || undefined,
 
+        bg_vector_id: form.bg_vector_id || undefined,
+
         spine_color: colors.spine_background,
 
         // Other
