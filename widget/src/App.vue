@@ -52,7 +52,7 @@ init_embed(form)
 // Load the demo background image for the initial preview — never over a parent-seeded form,
 // where an absent image means the cover deliberately has none (icon/pattern/color covers)
 if (!embed_seeded.value && !form.bg_image) {
-    void fetch_bg_file('black_beach.jpg').then(file => {
+    void fetch_bg_file('beach.jpg').then(file => {
         // Don't clobber an image the user added while the demo one was still downloading
         if (!form.bg_image)
             form.bg_image = file
