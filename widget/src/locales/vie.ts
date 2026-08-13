@@ -152,7 +152,6 @@ const vie:Messages = {
         bg_auto_label: 'Nền (tự động)',
         bg_label: 'Nền',
         bg_none_label: 'Nền (không có)',
-        clear_auto_bg_aria: 'Xóa nền tự động',
         justify_aria: 'Căn đều',
     },
     blurb_editor: {

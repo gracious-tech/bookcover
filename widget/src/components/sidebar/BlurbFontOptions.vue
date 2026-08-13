@@ -24,36 +24,16 @@ div(class="p-3 flex flex-col gap-4 w-100")
     ColorPicker(
         :modelValue="color"
         :label="color ? t('blurb_font.text_color_label') : t('blurb_font.text_color_auto_label')"
-        :clearable="true"
+        clear_mode="auto"
         @update:modelValue="$emit('update:color', $event)"
     )
     //- Background color: auto (derived) / transparent / custom hex
-    div(class="flex items-center gap-1")
-        ColorPicker(
-            :modelValue="bg_color === undefined ? null : bg_color"
-            :label="bg_color === undefined ? t('blurb_font.bg_auto_label') : bg_color ? t('blurb_font.bg_label') : t('blurb_font.bg_none_label')"
-            :clearable="bg_color !== undefined && bg_color !== null"
-            @update:modelValue="$emit('update:bg_color', $event)"
-        )
-        //- Auto: show X to clear; otherwise show "Auto" to switch back
-        UButton(
-            v-if="bg_color === undefined"
-            type="button"
-            icon="material-symbols:close"
-            color="neutral"
-            variant="ghost"
-            size="sm"
-            :aria-label="t('blurb_font.clear_auto_bg_aria')"
-            @click="$emit('update:bg_color', null)"
-        )
-        UButton(
-            v-else
-            type="button"
-            color="neutral"
-            variant="ghost"
-            size="sm"
-            @click="$emit('update:bg_color', undefined)"
-        ) {{ t('common.auto') }}
+    ColorPicker(
+        :modelValue="bg_color"
+        :label="bg_color === undefined ? t('blurb_font.bg_auto_label') : bg_color ? t('blurb_font.bg_label') : t('blurb_font.bg_none_label')"
+        clear_mode="auto_none"
+        @update:modelValue="$emit('update:bg_color', $event)"
+    )
     //- Alignment toggle buttons (left / center / right / justified)
     div(class="flex flex-col gap-1")
         span(class="text-xs font-semibold") {{ t('font_style.alignment_label') }}

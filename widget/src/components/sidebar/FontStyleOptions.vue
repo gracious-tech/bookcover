@@ -43,7 +43,7 @@ div(class="p-3 flex flex-col gap-4 w-100")
         ColorPicker(
             :modelValue="color"
             :label="color ? t('font_style.color_label') : t('font_style.color_auto_label')"
-            :clearable="true"
+            clear_mode="auto"
             @update:modelValue="$emit('update:color', $event)"
         )
 

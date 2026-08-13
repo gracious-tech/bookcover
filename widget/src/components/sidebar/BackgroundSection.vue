@@ -189,7 +189,7 @@ div(class="flex flex-col gap-1")
     ColorPicker(
         v-model="form.spine_color"
         :label="t('background.spine_color_label')"
-        :clearable="true"
+        clear_mode="none"
     )
 
 

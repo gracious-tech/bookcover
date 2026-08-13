@@ -180,7 +180,6 @@ const eng = {
         bg_auto_label: 'Background (auto)',
         bg_label: 'Background',
         bg_none_label: 'Background (none)',
-        clear_auto_bg_aria: 'Clear auto background',
         justify_aria: 'Justify',
     },
     blurb_editor: {
