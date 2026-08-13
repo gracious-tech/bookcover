@@ -99,8 +99,6 @@ export function make_form(): FormState {
 
         // Demo background
         bg_image_coverage: 'front',
-        bg_color: '#8ab0b4',
         pattern_id: 'bank-note',
-        spine_color: '#f291c5',
     })
 }

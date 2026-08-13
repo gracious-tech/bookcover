@@ -31,6 +31,7 @@ import {fonts_prefix, all_custom_font_bytes} from './fonts'
 import {assets_prefix} from './assets'
 import {init_embed, embed_seeded} from './embed'
 import {fetch_bg_file} from './services/backgrounds'
+import {init_image_regions_cache} from './image_regions_cache'
 
 import SidebarPanel from './components/sidebar/SidebarPanel.vue'
 import PreviewPane from './components/preview/PreviewPane.vue'
@@ -45,6 +46,7 @@ const {t} = useI18n()
 // rather than leaking demo text/colors; a bare/standalone launch shows the demo cover
 const form = embed_seeded.value ? make_blank_form() : make_form()
 provide(FORM_KEY, form)
+init_image_regions_cache(form)
 
 // Wire up the postMessage embed API — no-ops when not running inside an iframe
 init_embed(form)

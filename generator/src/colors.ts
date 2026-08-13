@@ -69,27 +69,45 @@ export interface DerivedColors {
  * Derive all cover colors from the background color and optional spine color.
  * Dark/light mode is auto-detected from bg_color.
  * spine_color: when null, spine uses bg_color; when set, spine gets its own background.
+ * image_backdrop: real colors sampled from the background image, used in place of bg_color for
+ * blurb (back panel) and spine text specifically when the image is actually visible behind
+ * them (full-wrap coverage) — never affects spine_background, which stays governed solely by
+ * spine_color (see below).
  */
-export function derive_colors(bg_color:string, spine_color:string | null):DerivedColors {
+export function derive_colors(
+    bg_color:string,
+    spine_color:string | null,
+    image_backdrop?:{back?:string, spine?:string},
+):DerivedColors {
     const [ph, ps, pl] = hex_to_hsl(bg_color)
     const dark = is_dark_color(bg_color)
 
     // Front text: white on dark primary, near-black on light primary
     const text = dark ? fmt_hsl(0, 0, 100) : fmt_hsl(0, 0, 10)
 
-    // Spine background and text contrast
-    const spine_dark = spine_color ? is_dark_color(spine_color) : dark
+    // Spine text contrast: real image color behind the spine (full-wrap coverage) takes
+    // priority over bg_color when spine_color itself isn't explicitly set
+    const spine_dark = spine_color
+        ? is_dark_color(spine_color)
+        : image_backdrop?.spine ? is_dark_color(image_backdrop.spine) : dark
     const spine_text = spine_dark ? fmt_hsl(0, 0, 100) : fmt_hsl(0, 0, 10)
+    // Spine background: only ever painted when spine_color is explicitly set — never derived
+    // from image_backdrop, since cover.typ paints the spine-background layer after the
+    // background image layer, so a non-null fill here would paint over and hide a full-wrap image
     let spine_bg:string | null = null
     if (spine_color) {
         const [sh, ss, sl] = hex_to_hsl(spine_color)
         spine_bg = fmt_hsl(sh, ss, sl)
     }
 
-    // Blurb container background: derived from primary
-    const blurb_background = dark
-        ? fmt_hsl(ph, ps, Math.min(pl, 25))
-        : fmt_hsl(ph, ps, Math.max(pl, 75))
+    // Blurb container background: derived from the real image color behind the back panel
+    // (full-wrap coverage) when available, else from bg_color as today
+    const [bh, bs, bl] = image_backdrop?.back ? hex_to_hsl(image_backdrop.back) : [ph, ps, pl]
+    const back_dark = image_backdrop?.back ? is_dark_color(image_backdrop.back) : dark
+    const blurb_background = back_dark
+        ? fmt_hsl(bh, bs, Math.min(bl, 25))
+        : fmt_hsl(bh, bs, Math.max(bl, 75))
+    const blurb_text = back_dark ? fmt_hsl(0, 0, 100) : fmt_hsl(0, 0, 10)
 
     return {
         front_background: fmt_hsl(ph, ps, pl),
@@ -98,7 +116,7 @@ export function derive_colors(bg_color:string, spine_color:string | null):Derive
         front_title: text,
         front_subtitle: text,
         front_author: text,
-        blurb: text,
+        blurb: blurb_text,
         blurb_background,
         spine_title: spine_text,
         spine_author: spine_text,

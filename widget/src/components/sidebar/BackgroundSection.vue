@@ -18,7 +18,7 @@ div(class="flex flex-col gap-1")
                 div(
                     v-else-if="selected_vector_bg"
                     class="w-12 h-12 block"
-                    :style="{backgroundImage: get_vector_preview_url(selected_vector_bg, form.bg_color), backgroundSize: 'cover'}"
+                    :style="{backgroundImage: get_vector_preview_url(selected_vector_bg, effective_bg_color), backgroundSize: 'cover'}"
                 )
                 img(
                     v-else
@@ -49,7 +49,7 @@ div(class="flex flex-col gap-1")
                                     type="button"
                                     class="w-[160px] h-[120px] rounded border-2 overflow-hidden cursor-pointer touch-manipulation transition-transform duration-100 hover:scale-[1.05]"
                                     :class="form.bg_vector_id === v.id ? 'border-(--ui-text)' : 'border-transparent'"
-                                    :style="{backgroundImage: get_vector_preview_url(v, form.bg_color), backgroundSize: 'cover'}"
+                                    :style="{backgroundImage: get_vector_preview_url(v, effective_bg_color), backgroundSize: 'cover'}"
                                     :title="v.name"
                                     @click="select_vector_bg(v.id)"
                                 )
@@ -133,12 +133,26 @@ div(class="flex flex-col gap-1")
     label(class="text-xs font-semibold tracking-[0.02em] mb-1") {{ t('background.color_label') }}
     div(class="flex items-center gap-[12px]")
 
-        input(
-            type="color"
-            :value="form.bg_color"
-            class="w-[40px] h-[40px] rounded cursor-pointer bg-transparent shrink-0"
-            @input="on_bg_color_input"
+        //- Preview swatch: a plain styled div carries the visible color/text so it paints in
+        //- normal DOM order — native color inputs render via their own widget layer (esp. on
+        //- Linux/GTK) and can composite above sibling overlays regardless of z-index, which
+        //- made the "auto" label unreadable. The actual input is invisible and just relays clicks
+        label(
+            class="relative w-[40px] h-[40px] rounded cursor-pointer overflow-hidden shrink-0 block"
+            :style="{background: form.bg_color ?? effective_bg_color}"
         )
+            input(
+                type="color"
+                :value="form.bg_color ?? effective_bg_color"
+                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                @input="on_bg_color_input"
+            )
+            //- "auto" label shown while no manual color is set
+            span(
+                v-if="!form.bg_color"
+                class="absolute inset-0 flex items-center justify-center text-[10px] font-semibold uppercase pointer-events-none"
+                :style="{color: bg_color_preview_contrast}"
+            ) {{ t('common.auto') }}
 
         div(class="flex flex-col gap-[6px]")
             div(v-for="row in primary_swatch_rows" :key="row[0]" class="flex items-center gap-[6px]")
@@ -151,6 +165,18 @@ div(class="flex flex-col gap-1")
                     :style="{background: color}"
                     @click="form.bg_color = color"
                 )
+
+        //- Reset to auto (complements the background image, white if none) — disabled once
+        //- already in auto mode, matching the disabled-when-active pattern elsewhere in the form
+        UButton(
+            type="button"
+            color="neutral"
+            variant="outline"
+            size="sm"
+            :disabled="!form.bg_color"
+            class="shrink-0"
+            @click="form.bg_color = null"
+        ) {{ t('common.auto') }}
 
 
 //- Background gradient toggle
@@ -373,6 +399,9 @@ import {BACKGROUNDS, PREVIEW_BGS, bg_thumb_url, fetch_bg_file} from '../../servi
 import {VECTOR_BACKGROUNDS, find_vector_background, get_preview_url as get_vector_preview_url} from '../../services/vector_backgrounds'
 import {check_bg_image_dpi} from '../../dpi'
 import type {BgImageDpiWarning} from '../../dpi'
+import {synthesize_fill} from 'bookcover-web'
+import type {RegionStats} from 'bookcover-web'
+import {image_regions} from '../../image_regions_cache'
 import ColorPicker from './ColorPicker.vue'
 import ColorSwatch from './ColorSwatch.vue'
 import LogSlider from '../LogSlider.vue'
@@ -412,6 +441,29 @@ const bg_picker_open = ref(false)
 // Object URL for current bg_image File — revokes previous URL on change
 const bg_image_url = computed(() => form.bg_image ? URL.createObjectURL(form.bg_image) : '')
 watch(bg_image_url, (_new, old) => { if (old) URL.revokeObjectURL(old) })
+
+// bg_color's resolved value when left auto (null) — complements the background image, or
+// white when there's none. Mirrors the same fallback build_schema() applies at generate time,
+// so this picker's swatch/preview always match what actually renders
+const effective_bg_color = computed(() => {
+    if (form.bg_color) return form.bg_color
+    const regions = image_regions.value
+    if (!regions) return '#ffffff'
+    const all:RegionStats[] = [regions.front_top, regions.front_bottom,
+        ...(regions.back ? [regions.back] : []), ...(regions.spine ? [regions.spine] : [])]
+    return synthesize_fill(all)
+})
+
+// White or black text, whichever contrasts more against effective_bg_color (ITU-R BT.601) —
+// used for the "auto" label overlaid on the bg color preview swatch
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+const bg_color_preview_contrast = computed(() => {
+    const hex = effective_bg_color.value.replace('#', '')
+    const r = parseInt(hex.slice(0, 2), 16) / 255
+    const g = parseInt(hex.slice(2, 4), 16) / 255
+    const b = parseInt(hex.slice(4, 6), 16) / 255
+    return (0.299 * r + 0.587 * g + 0.114 * b) > 0.5 ? '#000000' : '#ffffff'
+})
 
 // Currently selected vector background, if any — used for the trigger preview thumbnail
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings

@@ -7,11 +7,13 @@ import {toRaw} from 'vue'
 import {build_schema as build_schema_core} from 'bookcover-web'
 import type {FormState} from './form_state'
 import {custom_font_families} from './fonts'
+import {image_regions} from './image_regions_cache'
 
 /** Assemble the full flat schema object from current form state, supplying the uploaded
- *  families' sniffed serif/sans styles for Noto fallback selection */
+ *  families' sniffed serif/sans styles for Noto fallback selection, and the cached
+ *  background-image color regions (if any) so unset color fields can auto-match the image */
 export function build_schema(form:FormState):Record<string, unknown> {
-    return build_schema_core(form, toRaw(custom_font_families))
+    return build_schema_core(form, toRaw(custom_font_families), image_regions.value)
 }
 
 /** Return the background image as a Blob if one is selected */

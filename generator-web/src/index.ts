@@ -20,11 +20,17 @@ export {font_file_url} from 'typst-fonts/web'
 export {get_fonts, get_bundled_font} from 'typst-fonts'
 export {list_patterns, collect_fonts, collect_all_fonts, default_spine_title,
     list_vector_backgrounds, find_vector_background, generate_palette} from 'bookcover-core'
+export {tinted_contrast_text, pick_vivid_tint, synthesize_fill, blend_regions, region_hex} from 'bookcover-core'
+export type {RegionStats} from 'bookcover-core'
 
 // Form state + form->schema conversion, so hosts can derive the renderable schema themselves
 export {make_blank_form_values, build_schema, curly_quotes, parse_font_family, find_pattern,
     derive_colors, hex_override_to_hsl, hex_to_hsl, is_dark_color} from 'bookcover-core'
-export type {FormState, EmbedFormState, CustomFontStyle, DerivedColors} from 'bookcover-core'
+export type {FormState, EmbedFormState, CustomFontStyle, DerivedColors, ImageRegions} from 'bookcover-core'
+
+// Dimension resolution, so hosts can locate cover panels (e.g. for background-image analysis)
+export {resolve_dimensions} from 'bookcover-core'
+export type {GetDimensionsResult} from 'bookcover-core'
 
 // Embed protocol types for iframing the widget
 export type {InitMessage, WidgetMessage, AppLocale} from './embed_types.js'

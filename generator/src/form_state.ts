@@ -111,7 +111,7 @@ export interface EmbedFormState {
 
     bg_image_coverage: 'full' | 'front' | 'painted' | 'feature' | 'front_partial'
 
-    bg_color: string
+    bg_color: string | null  // null = auto (complements the background image, white if none)
     bg_color_gradient: boolean
 
     icon_id: string | null
@@ -249,7 +249,7 @@ export function make_blank_form_values(): FormState {
         bg_image: null,
         bg_image_coverage: 'full',
 
-        bg_color: '#ffffff',
+        bg_color: null,
         bg_color_gradient: false,
 
         icon_id: null,

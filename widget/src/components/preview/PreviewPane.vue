@@ -261,6 +261,7 @@ import {
 } from '../../form_state'
 import {build_schema, read_image, read_image_preview} from '../../schema'
 import {all_custom_font_bytes} from '../../fonts'
+import {image_regions} from '../../image_regions_cache'
 import {compute_cover_dims} from '../../dimensions'
 import {debounce} from '../../svg_utils'
 import {modal_open_count} from '../../modal_state'
@@ -719,6 +720,11 @@ watch(all_custom_font_bytes, async (fonts) => {
     await generator.value.set_custom_fonts(fonts)
     void run_generate()
 })
+
+// Background-image color sampling (image_regions_cache.ts) runs debounced and async, so it
+// settles after the deep form watcher below has already generated once with stale/no data —
+// re-generate again once it catches up so auto-matched colors actually appear
+watch(image_regions, () => run_generate())
 
 // All other form changes (selects, toggles, etc.) run immediately;
 // text field changes are handled above and suppressed here via the flag
