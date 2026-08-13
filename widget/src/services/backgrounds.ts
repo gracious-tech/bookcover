@@ -61,9 +61,10 @@ export const BACKGROUNDS: string[] = [
 
     // WHITE TEXT
 
-    // Fire
+    // Destruction
     'white_fire.jpg',
     'white_burning.jpg',
+    'white_wasteland.jpg',
 
     // Sunset
     'white_sunset.jpg',
