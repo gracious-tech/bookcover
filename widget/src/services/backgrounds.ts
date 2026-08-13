@@ -16,14 +16,18 @@ export const BACKGROUNDS: string[] = [
     'lake_tree.jpg',
     'sea.jpg',
     'surge.jpg',
+    'israel_lake.jpg',
+    'israel.jpg',
 
     // Desert
     'desert.jpg',
     'desert_sunset.jpg',
+    'wilderness.jpg',
 
     // Countryside
     'vineyard.jpg',
     'countryside.jpg',
+    'green.jpg',
 
     // Mysterious nature
     'hills_trees.jpg',
@@ -53,6 +57,7 @@ export const BACKGROUNDS: string[] = [
     'city.jpg',
     'city_sunset.jpg',
     'plane.jpg',
+    'rocket.jpg',
 
     // Work
     'books.jpg',
@@ -65,6 +70,10 @@ export const BACKGROUNDS: string[] = [
     'fire.jpg',
     'burning.jpg',
     'wasteland.jpg',
+
+    // Kingship & battle
+    'crown.jpg',
+    'sword.jpg',
 
     // Sunset
     'sunset.jpg',
@@ -85,6 +94,9 @@ export const BACKGROUNDS: string[] = [
     'bible.jpg',
     'lost_sheep.jpg',
     'cross.jpg',
+    'cross_sun.jpg',
+    'tomb.jpg',
+    'opening.jpg',
 ]
 
 // Diverse backgrounds shown as the trigger button strip
