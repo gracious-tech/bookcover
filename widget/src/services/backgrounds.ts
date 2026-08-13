@@ -42,6 +42,9 @@ export const BACKGROUNDS: string[] = [
     'flowers_field.jpg',
     'flowers.jpg',
     'flowers_red.jpg',
+    'growing.jpg',
+    'plant.jpg',
+    'plant_table.jpg',
 
     // Animals
     'sheep.jpg',
@@ -57,14 +60,11 @@ export const BACKGROUNDS: string[] = [
     'city.jpg',
     'city_sunset.jpg',
     'plane.jpg',
-    'rocket.jpg',
 
     // Work
     'books.jpg',
     'work.jpg',
     'funding.jpg',
-
-    // WHITE TEXT
 
     // Destruction
     'fire.jpg',
@@ -79,15 +79,11 @@ export const BACKGROUNDS: string[] = [
     'sunset.jpg',
     'sunset_tree.jpg',
 
-    // Plants
-    'growing.jpg',
-    'plant.jpg',
-    'plant_table.jpg',
-
     // Space
     'stars.jpg',
     'earth.jpg',
     'earth_whole.jpg',
+    'rocket.jpg',
 
     // Christian
     'church.jpg',
