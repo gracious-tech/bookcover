@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd "$(dirname "$0")/../generator"
+cd "$(dirname "$0")"
+./gen_vector_patterns
+./gen_typst_templates
 
+cd ../generator
 npx tsc

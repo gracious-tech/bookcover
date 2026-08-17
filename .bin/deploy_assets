@@ -7,7 +7,7 @@
 # one section never touches the others.
 #
 # Sections:
-#   static — docs/ backgrounds/ frames/ 3d/ (committed; mirrored with deletion, 1h cache)
+#   static — backgrounds/ frames/ 3d/ (committed; mirrored with deletion, 1h cache).
 #   fonts  — assets/fonts/ (gitignored, see download_fonts; mirrored with deletion,
 #            immutable cache except manifest.json which updates in place)
 #   typst  — assets/typst/ (gitignored, see add_typst_version; version dirs are write-once so
@@ -35,7 +35,7 @@ fi
 # Deploy the committed static assets (mirrored with deletion; they change in place so use a
 # short-ish cache rather than immutable)
 deploy_static(){
-    for subdir in docs backgrounds frames 3d; do
+    for subdir in backgrounds frames 3d; do
         "${GCLOUD[@]}" rsync "assets/$subdir" "gs://$BUCKET/$subdir" \
             --recursive --delete-unmatched-destination-objects
         "${GCLOUD[@]}" objects update "gs://$BUCKET/$subdir/**" \

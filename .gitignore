@@ -8,3 +8,4 @@ dist/
 
 /assets/fonts/
 /assets/typst/
+/generator/src/generated/

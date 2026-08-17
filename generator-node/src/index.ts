@@ -8,8 +8,8 @@ import * as crypto from 'node:crypto'
 import {fileURLToPath} from 'node:url'
 import {spawn} from 'node:child_process'
 import {build, cover_schema, split_svg, split_png, split_pdf,
-    asset_path, DOCS_DIR, TEMPLATE_FILES, collect_all_fonts} from 'bookcover-core'
-import type {OutputFormat, Templates} from 'bookcover-core'
+    collect_all_fonts} from 'bookcover-core'
+import type {OutputFormat} from 'bookcover-core'
 import type {CoverSchema} from 'bookcover-core'
 import {load_fonts_dir, write_custom_fonts,
     resolve_font_dirs as resolve_font_dirs_generic} from 'typst-fonts/node'
@@ -114,15 +114,6 @@ function ensure_fonts_loaded(fonts_root:string):Promise<void> {
         fonts_loaded.set(fonts_root, loaded)
     }
     return loaded
-}
-
-// Load typst template files from the assets tree's docs/ dir
-async function load_templates(assets_base:string):Promise<Templates> {
-    const cover = await fs.readFile(
-        asset_path(assets_base, DOCS_DIR, TEMPLATE_FILES.cover), 'utf8')
-    const helpers = await fs.readFile(
-        asset_path(assets_base, DOCS_DIR, TEMPLATE_FILES.helpers), 'utf8')
-    return {cover, helpers}
 }
 
 /** Spawn typst compile in the given directory with the specified format */
@@ -248,9 +239,9 @@ export async function generate(options:GenerateOptions):Promise<GenerateResult> 
         image = {data: new Uint8Array(buf), ext: found_image.ext}
     }
 
-    // Load templates and build all typst files in memory
-    const templates = await load_templates(assets_base)
-    const {files, dims} = await build(templates, parsed, image)
+    // Build all typst files in memory (templates default to the version baked into
+    // bookcover-core — see its generated/templates_data.ts)
+    const {files, dims} = await build(parsed, image)
 
     // Write to a temp directory and compile
     const tmp_dir = path.join(os.tmpdir(), `paper_cover_${crypto.randomUUID()}`)

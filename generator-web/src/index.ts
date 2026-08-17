@@ -7,8 +7,8 @@ import type {TypstCompiler} from '@myriaddreamin/typst.ts/compiler'
 import type {TypstRenderer} from '@myriaddreamin/typst.ts/renderer'
 import {loadFonts} from '@myriaddreamin/typst.ts'
 import {build, cover_schema, split_svg, split_png, split_pdf, frame_image, frame_asset_path,
-    asset_path, DOCS_DIR, TEMPLATE_FILES, collect_all_fonts} from 'bookcover-core'
-import type {OutputFormat, SplitResult, Templates} from 'bookcover-core'
+    collect_all_fonts} from 'bookcover-core'
+import type {OutputFormat, SplitResult} from 'bookcover-core'
 import {base_font} from 'typst-fonts'
 import {load_fonts_prefix, font_urls_for as build_font_urls, fetch_font_bytes,
     fonts_to_blob_urls, revoke_blob_urls} from 'typst-fonts/web'
@@ -340,13 +340,6 @@ export class CoverGenerator {
             image_input = {data: new Uint8Array(await blob.arrayBuffer()), ext}
         }
 
-        // Load typst templates from assets (docs/ subdir)
-        const [cover_typ, helpers_typ] = await Promise.all([
-            fetch(asset_path(assets, DOCS_DIR, TEMPLATE_FILES.cover)).then(r => r.text()),
-            fetch(asset_path(assets, DOCS_DIR, TEMPLATE_FILES.helpers)).then(r => r.text()),
-        ])
-        const templates:Templates = {cover: cover_typ, helpers: helpers_typ}
-
         // Load the frame PNG from assets when the schema uses painted coverage
         let frame_blob:Blob | undefined
         if (parsed.bg_image_coverage === 'painted') {
@@ -355,7 +348,9 @@ export class CoverGenerator {
             frame_blob = await resp.blob()
         }
 
-        const {files, dims} = await build(templates, parsed, image_input, frame_image, frame_blob)
+        // Build all typst files in memory (templates default to the version baked into
+        // bookcover-core — see its generated/templates_data.ts)
+        const {files, dims} = await build(parsed, image_input, frame_image, frame_blob)
         this.load_files(files)
 
         // Compile to the requested format

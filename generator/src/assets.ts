@@ -7,13 +7,6 @@ export function asset_path(base:string, ...segments:string[]):string {
     return [base.replace(/\/+$/, ''), ...segments].join('/')
 }
 
-// Asset subdirectory names (docs/ holds the typst templates — typst/ is the wasm binaries)
+// Asset subdirectory names
 export const FRAMES_DIR = 'frames'
 export const BACKGROUNDS_DIR = 'backgrounds'
-export const DOCS_DIR = 'docs'
-
-// Template filenames within assets/docs/
-export const TEMPLATE_FILES = {
-    cover: 'cover.typ',
-    helpers: '_helpers.typ',
-} as const

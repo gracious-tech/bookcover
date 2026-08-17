@@ -44,16 +44,13 @@ interface GenerateResult {
 
 ## Assets
 
-Generating requires a local assets tree holding the Typst templates and the fonts collection —
-neither ships inside the npm packages. Set it up once and pass its path as `assets_dir`:
+The Typst templates are bundled inside `bookcover-core` itself (tied to the exact installed
+version — no setup needed). Generating still requires a local fonts collection, which does not
+ship inside the npm packages. Set it up once and pass its path as `assets_dir`
+(or `fonts_dir` directly):
 
 ```bash
-# 1. Templates — copy assets/docs/ from the hosted assets tree (or from the repo)
-mkdir -p assets/docs
-curl -o assets/docs/cover.typ https://assets.paper.bible/docs/cover.typ
-curl -o assets/docs/_helpers.typ https://assets.paper.bible/docs/_helpers.typ
-
-# 2. Fonts — download the curated families + Noto fallbacks named by the repo's font config
+# Fonts — download the curated families + Noto fallbacks named by the repo's font config
 curl -O https://raw.githubusercontent.com/gracious-tech/bookcover/main/font_config.json
 npx typst-fonts-download --fonts assets/fonts --config font_config.json
 ```
@@ -62,7 +59,6 @@ That produces the expected layout:
 
 ```
 assets/
-    docs/       cover.typ, _helpers.typ
     fonts/      manifest.json, <family>/, _noto/<family>/
 ```
 

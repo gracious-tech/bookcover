@@ -33,10 +33,10 @@ interface InitOptions {
 
 ## Assets
 
-Generating fetches four kinds of assets at runtime, none of which ship inside the npm
-packages: the WASM binaries, the Typst templates (`docs/`), frame images (`frames/`), and the
-fonts tree. The easiest setup is the hosted tree at `https://assets.paper.bible/` (CORS
-enabled):
+The Typst templates are bundled inside `bookcover-core` itself (tied to the exact installed
+version — no setup needed). Generating still fetches three kinds of assets at runtime, none of
+which ship inside the npm packages: the WASM binaries, frame images (`frames/`), and the fonts
+tree. The easiest setup is the hosted tree at `https://assets.paper.bible/` (CORS enabled):
 
 ```ts
 // Match the wasm version to your installed @myriaddreamin/typst-ts-web-compiler version
@@ -56,8 +56,6 @@ To self-host instead, serve the same layout under any prefix on your origin:
   needed): `import wasm_url from
   '@myriaddreamin/typst-ts-web-compiler/pkg/typst_ts_web_compiler_bg.wasm?url'` (and likewise
   for the renderer). Without a bundler, copy them from `node_modules` into your `public/` dir.
-- **`<assets_prefix>/docs/`** — `cover.typ` and `_helpers.typ`, copied from the
-  [repo's `assets/docs/`](https://github.com/gracious-tech/bookcover/tree/main/assets/docs).
 - **`<assets_prefix>/frames/`** — `painted.png` and `torn.png`, copied from the repo's
   `assets/frames/`. (`backgrounds/` is only needed if your UI offers the suggested
   background images.)

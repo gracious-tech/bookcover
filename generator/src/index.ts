@@ -10,6 +10,7 @@ import {calculate_font_sizes} from './font_sizes.js'
 import {resolve_colors, resolve_font_configs, darken_hsl, mix_hsl, generate_palette} from './design.js'
 import {build_cover_files} from './build_files.js'
 import type {Templates, ImageInput} from './build_files.js'
+import {DEFAULT_TEMPLATES} from './generated/templates_data.js'
 import {resolve_icon} from './icon_cache.js'
 import {find_pattern} from './patterns.js'
 import {find_vector_background} from './vector_backgrounds.js'
@@ -24,8 +25,8 @@ export type {CoverSchema, TitlePosition, FontConfig} from './schema.js'
 export {default_spine_title} from './utils.js'
 export {collect_fonts, collect_all_fonts, collect_fallback_fonts, all_fonts_bundled,
     resolve_cjk_variant, resolve_field_cjk_variant} from './fonts.js'
-export {asset_path, FRAMES_DIR, BACKGROUNDS_DIR,
-    DOCS_DIR, TEMPLATE_FILES} from './assets.js'
+export {asset_path, FRAMES_DIR, BACKGROUNDS_DIR} from './assets.js'
+export {DEFAULT_TEMPLATES} from './generated/templates_data.js'
 export {list_patterns, find_pattern} from './patterns.js'
 export type {PatternDef} from './patterns.js'
 export {list_vector_backgrounds, find_vector_background} from './vector_backgrounds.js'
@@ -106,13 +107,16 @@ function wrap_blurb_cjk(
  *
  * Returns the virtual filesystem (filename → bytes) and the resolved cover
  * dimensions so callers can use them for splitting without a second lookup.
+ *
+ * templates defaults to the cover.typ/_helpers.typ baked into this package version
+ * (see generated/templates_data.ts) — pass an override only to test unreleased template changes.
  */
 export async function build(
-    templates:Templates,
     schema:CoverSchema,
     image?:{data:Uint8Array, ext:string},
     frame_fn?:FrameImageFn,
     frame_data?:Blob,
+    templates:Templates = DEFAULT_TEMPLATES,
 ):Promise<BuildResult> {
 
     // Resolve spine text — undefined means derive from titles/author; '' means explicitly empty

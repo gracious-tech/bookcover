@@ -64,10 +64,10 @@ function shift_hue(hsl_str:string, degrees:number):string {
     return to_hsl(chroma.hsl(((h || 0) + degrees + 360) % 360, s - 0.4, l))
 }
 
-export type PaletteScheme = 'triadic' | 'analogous' | 'split_complementary' | 'complementary'
+export type PaletteScheme = 'triadic' | 'analogous' | 'split_complementary' | 'complementary' | 'accent_tones'
 
 // Fixed hue offsets (degrees from the base hue) per harmony scheme
-const PALETTE_HUE_OFFSETS:Record<PaletteScheme, number[]> = {
+const PALETTE_HUE_OFFSETS:Record<Exclude<PaletteScheme, 'accent_tones'>, number[]> = {
     triadic: [0, 120, 240],
     analogous: [0, -30, 30, -60],
     split_complementary: [0, 150, 210],
@@ -79,12 +79,50 @@ const PALETTE_HUE_OFFSETS:Record<PaletteScheme, number[]> = {
 const PALETTE_SATURATION_RANGE:[number, number] = [0.4, 0.65]
 const PALETTE_LIGHTNESS_RANGE:[number, number] = [0.35, 0.65]
 
+// Per-tone hue offset/saturation/lightness for the 'accent_tones' scheme, tuned by eye against
+// the curated vector-background pattern set (see vector_backgrounds.ts) — one warm-ish primary
+// tone plus two supporting tones rather than an evenly-spaced hue wheel
+const ACCENT_TONES:{dh:number, s:number, l:number}[] = [
+    {dh: 0, s: 0.44, l: 0.30},
+    {dh: -55, s: 0.36, l: 0.44},
+    {dh: 45, s: 0.32, l: 0.60},
+]
+const ACCENT_TONE_MIX = 0.3 // softens each tone by mixing this fraction of the base color back in
+const ACCENT_DARK_LIGHTNESS_THRESHOLD = 0.45 // base lighter than this counts as a "light" base
+const ACCENT_DARK_LIGHTNESS_BOOST = 0.28 // extra lightness added to each tone against a dark base
+const ACCENT_DARK_LIGHTNESS_CAP = 0.82
+const ACCENT_DARK_MIX_TARGET_WHITE = 0.35 // against a dark base, soften toward this much white instead
+
 /**
- * Derive `count` aesthetically-harmonious hex colors from a base color (hex or hsl() string),
- * using a fixed hue-harmony scheme. Saturation/lightness are clamped into a mid-range band so
+ * Derive 'accent_tones' colors — a small fixed set of tones (see ACCENT_TONES) rather than an
+ * evenly-spaced hue-harmony wheel, each softened by mixing back toward the base color so the
+ * result reads as coordinated with it rather than clashing. Against a dark base, tones are
+ * boosted lighter and mixed toward white instead, so pattern fills stay legible.
+ */
+function generate_accent_tones(base:string, count:number):string[] {
+    const base_color = parse_color(base)
+    const [base_h, , base_l] = base_color.hsl()
+    const hue = base_h || 0
+    const is_dark = (base_l || 0) < ACCENT_DARK_LIGHTNESS_THRESHOLD
+    const mix_target = is_dark ? chroma.mix(base_color, '#ffffff', ACCENT_DARK_MIX_TARGET_WHITE, 'rgb') : base_color
+    const colors:string[] = []
+    for (let i = 0; i < count; i++) {
+        const tone = ACCENT_TONES[i % ACCENT_TONES.length]
+        const l = is_dark ? Math.min(ACCENT_DARK_LIGHTNESS_CAP, tone.l + ACCENT_DARK_LIGHTNESS_BOOST) : tone.l
+        const tone_color = chroma.hsl((hue + tone.dh + 360) % 360, tone.s, l)
+        colors.push(chroma.mix(tone_color, mix_target, ACCENT_TONE_MIX, 'rgb').hex())
+    }
+    return colors
+}
+
+/**
+ * Derive `count` aesthetically-harmonious hex colors from a base color (hex or hsl() string).
+ * The 'accent_tones' scheme uses a fixed tuned tone set (see generate_accent_tones); the other
+ * schemes use a hue-harmony wheel, with saturation/lightness clamped into a mid-range band so
  * the palette stays visibly colorful even when the base is near-white or near-black.
  */
 export function generate_palette(base:string, count:number, scheme:PaletteScheme):string[] {
+    if (scheme === 'accent_tones') return generate_accent_tones(base, count)
     const [base_h] = parse_color(base).hsl()
     const hue = base_h || 0
     const offsets = PALETTE_HUE_OFFSETS[scheme]

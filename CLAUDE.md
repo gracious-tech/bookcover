@@ -73,15 +73,36 @@ by the same vite plugin). `widget/src/generator_worker.ts` derives each URL from
 404s at
 generate time).
 
-The rest of the top-level `assets/` tree IS committed: `docs/` (the Typst templates —
-`typst/` is the WASM, see above), `backgrounds/`, `frames/` and `3d/` (photo-preview
-background JPGs + originals — the `bookcover-3d-web` package ships only their metadata, see
-`3d/src/photo.ts`). In dev the whole tree is
+The rest of the top-level `assets/` tree IS committed: `backgrounds/`, `frames/` and `3d/`
+(photo-preview background JPGs + originals — the `bookcover-3d-web` package ships only their
+metadata, see `3d/src/photo.ts`). In dev the whole tree is
 served under `/generator_assets/` by `widget/vite_plugin_assets.ts`; in production the widget
 fetches it from `https://assets.paper.bible/` (deployed via `.bin/deploy_assets static`, see
-`widget/src/assets.ts`), and
-`generator-node` reads `assets/docs/` from disk directly (npm consumers point `assets_dir`
-at their own copy — see generator-node/README.md).
+`widget/src/assets.ts`).
+
+`generator/vector_patterns/*.svg` (committed) are the editable source for the built-in vector
+background designs in `generator/src/vector_backgrounds.ts` — open one directly in an SVG editor
+(Inkscape, Illustrator, Figma) and edit freely; each uses `#6e79ac`/`#be89b3`/`#76538e` as
+placeholder colors for the c1/c2/c3 slots, swapped for a real generated palette by
+`recolor_svg()` at generate time (a plain case-insensitive text substitution, so it survives an
+editor moving a color into a `<style>`/class instead of an inline attribute). These live outside
+the top-level `assets/` tree — that tree is reserved for statically-served runtime assets (see
+above) — and, like the fonts/typst-wasm assets, are baked into the build rather than
+runtime-loaded: `.bin/gen_vector_patterns` bundles them into the gitignored
+`generator/src/generated/vector_patterns_data.ts` (a `Record<id, string>` of raw SVG text) before `tsc`
+runs — `.bin/build_generator` always runs it first, so no manual step is needed, but a pattern
+edit needs a rebuild (`.bin/build_generator` or `.bin/build_modules`) before it shows up.
+`generator/vector_patterns/pattern_review.html` is a standalone dev tool (not part of the build)
+for batch-reviewing all patterns against a fixed preview color — see its own header for usage.
+
+`generator/typst/cover.typ` and `_helpers.typ` (the Typst templates) follow the same baked-in
+pattern for the same reason: they're tied to a specific compiled template version, so a shared
+external assets dir/bucket can't correctly serve multiple installed `bookcover-core` versions
+at once. `.bin/gen_typst_templates` inlines them into the gitignored
+`generator/src/generated/templates_data.ts` (a `Templates` object of raw `.typ` text) before `tsc` runs,
+and `build()` defaults to it, so `generator-node`/`generator-web` never touch the filesystem or
+network for templates. Edit the source `.typ` files, then rebuild (`.bin/build_generator` or
+`.bin/build_modules`) to see changes.
 
 For development:
 
@@ -137,7 +158,7 @@ see Build).
 - `frame.ts` — Composites background images into decorative frames (painted, torn edges)
 - `icon_cache.ts` — Fetches and caches Iconify SVGs with size/color stripping
 
-### Typst templates (`assets/docs/`)
+### Typst templates (`generator/typst/`, baked in via `generator/src/generated/templates_data.ts`)
 
 - `cover.typ` — Main template; receives all variables from `_data.typ` (generated at build
   time). Layers: background fills -> pattern -> image -> spine bg -> icons -> back content
@@ -271,7 +292,7 @@ custom_trim_width: 152, custom_trim_height: 229, custom_unit: 'mm', page_count: 
 
 | Script | Purpose |
 |--------|---------|
-| `build_generator` | `tsc` in generator/ |
+| `build_generator` | `gen_vector_patterns` + `gen_typst_templates` then `tsc` in generator/ |
 | `build_generator-node` | `tsc` in generator-node/ |
 | `build_generator-web` | `tsc` in generator-web/ |
 | `build_3d` | `tsc` in 3d/ |
@@ -290,6 +311,8 @@ custom_trim_width: 152, custom_trim_height: 229, custom_unit: 'mm', page_count: 
 | `add_typst_version` | Vendor a typst.ts npm version's wasm into assets/typst/<version>/ |
 | `deploy_assets` | Sync assets/ to the public bucket (gcloud); sections: static/fonts/typst |
 | `gen_bg_thumbnails` | Generate 160x120 thumbnails for background images via sharp |
+| `gen_vector_patterns` | Bundle generator/vector_patterns/*.svg into generator/src/generated/vector_patterns_data.ts |
+| `gen_typst_templates` | Bundle generator/typst/*.typ into generator/src/generated/templates_data.ts |
 
 ## Gotchas
 
@@ -303,9 +326,11 @@ custom_trim_width: 152, custom_trim_height: 229, custom_unit: 'mm', page_count: 
 - **Pug comments**: Use `//-` not `//` in `<template lang="pug">` blocks.
 - **npm v9 bug**: `widget/` fails `npm install` on npm 9.x due to nested `file:` dep
   resolution; use `npx npm@latest install` as a workaround.
-- **Assets dir naming**: in the top-level `assets/` tree, the Typst *templates* live under
-  `docs/` — `typst/` holds the vendored typst.ts WASM binaries (see Build). The generator
-  core's `DOCS_DIR` constant reflects this.
+- **`typst` naming collision**: four unrelated things share the name — the top-level `typst/`
+  directory holds the `typst-utils`/`typst-fonts`/`pm-to-typst` npm workspaces, `assets/typst/`
+  holds the vendored typst.ts WASM binaries (runtime-loaded, see Build), `generator/typst/`
+  holds the Typst *templates* (`cover.typ`, `_helpers.typ` — codegen source, baked into the
+  build, NOT under `assets/`, see Build), and the `typst` CLI binary itself (`.bin/setup_typst`).
 - **No semicolons**: All TypeScript uses no semicolons, snake_case for variables/functions.
 - **Patterns file**: `generator/src/patterns.ts` is ~810 lines / 167K tokens — almost
   entirely inline SVG data strings. Don't try to read the whole file.
