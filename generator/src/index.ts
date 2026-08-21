@@ -172,9 +172,9 @@ export async function build(
     if (schema_resolved.icon_id) {
         // Main icon: use explicit icon_color if set, otherwise 50% darker than front
         // Ghost copies: faded toward background from main color; spine: derived from spine bg
-        const color_main = schema_resolved.icon_color ?? darken_hsl(colors.front_background, 0.5)
-        const color_ghost = mix_hsl(color_main, colors.front_background, 0.7)
-        const color_ghost2 = mix_hsl(color_main, colors.front_background, 0.84)
+        const color_main = schema_resolved.icon_color ?? darken_hsl(colors.front_background, 0.4)
+        const color_ghost = mix_hsl(color_main, colors.front_background, 0.75)
+        const color_ghost2 = mix_hsl(color_main, colors.front_background, 0.85)
         const color_spine = darken_hsl(colors.spine_background ?? colors.front_background, 0.5)
         const [svg_main, svg_ghost, svg_ghost2, svg_spine] = await Promise.all([
             resolve_icon(schema_resolved.icon_id, color_main),
