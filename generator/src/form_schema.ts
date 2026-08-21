@@ -36,6 +36,12 @@ export interface ImageRegions {
     spine:RegionStats | null
 }
 
+// Auto bg_color fallback for a vector background: there's no image to sample a complementary
+// color from, so this fixed neutral tan stands in instead of the imageless default of white.
+// Exported so callers previewing the auto color pre-generate (e.g. the widget's picker swatches)
+// can match this without duplicating the value
+export const VECTOR_BG_AUTO_COLOR = '#e1d1c4'
+
 /** Convert a hex color to a RegionStats triple (inverse of design.ts's region_hex) — a flat
  *  synthesized color, so lightness_spread is 0 */
 function hex_to_region(hex:string):RegionStats {
@@ -162,14 +168,16 @@ export function build_schema(
 ):Record<string, unknown> {
     const q = curly_quotes
 
-    // bg_color's auto value: complements the background image when one is active, else white —
+    // bg_color's auto value: complements the background image when one is active; a vector
+    // background has no pixels to sample, so it gets a fixed neutral tan instead; otherwise white —
     // resolved once here since it feeds both the schema's bg_color and the derive_colors() call
     const all_regions:RegionStats[] = image_regions
         ? [image_regions.front_top, image_regions.front_bottom,
             ...(image_regions.back ? [image_regions.back] : []),
             ...(image_regions.spine ? [image_regions.spine] : [])]
         : []
-    const effective_bg_color = form.bg_color ?? (all_regions.length ? synthesize_fill(all_regions) : '#ffffff')
+    const effective_bg_color = form.bg_color ?? (all_regions.length ? synthesize_fill(all_regions)
+        : form.bg_vector_id ? VECTOR_BG_AUTO_COLOR : '#ffffff')
     // A punchier accent than bg_color, for icon/pattern colors — fixed mid-lightness target
     const accent_color = all_regions.length ? synthesize_fill(all_regions, 0.45) : undefined
 

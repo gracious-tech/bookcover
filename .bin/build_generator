@@ -2,7 +2,7 @@
 set -euo pipefail
 
 cd "$(dirname "$0")"
-./gen_vector_patterns
+./gen_vector_bg_images
 ./gen_typst_templates
 
 cd ../generator

@@ -18,7 +18,7 @@ div(class="flex flex-col gap-1")
                 div(
                     v-else-if="selected_vector_bg"
                     class="w-12 h-12 block"
-                    :style="{backgroundImage: get_vector_preview_url(selected_vector_bg, effective_bg_color), backgroundSize: 'cover'}"
+                    :style="{backgroundColor: effective_bg_color, backgroundImage: get_vector_preview_url(selected_vector_bg, effective_bg_color), backgroundSize: 'cover'}"
                 )
                 img(
                     v-else
@@ -49,7 +49,7 @@ div(class="flex flex-col gap-1")
                                     type="button"
                                     class="w-[160px] h-[120px] rounded border-2 overflow-hidden cursor-pointer touch-manipulation transition-transform duration-100 hover:scale-[1.05]"
                                     :class="form.bg_vector_id === v.id ? 'border-(--ui-text)' : 'border-transparent'"
-                                    :style="{backgroundImage: get_vector_preview_url(v, effective_bg_color), backgroundSize: 'cover'}"
+                                    :style="{backgroundColor: effective_bg_color, backgroundImage: get_vector_preview_url(v, effective_bg_color), backgroundSize: 'cover'}"
                                     :title="v.name"
                                     @click="select_vector_bg(v.id)"
                                 )
@@ -203,7 +203,7 @@ div(class="flex flex-col gap-1")
             div(
                 v-if="get_selected_pattern()"
                 class="w-10 h-10 rounded cursor-pointer shrink-0"
-                :style="{backgroundImage: get_preview_url(get_selected_pattern(), is_dark ? '#fff': '#000'), backgroundSize: get_preview_size(get_selected_pattern())}"
+                :style="{backgroundColor: effective_bg_color, backgroundImage: get_preview_url(get_selected_pattern(), pattern_preview_fill), backgroundSize: get_preview_size(get_selected_pattern())}"
             )
             //- Placeholder when no pattern selected: 4 example swatches + label
             button(v-else type="button" class="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity" :aria-label="t('background.choose_pattern_aria')")
@@ -212,7 +212,7 @@ div(class="flex flex-col gap-1")
                         v-for="pat in PREVIEW_PATTERNS"
                         :key="pat.id"
                         class="w-10 h-10 shrink-0"
-                        :style="{backgroundImage: get_preview_url(pat, is_dark ? '#fff': '#000'), backgroundSize: get_preview_size(pat)}"
+                        :style="{backgroundColor: effective_bg_color, backgroundImage: get_preview_url(pat, pattern_preview_fill), backgroundSize: get_preview_size(pat)}"
                     )
                 span(class="text-sm text-muted pl-2") {{ t('background.choose_pattern_placeholder') }}
             //- Popover content: grid of all patterns
@@ -227,7 +227,7 @@ div(class="flex flex-col gap-1")
                             class="w-18 h-18 cursor-pointer rounded hover:bg-accented"
                             :class="form.pattern_id === pat.id ? 'border-(--ui-text)' : 'border-default'"
                             :title="pat.name"
-                            :style="{backgroundImage: get_preview_url(pat, is_dark ? '#fff': '#000'), backgroundSize: get_preview_size(pat)}"
+                            :style="{backgroundColor: effective_bg_color, backgroundImage: get_preview_url(pat, pattern_preview_fill), backgroundSize: get_preview_size(pat)}"
                             @click="select_pattern(pat.id)"
                         )
         //- Color swatch and scale slider — only shown when a pattern is selected
@@ -399,7 +399,7 @@ import {BACKGROUNDS, PREVIEW_BGS, bg_thumb_url, fetch_bg_file} from '../../servi
 import {VECTOR_BACKGROUNDS, find_vector_background, get_preview_url as get_vector_preview_url} from '../../services/vector_backgrounds'
 import {check_bg_image_dpi} from '../../dpi'
 import type {BgImageDpiWarning} from '../../dpi'
-import {synthesize_fill} from 'bookcover-web'
+import {synthesize_fill, VECTOR_BG_AUTO_COLOR} from 'bookcover-web'
 import type {RegionStats} from 'bookcover-web'
 import {image_regions} from '../../image_regions_cache'
 import ColorPicker from './ColorPicker.vue'
@@ -442,28 +442,38 @@ const bg_picker_open = ref(false)
 const bg_image_url = computed(() => form.bg_image ? URL.createObjectURL(form.bg_image) : '')
 watch(bg_image_url, (_new, old) => { if (old) URL.revokeObjectURL(old) })
 
-// bg_color's resolved value when left auto (null) — complements the background image, or
-// white when there's none. Mirrors the same fallback build_schema() applies at generate time,
-// so this picker's swatch/preview always match what actually renders
+// bg_color's resolved value when left auto (null) — complements the background image, a fixed
+// neutral tan for a vector background (no pixels to sample), or white when there's neither.
+// Mirrors the same fallback build_schema() applies at generate time, so this picker's
+// swatch/preview always match what actually renders
 const effective_bg_color = computed(() => {
     if (form.bg_color) return form.bg_color
     const regions = image_regions.value
-    if (!regions) return '#ffffff'
+    if (!regions) return form.bg_vector_id ? VECTOR_BG_AUTO_COLOR : '#ffffff'
     const all:RegionStats[] = [regions.front_top, regions.front_bottom,
         ...(regions.back ? [regions.back] : []), ...(regions.spine ? [regions.spine] : [])]
     return synthesize_fill(all)
 })
 
-// White or black text, whichever contrasts more against effective_bg_color (ITU-R BT.601) —
-// used for the "auto" label overlaid on the bg color preview swatch
-// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
-const bg_color_preview_contrast = computed(() => {
-    const hex = effective_bg_color.value.replace('#', '')
-    const r = parseInt(hex.slice(0, 2), 16) / 255
-    const g = parseInt(hex.slice(2, 4), 16) / 255
-    const b = parseInt(hex.slice(4, 6), 16) / 255
+/** White or black, whichever contrasts more against a hex color (ITU-R BT.601) */
+function contrast_color(hex:string):string {
+    const stripped = hex.replace('#', '')
+    const r = parseInt(stripped.slice(0, 2), 16) / 255
+    const g = parseInt(stripped.slice(2, 4), 16) / 255
+    const b = parseInt(stripped.slice(4, 6), 16) / 255
     return (0.299 * r + 0.587 * g + 0.114 * b) > 0.5 ? '#000000' : '#ffffff'
-})
+}
+
+// White or black text, whichever contrasts more against effective_bg_color — used for the
+// "auto" label overlaid on the bg color preview swatch
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+const bg_color_preview_contrast = computed(() => contrast_color(effective_bg_color.value))
+
+// Fill color for pattern preview swatches — the chosen pattern color if set, otherwise
+// whichever of black/white contrasts against the actual background color behind it, so the
+// preview matches how the pattern actually renders on the cover
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+const pattern_preview_fill = computed(() => form.pattern_color ?? contrast_color(effective_bg_color.value))
 
 // Currently selected vector background, if any — used for the trigger preview thumbnail
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings

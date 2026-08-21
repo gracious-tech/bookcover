@@ -37,7 +37,7 @@ export {tinted_contrast_text, pick_vivid_tint, synthesize_fill, blend_regions, r
 export type {RegionStats} from './design.js'
 export {make_blank_form_values} from './form_state.js'
 export type {FormState, EmbedFormState} from './form_state.js'
-export {build_schema, curly_quotes, parse_font_family} from './form_schema.js'
+export {build_schema, curly_quotes, parse_font_family, VECTOR_BG_AUTO_COLOR} from './form_schema.js'
 export type {CustomFontStyle, ImageRegions} from './form_schema.js'
 export {derive_colors, hex_override_to_hsl, hex_to_hsl, is_dark_color} from './colors.js'
 export type {DerivedColors} from './colors.js'

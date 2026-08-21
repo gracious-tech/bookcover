@@ -25,7 +25,7 @@ export type {RegionStats} from 'bookcover-core'
 
 // Form state + form->schema conversion, so hosts can derive the renderable schema themselves
 export {make_blank_form_values, build_schema, curly_quotes, parse_font_family, find_pattern,
-    derive_colors, hex_override_to_hsl, hex_to_hsl, is_dark_color} from 'bookcover-core'
+    derive_colors, hex_override_to_hsl, hex_to_hsl, is_dark_color, VECTOR_BG_AUTO_COLOR} from 'bookcover-core'
 export type {FormState, EmbedFormState, CustomFontStyle, DerivedColors, ImageRegions} from 'bookcover-core'
 
 // Dimension resolution, so hosts can locate cover panels (e.g. for background-image analysis)
