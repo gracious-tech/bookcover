@@ -351,7 +351,7 @@ div(v-if="form.icon_id" class="flex flex-col gap-2")
             :variant="form.icon_mode === m.value ? 'solid' : 'outline'"
             size="sm"
             class="flex-1"
-            :class="m.value === 'center' ? 'rounded-r-none' : m.value === 'background' ? 'rounded-l-none' : 'rounded-none'"
+            :class="m.value === 'center' ? 'rounded-r-none' : m.value === 'echo' ? 'rounded-l-none' : 'rounded-none'"
             @click="form.icon_mode = m.value"
         ) {{ t(`background.icon_mode_${m.value}`) }}
 
@@ -613,7 +613,6 @@ const ICON_MODES: {value:FormState['icon_mode']}[] = [
     {value: 'center'},
     {value: 'offset'},
     {value: 'echo'},
-    {value: 'background'},
 ]
 
 // Preset primary swatches: row 0 = light colors, row 1 = dark colors

@@ -168,28 +168,24 @@ export async function build(
     let icon_ghost:{data:Uint8Array, ext:string} | undefined
     let icon_ghost2:{data:Uint8Array, ext:string} | undefined
     let icon_spine:{data:Uint8Array, ext:string} | undefined
-    let icon_bg:{data:Uint8Array, ext:string} | undefined
 
     if (schema_resolved.icon_id) {
         // Main icon: use explicit icon_color if set, otherwise 50% darker than front
-        // Ghost copies: faded toward background from main color; spine/bg: derived from bg
+        // Ghost copies: faded toward background from main color; spine: derived from spine bg
         const color_main = schema_resolved.icon_color ?? darken_hsl(colors.front_background, 0.5)
         const color_ghost = mix_hsl(color_main, colors.front_background, 0.7)
         const color_ghost2 = mix_hsl(color_main, colors.front_background, 0.84)
         const color_spine = darken_hsl(colors.spine_background ?? colors.front_background, 0.5)
-        const color_bg = darken_hsl(colors.front_background, 0.08)
-        const [svg_main, svg_ghost, svg_ghost2, svg_spine, svg_bg] = await Promise.all([
+        const [svg_main, svg_ghost, svg_ghost2, svg_spine] = await Promise.all([
             resolve_icon(schema_resolved.icon_id, color_main),
             resolve_icon(schema_resolved.icon_id, color_ghost),
             resolve_icon(schema_resolved.icon_id, color_ghost2),
             resolve_icon(schema_resolved.icon_id, color_spine),
-            resolve_icon(schema_resolved.icon_id, color_bg),
         ])
         icon_main = {data: encoder.encode(svg_main), ext: '.svg'}
         icon_ghost = {data: encoder.encode(svg_ghost), ext: '.svg'}
         icon_ghost2 = {data: encoder.encode(svg_ghost2), ext: '.svg'}
         icon_spine = {data: encoder.encode(svg_spine), ext: '.svg'}
-        icon_bg = {data: encoder.encode(svg_bg), ext: '.svg'}
     }
 
     // Resolve and recolor pattern SVG when a pattern is specified
@@ -255,7 +251,7 @@ export async function build(
         font_title1_family_arr, font_title2_family_arr, font_title3_family_arr,
         font_subtitle_family_arr, font_author_family_arr, font_blurb_family_arr,
         font_spine_title_family_arr, font_spine_author_family_arr,
-        font_sizes, processed_image, icon_main, icon_ghost, icon_ghost2, icon_spine, icon_bg, pattern_file,
+        font_sizes, processed_image, icon_main, icon_ghost, icon_ghost2, icon_spine, pattern_file,
     )
     return {files, dims}
 }

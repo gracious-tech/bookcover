@@ -115,7 +115,7 @@ export interface EmbedFormState {
     bg_color_gradient: boolean
 
     icon_id: string | null
-    icon_mode: 'center' | 'offset' | 'echo' | 'background'
+    icon_mode: 'center' | 'offset' | 'echo'
     icon_size: number  // Relative size multiplier
     icon_color: string | null
     icon_spine: boolean

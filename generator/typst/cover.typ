@@ -172,15 +172,7 @@
         )
     }
 
-    if icon_mode == "background" {
-        // Background — icon fills the full face width, centered vertically on the front panel
-        place(
-            top + left,
-            dx: front_x,
-            dy: bleed + (face_height - face_width) / 2,
-            image("icon_bg.svg", width: icon_size, height: icon_size),
-        )
-    } else if icon_mode == "center" {
+    if icon_mode == "center" {
         // Center — large icon centered horizontally, positioned in the lower/mid section
         place(
             bottom + left,

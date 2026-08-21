@@ -53,7 +53,6 @@ export function build_cover_files(
     icon_ghost?:ImageInput,
     icon_ghost2?:ImageInput,
     icon_spine?:ImageInput,
-    icon_bg?:ImageInput,
     pattern?:ImageInput,
 ):Map<string, Uint8Array> {
     const files = new Map<string, Uint8Array>()
@@ -75,7 +74,6 @@ export function build_cover_files(
     if (icon_ghost) files.set('icon_ghost.svg', icon_ghost.data)
     if (icon_ghost2) files.set('icon_ghost2.svg', icon_ghost2.data)
     if (icon_spine) files.set('icon_spine.svg', icon_spine.data)
-    if (icon_bg) files.set('icon_bg.svg', icon_bg.data)
 
     // Pattern tile (pre-colored SVG for tiling across the full cover)
     if (pattern) files.set('pattern.svg', pattern.data)

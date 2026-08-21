@@ -79,7 +79,6 @@ const eng = {
         icon_mode_center: 'Center',
         icon_mode_offset: 'Offset',
         icon_mode_echo: 'Echo',
-        icon_mode_background: 'Background',
         dpi_modal_image_size: 'Image size',
         dpi_modal_acceptable_size: 'Acceptable size',
         dpi_modal_recommended_size: 'Recommended size',

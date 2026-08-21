@@ -68,7 +68,6 @@ const vie:Messages = {
         icon_mode_center: 'Giữa',
         icon_mode_offset: 'Lệch',
         icon_mode_echo: 'Lặp lại',
-        icon_mode_background: 'Nền',
         dpi_modal_image_size: 'Kích thước ảnh',
         dpi_modal_acceptable_size: 'Kích thước chấp nhận được',
         dpi_modal_recommended_size: 'Kích thước khuyến nghị',

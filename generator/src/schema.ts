@@ -16,7 +16,7 @@ export interface FontConfig {
     style?:'serif' | 'sans'
 }
 
-export type IconMode = 'center' | 'offset' | 'echo' | 'background'
+export type IconMode = 'center' | 'offset' | 'echo'
 
 // -- Flat top-level schema --
 
@@ -271,7 +271,7 @@ export const cover_schema = z.object({
     bg_color_gradient: z.boolean().optional(),
 
     icon_id: z.string().optional(),
-    icon_mode: z.enum(['center', 'offset', 'echo', 'background']).optional(),
+    icon_mode: z.enum(['center', 'offset', 'echo']).optional(),
     icon_size: z.number().optional(),
     icon_color: z.string().optional(),
     icon_spine: z.boolean().optional(),
