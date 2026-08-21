@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 1275 900"
+   version="1.1"
+   id="svg7"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs7" />
+  <circle
+     cx="1107.868"
+     cy="725.48004"
+     r="110"
+     fill="none"
+     stroke="#6e79ac"
+     stroke-width="10"
+     id="circle1" />
+  <circle
+     cx="1107.868"
+     cy="725.48004"
+     r="190"
+     fill="none"
+     stroke="#be89b3"
+     stroke-width="10"
+     id="circle2" />
+  <circle
+     cx="1107.868"
+     cy="725.48004"
+     r="270"
+     fill="none"
+     stroke="#76538e"
+     stroke-width="10"
+     id="circle3" />
+  <circle
+     cx="966.45312"
+     cy="701.94623"
+     r="18.991034"
+     fill="#76538e"
+     id="circle4"
+     style="stroke-width:0.86323" />
+  <circle
+     cx="172.6422"
+     cy="813.79132"
+     r="18.991034"
+     fill="#76538e"
+     id="circle4-3"
+     style="stroke-width:0.86323" />
+  <circle
+     cx="1172.1613"
+     cy="498.34555"
+     r="18.991034"
+     fill="#76538e"
+     id="circle4-9"
+     style="stroke-width:0.86323" />
+  <circle
+     cx="797.15088"
+     cy="612.03589"
+     r="26.03586"
+     fill="#6e79ac"
+     id="circle5"
+     style="stroke-width:1.8597" />
+  <circle
+     cx="1131.5355"
+     cy="788.05139"
+     r="26.03586"
+     fill="#6e79ac"
+     id="circle5-2"
+     style="stroke-width:1.8597" />
+  <circle
+     cx="787.23798"
+     cy="727.19476"
+     r="14"
+     fill="#6e79ac"
+     id="circle5-6"
+     style="fill:#be89b3;fill-opacity:1;stroke-width:0.999998" />
+  <circle
+     cx="973.55585"
+     cy="544.44415"
+     r="14"
+     fill="#6e79ac"
+     id="circle5-6-5"
+     style="fill:#be89b3;fill-opacity:1;stroke-width:0.999998" />
+  <circle
+     cx="173.07497"
+     cy="666.36755"
+     r="14"
+     fill="#6e79ac"
+     id="circle5-6-5-0"
+     style="fill:#be89b3;fill-opacity:1;stroke-width:0.999998" />
+  <circle
+     cx="1173.5828"
+     cy="699.47516"
+     r="14"
+     fill="#6e79ac"
+     id="circle5-6-56"
+     style="fill:#be89b3;fill-opacity:1;stroke-width:0.999998" />
+  <g
+     transform="matrix(-1,0,0,1,1351.7286,-36.10758)"
+     id="g7">
+    <circle
+       cx="1320"
+       cy="900"
+       r="110"
+       fill="none"
+       stroke="#6e79ac"
+       stroke-width="10"
+       id="circle6" />
+    <circle
+       cx="1320"
+       cy="900"
+       r="190"
+       fill="none"
+       stroke="#be89b3"
+       stroke-width="10"
+       id="circle7" />
+  </g>
+</svg>

@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 1275 900"
+   version="1.1"
+   id="svg12"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs12" />
+  <g
+     fill="#be89b3"
+     id="g8"
+     transform="translate(158,-102)">
+    <circle
+       cx="700"
+       cy="660"
+       r="55"
+       id="circle5" />
+    <circle
+       cx="760"
+       cy="635"
+       r="75"
+       id="circle6" />
+    <circle
+       cx="820"
+       cy="655"
+       r="60"
+       id="circle7" />
+    <circle
+       cx="860"
+       cy="680"
+       r="45"
+       id="circle8" />
+    <ellipse
+       cx="770"
+       cy="675"
+       rx="120"
+       ry="40"
+       id="ellipse8" />
+  </g>
+  <g
+     fill="#6e79ac"
+     id="g12"
+     transform="translate(33,-127)">
+    <circle
+       cx="1030"
+       cy="775"
+       r="70"
+       id="circle9" />
+    <circle
+       cx="1105"
+       cy="745"
+       r="95"
+       id="circle10" />
+    <circle
+       cx="1180"
+       cy="770"
+       r="75"
+       id="circle11" />
+    <circle
+       cx="1225"
+       cy="800"
+       r="55"
+       id="circle12" />
+    <ellipse
+       cx="1110"
+       cy="790"
+       rx="150"
+       ry="50"
+       id="ellipse12" />
+  </g>
+  <g
+     fill="#76538e"
+     id="g4"
+     transform="translate(512,68)">
+    <circle
+       cx="210"
+       cy="570"
+       r="40"
+       id="circle1" />
+    <circle
+       cx="260"
+       cy="550"
+       r="55"
+       id="circle2" />
+    <circle
+       cx="310"
+       cy="565"
+       r="45"
+       id="circle3" />
+    <circle
+       cx="340"
+       cy="590"
+       r="35"
+       id="circle4" />
+    <ellipse
+       cx="275"
+       cy="585"
+       rx="90"
+       ry="30"
+       id="ellipse4" />
+  </g>
+  <g
+     fill="#be89b3"
+     id="g8-6"
+     transform="matrix(0.50657895,0,0,0.50657895,-285.71053,387.91154)">
+    <circle
+       cx="700"
+       cy="660"
+       r="55"
+       id="circle5-7" />
+    <circle
+       cx="760"
+       cy="635"
+       r="75"
+       id="circle6-5" />
+    <circle
+       cx="820"
+       cy="655"
+       r="60"
+       id="circle7-3" />
+    <circle
+       cx="860"
+       cy="680"
+       r="45"
+       id="circle8-5" />
+    <ellipse
+       cx="770"
+       cy="675"
+       rx="120"
+       ry="40"
+       id="ellipse8-6" />
+  </g>
+  <g
+     fill="#6e79ac"
+     id="g12-2"
+     transform="matrix(0.50657895,0,0,0.50657895,-349.0329,375.24706)">
+    <circle
+       cx="1030"
+       cy="775"
+       r="70"
+       id="circle9-9" />
+    <circle
+       cx="1105"
+       cy="745"
+       r="95"
+       id="circle10-1" />
+    <circle
+       cx="1180"
+       cy="770"
+       r="75"
+       id="circle11-2" />
+    <circle
+       cx="1225"
+       cy="800"
+       r="55"
+       id="circle12-7" />
+    <ellipse
+       cx="1110"
+       cy="790"
+       rx="150"
+       ry="50"
+       id="ellipse12-0" />
+  </g>
+</svg>

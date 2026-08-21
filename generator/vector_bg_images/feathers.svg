@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 1275 900"
+   version="1.1"
+   id="svg6"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs6" />
+  <g
+     transform="matrix(1.6625937,0.40172209,-0.54020943,1.2363735,1178.3585,521.02701)"
+     id="g1">
+    <path
+       d="M 0,0 C 18,40 20,220 0,320 -20,220 -18,40 0,0 Z"
+       fill="#6e79ac"
+       id="path1" />
+    <line
+       x1="0"
+       y1="10"
+       x2="0"
+       y2="300"
+       stroke="#be89b3"
+       stroke-width="3"
+       id="line1" />
+  </g>
+  <g
+     transform="matrix(1.3700293,-0.25401799,0.34158668,1.0188105,1043.8851,611.02701)"
+     id="g2">
+    <path
+       d="M 0,0 C 18,40 20,220 0,320 -20,220 -18,40 0,0 Z"
+       fill="#be89b3"
+       id="path2" />
+    <line
+       x1="0"
+       y1="10"
+       x2="0"
+       y2="300"
+       stroke="#76538e"
+       stroke-width="3"
+       id="line2" />
+  </g>
+  <g
+     transform="matrix(1.0263593,0.47692734,-0.6413405,0.76324329,1259.0426,671.02701)"
+     id="g3">
+    <path
+       d="M 0,0 C 18,40 20,220 0,320 -20,220 -18,40 0,0 Z"
+       fill="#76538e"
+       id="path3" />
+    <line
+       x1="0"
+       y1="10"
+       x2="0"
+       y2="300"
+       stroke="#6e79ac"
+       stroke-width="3"
+       id="line3" />
+  </g>
+  <g
+     transform="matrix(-1.1850219,0,0,1,1477.5999,21.027013)"
+     id="g6">
+    <g
+       transform="matrix(1.0390573,-0.07755962,0.12759836,1.0515334,1088.6309,580.33559)"
+       id="g4">
+      <path
+         d="M 0,0 C 18,40 20,220 0,320 -20,220 -18,40 0,0 Z"
+         fill="#be89b3"
+         id="path4" />
+      <line
+         x1="0"
+         y1="10"
+         x2="0"
+         y2="300"
+         stroke="#76538e"
+         stroke-width="3"
+         id="line4" />
+    </g>
+    <g
+       transform="matrix(0.76324329,0.47692734,-0.47692734,0.76324329,1210,650)"
+       id="g5">
+      <path
+         d="M 0,0 C 18,40 20,220 0,320 -20,220 -18,40 0,0 Z"
+         fill="#76538e"
+         id="path5" />
+      <line
+         x1="0"
+         y1="10"
+         x2="0"
+         y2="300"
+         stroke="#6e79ac"
+         stroke-width="3"
+         id="line5" />
+    </g>
+  </g>
+</svg>

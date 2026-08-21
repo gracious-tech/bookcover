@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 1275 900"
+   version="1.1"
+   id="svg5"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs5" />
+  <g
+     id="leaves">
+    <path
+       d="m 140,680 c 81.47354,29.15582 119.23944,139.2909 63.86738,256.15807 C 100.11094,858.96609 81.750959,743.99257 140,680 Z"
+       fill="#be89b3"
+       id="path1"
+       style="stroke-width:2" />
+    <path
+       d="m 270,765 c 41.98519,49.48984 25.2142,135.18689 -54.5762,190.32982 C 176.97901,866.28349 208.16892,784.721 270,765 Z"
+       fill="#76538e"
+       id="path2"
+       style="stroke-width:1.5" />
+    <path
+       d="M0,0 C41,27 46,94 0,150 C-46,94 -41,27 0,0 Z"
+       fill="#6e79ac"
+       transform="translate(1195 520) rotate(15) scale(3.5)"
+       id="path3" />
+    <path
+       d="M0,0 C36,24 41,82 0,132 C-41,82 -36,24 0,0 Z"
+       fill="#be89b3"
+       transform="translate(950 620) rotate(-9) scale(3.0)"
+       id="path4" />
+    <path
+       d="M0,0 C29,19 33,66 0,106 C-33,66 -29,19 0,0 Z"
+       fill="#76538e"
+       transform="translate(1250 760) rotate(30) scale(2.3)"
+       id="path5" />
+  </g>
+</svg>

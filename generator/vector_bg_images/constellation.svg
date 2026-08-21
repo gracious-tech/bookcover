@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 1275 900"
+   version="1.1"
+   id="svg26"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs26" />
+  <g
+     stroke="#be89b3"
+     stroke-width="3"
+     fill="none"
+     id="g13"
+     transform="rotate(-8.2127818,679.5,680)">
+    <line
+       x1="160"
+       y1="620"
+       x2="280"
+       y2="560"
+       id="line1" />
+    <line
+       x1="280"
+       y1="560"
+       x2="340"
+       y2="700"
+       id="line2" />
+    <line
+       x1="340"
+       y1="700"
+       x2="480"
+       y2="600"
+       id="line3" />
+    <line
+       x1="480"
+       y1="600"
+       x2="560"
+       y2="750"
+       id="line4" />
+    <line
+       x1="560"
+       y1="750"
+       x2="650"
+       y2="650"
+       id="line5" />
+    <line
+       x1="650"
+       y1="650"
+       x2="760"
+       y2="580"
+       id="line6" />
+    <line
+       x1="760"
+       y1="580"
+       x2="880"
+       y2="700"
+       id="line7" />
+    <line
+       x1="880"
+       y1="700"
+       x2="950"
+       y2="560"
+       id="line8" />
+    <line
+       x1="950"
+       y1="560"
+       x2="1060"
+       y2="650"
+       id="line9" />
+    <line
+       x1="1060"
+       y1="650"
+       x2="1150"
+       y2="750"
+       id="line10" />
+    <line
+       x1="1150"
+       y1="750"
+       x2="1200"
+       y2="580"
+       id="line11" />
+    <line
+       x1="160"
+       y1="620"
+       x2="220"
+       y2="780"
+       id="line12" />
+    <line
+       x1="880.81195"
+       y1="702.81433"
+       x2="1027.562"
+       y2="756.33472"
+       id="line13" />
+  </g>
+  <circle
+     cx="55.893494"
+     cy="710.09259"
+     r="14"
+     fill="#6e79ac"
+     id="circle13"
+     transform="rotate(-8.2127818)" />
+  <circle
+     cx="175.89349"
+     cy="650.09259"
+     r="10"
+     fill="#be89b3"
+     id="circle14"
+     transform="rotate(-8.2127818)" />
+  <circle
+     cx="235.89349"
+     cy="790.09259"
+     r="16"
+     fill="#76538e"
+     id="circle15"
+     transform="rotate(-8.2127818)" />
+  <circle
+     cx="375.89349"
+     cy="690.09259"
+     r="11"
+     fill="#6e79ac"
+     id="circle16"
+     transform="rotate(-8.2127818)" />
+  <circle
+     cx="455.89349"
+     cy="840.09259"
+     r="13"
+     fill="#be89b3"
+     id="circle17"
+     transform="rotate(-8.2127818)" />
+  <circle
+     cx="545.89349"
+     cy="740.09259"
+     r="10"
+     fill="#76538e"
+     id="circle18"
+     transform="rotate(-8.2127818)" />
+  <circle
+     cx="655.89349"
+     cy="670.09259"
+     r="15"
+     fill="#6e79ac"
+     id="circle19"
+     transform="rotate(-8.2127818)" />
+  <circle
+     cx="775.89349"
+     cy="790.09259"
+     r="12"
+     fill="#be89b3"
+     id="circle20"
+     transform="rotate(-8.2127818)" />
+  <circle
+     cx="845.89349"
+     cy="650.09259"
+     r="10"
+     fill="#76538e"
+     id="circle21"
+     transform="rotate(-8.2127818)" />
+  <circle
+     cx="955.89349"
+     cy="740.09259"
+     r="14"
+     fill="#6e79ac"
+     id="circle22"
+     transform="rotate(-8.2127818)" />
+  <circle
+     cx="1045.8934"
+     cy="840.09259"
+     r="11"
+     fill="#be89b3"
+     id="circle23"
+     transform="rotate(-8.2127818)" />
+  <circle
+     cx="1095.8934"
+     cy="670.09259"
+     r="13"
+     fill="#76538e"
+     id="circle24"
+     transform="rotate(-8.2127818)" />
+  <circle
+     cx="115.89349"
+     cy="870.09259"
+     r="9"
+     fill="#6e79ac"
+     id="circle25"
+     transform="rotate(-8.2127818)" />
+  <circle
+     cx="582.75531"
+     cy="1108.8757"
+     r="10"
+     fill="#be89b3"
+     id="circle26"
+     transform="rotate(-27.981226)" />
+</svg>

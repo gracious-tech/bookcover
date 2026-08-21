@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 1275 900"
+   version="1.1"
+   id="svg3"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs3" />
+  <polygon
+     points="800,660 980,580 1160,640 1275,600 1275,900 0,900 0,650 175,580 380,670 590,560 "
+     fill="#6e79ac"
+     id="polygon1"
+     transform="translate(0,-100)" />
+  <polygon
+     points="860,725 1060,650 1275,690 1275,900 0,900 0,720 200,670 420,730 640,650 "
+     fill="#be89b3"
+     id="polygon2"
+     transform="translate(0,-100)" />
+  <polygon
+     points="1150,735 1275,765 1275,900 0,900 0,780 230,740 460,790 700,730 940,780 "
+     fill="#76538e"
+     id="polygon3"
+     transform="matrix(1,0,0,1.738423,0,-639.04881)" />
+</svg>
