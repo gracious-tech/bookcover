@@ -74,7 +74,6 @@ const eng = {
         // opens the Iconify search help modal — short uppercase button, keep terse in translation
         more_button: 'MORE',
         remove_icon_aria: 'Remove icon',
-        icon_placement_label: 'Icon placement',
         // icon_mode: centered on the front panel
         icon_mode_center: 'Center',
         icon_mode_offset: 'Offset',

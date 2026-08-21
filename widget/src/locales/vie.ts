@@ -64,7 +64,6 @@ const vie:Messages = {
         choose_icon_placeholder: 'Chọn biểu tượng...',
         more_button: 'THÊM',
         remove_icon_aria: 'Xóa biểu tượng',
-        icon_placement_label: 'Vị trí biểu tượng',
         icon_mode_center: 'Giữa',
         icon_mode_offset: 'Lệch',
         icon_mode_echo: 'Lặp lại',

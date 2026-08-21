@@ -341,7 +341,6 @@ div(class="flex flex-col gap-1")
 
 //- Icon mode toggle
 div(v-if="form.icon_id" class="flex flex-col gap-2")
-    label(class="text-xs font-semibold tracking-[0.02em]") {{ t('background.icon_placement_label') }}
     div(class="flex")
         UButton(
             v-for="m in ICON_MODES"
