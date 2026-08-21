@@ -33,6 +33,7 @@ export const BACKGROUNDS: string[] = [
     'hills_trees.jpg',
     'mist.jpg',
     'hills.jpg',
+    'mountains.jpg',
     'snow.jpg',
     'snow_trees.jpg',
 
