@@ -12,6 +12,8 @@ const eng = {
         // generic modal/dialog dismiss button or aria-label
         close: 'Close',
         cancel: 'Cancel',
+        // generic dialog confirm/dismiss button — sidebar picker dialogs (background/pattern/icon)
+        done: 'Done',
         generating_preview: 'Generating preview…',
         // ColorSwatch/ColorPicker clear-selection icon button
         clear_color_aria: 'Clear color',
@@ -46,7 +48,13 @@ const eng = {
     background: {
         image_label: 'Background image',
         choose_suggested_aria: 'Choose suggested background',
+        // heading for the photos section inside the background image picker dialog
+        photos_label: 'Photos',
         designs_label: 'Designs',
+        // shown under the "Designs" heading in the background image picker dialog
+        vector_color_note: 'Vector designs use your chosen background color',
+        // title of the background image picker dialog
+        image_dialog_title: 'Choose a background',
         upload_button: 'Upload',
         paste_button: 'Paste',
         remove_image_aria: 'Remove image',
@@ -67,12 +75,16 @@ const eng = {
         pattern_label: 'Background pattern',
         choose_pattern_aria: 'Choose a pattern',
         choose_pattern_placeholder: 'Choose a pattern...',
+        // title of the pattern picker dialog
+        pattern_dialog_title: 'Choose a pattern',
         remove_pattern_aria: 'Remove pattern',
         icon_label: 'Front cover icon',
         icon_input_placeholder: 'Enter Iconify id...',
         choose_icon_placeholder: 'Choose an icon...',
-        // opens the Iconify search help modal — short uppercase button, keep terse in translation
-        more_button: 'MORE',
+        // title of the icon picker dialog
+        icon_dialog_title: 'Choose an icon',
+        // label above the custom Iconify id field inside the icon picker dialog
+        custom_icon_label: 'Enter a custom Iconify id',
         remove_icon_aria: 'Remove icon',
         // icon_mode: centered on the front panel
         icon_mode_center: 'Center',
@@ -82,6 +94,25 @@ const eng = {
         dpi_modal_acceptable_size: 'Acceptable size',
         dpi_modal_recommended_size: 'Recommended size',
         understood_button: 'Understood',
+    },
+    // subheadings grouping the icon picker dialog's suggested icons by theme
+    icon_categories: {
+        nature_landscape: 'Nature',
+        animals_creatures: 'Animals',
+        plants_agriculture: 'Plants',
+        fire_light: 'Fire',
+        combat_weapons: 'Combat',
+        architecture_structures: 'Architecture',
+        royalty_power: 'Royalty',
+        religion_spirituality: 'Spiritual',
+        books_knowledge: 'Books',
+        love_romance: 'Love',
+        money_trade: 'Money',
+        music_art: 'Music',
+        travel_exploration: 'Travel',
+        people_body: 'People',
+        social_communication: 'Social',
+        symbols_abstract: 'Symbols',
     },
     size: {
         service_label: 'Printing service',
@@ -207,11 +238,11 @@ const eng = {
         title: 'Search more icons',
         intro: 'You can search Iconify for more icons, which is a free icon library with over 200,000 icons.',
         instructions_heading: 'How to add a custom icon:',
-        step1: 'Visit the icon website below and search for any icon.',
+        step1: 'Open Iconify (button below) and search for any icon you like.',
         step2: 'Click an icon to open its detail page.',
         step3_prefix: 'Copy its ID — it looks like',
         step3_suffix: '.',
-        step4: 'Paste or type the ID into the icon field.',
+        step4: 'Paste or type the ID into the field below.',
         open_button: 'Open Iconify',
         dismiss_button: 'Dismiss',
     },

@@ -3,7 +3,7 @@
 
 //- Sidebar with all form sections
 
-aside.sidebar-panel(class="flex flex-col w-100 shrink-0 bg-(--ui-bg-elevated) border-r border-(--ui-border) overflow-hidden")
+aside.sidebar-panel(class="relative flex flex-col w-100 shrink-0 bg-(--ui-bg-elevated) border-r border-(--ui-border) overflow-hidden")
     div(class="flex-1 overflow-y-auto flex flex-col pb-50")
         div(class="text-sm font-bold tracking-[0.08em] uppercase bg-(--section-primary-header) border-b border-(--ui-border) px-4 py-[14px]") {{ t('sidebar.section_cover_text') }}
         div(class="flex flex-col gap-[24px] px-4 pb-[48px] pt-[14px] bg-(--section-primary-body)")

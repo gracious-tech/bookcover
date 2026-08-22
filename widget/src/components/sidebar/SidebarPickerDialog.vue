@@ -1,0 +1,70 @@
+
+<template lang="pug">
+
+//- Teleported so the dialog escapes the sidebar's scrollable inner wrapper (which would
+//- otherwise clip/scroll an absolutely-positioned descendant) while still being confined to
+//- the sidebar's own box, since SidebarPanel.vue's aside.sidebar-panel is the Teleport target
+//- and is position:relative. `defer` is required because that target is an ancestor of this
+//- very component (rendered by the same app tree) and isn't in the DOM yet on first mount —
+//- it defers target resolution until after the rest of the tree has mounted (Vue 3.5+)
+Teleport(to=".sidebar-panel" defer)
+    div(v-if="open" class="absolute inset-0 z-40")
+        //- Backdrop — blurs the sidebar behind the dialog, click dismisses
+        div(class="absolute inset-0 bg-(--ui-bg)/70 backdrop-blur-sm" @click="close")
+
+        //- Panel — padded off the sidebar's edges so the blurred sidebar peeks around it
+        div(class="absolute inset-6 flex flex-col rounded-lg border border-(--ui-border) bg-(--ui-bg-elevated) shadow-2xl overflow-hidden" @click.stop)
+            div(class="flex items-center justify-between px-4 py-3 border-b border-(--ui-border) shrink-0")
+                h2(class="text-sm font-semibold") {{ title }}
+                UButton(
+                    type="button"
+                    color="neutral"
+                    variant="ghost"
+                    size="sm"
+                    icon="material-symbols:close"
+                    :aria-label="t('common.close')"
+                    @click="close"
+                )
+
+            div(class="flex-1 overflow-y-auto px-3 pt-3 pb-16")
+                slot
+
+            //- Pinned above the Done footer, outside the scrolling body — for controls that
+            //- need to stay in view while the body content above them scrolls
+            div(v-if="$slots['sticky-footer']" class="shrink-0 border-t border-(--ui-border) p-3")
+                slot(name="sticky-footer")
+
+            div(class="shrink-0 border-t border-(--ui-border) p-3 flex justify-end")
+                UButton(type="button" color="neutral" variant="solid" size="sm" @click="close") {{ t('common.done') }}
+
+</template>
+
+<script setup lang="ts">
+// Shared overlay dialog for the sidebar's picker sections (background image, pattern, icon) —
+// a bigger, non-closing alternative to a popover so users can click through many options and
+// see them applied live, dismissing only via Done/Escape/backdrop click
+
+import {watch, onUnmounted} from 'vue'
+import {useI18n} from 'vue-i18n'
+
+const props = defineProps<{open:boolean, title:string}>()
+const emit = defineEmits<{(e:'update:open', val:boolean):void}>()
+
+const {t} = useI18n()
+
+/** Close the dialog */
+function close():void {
+    emit('update:open', false)
+}
+
+/** Escape key closes the dialog while it's open */
+function on_keydown(e:KeyboardEvent):void {
+    if (e.key === 'Escape') close()
+}
+
+watch(() => props.open, (is_open) => {
+    if (is_open) window.addEventListener('keydown', on_keydown)
+    else window.removeEventListener('keydown', on_keydown)
+})
+onUnmounted(() => window.removeEventListener('keydown', on_keydown))
+</script>

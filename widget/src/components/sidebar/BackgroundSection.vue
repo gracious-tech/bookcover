@@ -5,54 +5,33 @@
 div(class="flex flex-col gap-1")
     label(class="text-xs font-semibold tracking-[0.02em] mb-1") {{ t('background.image_label') }}
 
-    //- Suggested images and upload/paste buttons
+    //- Trigger + suggested images and upload/paste buttons
     div(class="flex gap-1 items-center")
-        UPopover(v-model:open="bg_picker_open")
-            button(type="button" class="flex rounded border border-default overflow-hidden cursor-pointer shrink-0 hover:opacity-80 transition-opacity" :aria-label="t('background.choose_suggested_aria')")
-                img(
-                    v-if="bg_image_url"
-                    :src="bg_image_url"
-                    alt="Current background"
-                    class="w-12 h-12 object-cover block"
-                )
-                div(
-                    v-else-if="selected_vector_bg"
-                    class="w-12 h-12 block"
-                    :style="{backgroundColor: effective_bg_color, backgroundImage: get_vector_preview_url(selected_vector_bg, effective_bg_color), backgroundSize: 'cover'}"
-                )
-                img(
-                    v-else
-                    v-for="bg in PREVIEW_BGS"
-                    :key="bg"
-                    :src="bg_thumb_url(bg)"
-                    :alt="bg"
-                    class="w-12 h-12 object-cover block"
-                )
-            template(#content)
-                div(class="p-2")
-                    div(class="overflow-y-auto" style="max-height: 400px")
-                        div(class="grid gap-1.5" style="grid-template-columns: repeat(2, 160px)")
-                            button(
-                                v-for="bg in BACKGROUNDS"
-                                :key="bg"
-                                type="button"
-                                class="w-[160px] h-[120px] rounded border-2 border-transparent overflow-hidden cursor-pointer touch-manipulation transition-transform duration-100 hover:scale-[1.05]"
-                                @click="select_suggested_bg(bg)"
-                            )
-                                img(:src="bg_thumb_url(bg)" class="w-full h-full object-cover block")
-                        div(class="mt-2 pt-2 border-t border-default")
-                            div(class="text-xs font-semibold tracking-[0.02em] mb-1.5 px-0.5") {{ t('background.designs_label') }}
-                            div(class="grid gap-1.5" style="grid-template-columns: repeat(2, 160px)")
-                                button(
-                                    v-for="v in VECTOR_BACKGROUNDS"
-                                    :key="v.id"
-                                    type="button"
-                                    class="w-[160px] h-[120px] rounded border-2 overflow-hidden cursor-pointer touch-manipulation transition-transform duration-100 hover:scale-[1.05]"
-                                    :class="form.bg_vector_id === v.id ? 'border-(--ui-text)' : 'border-transparent'"
-                                    :style="{backgroundColor: effective_bg_color, backgroundImage: get_vector_preview_url(v, effective_bg_color), backgroundSize: 'cover'}"
-                                    :title="v.name"
-                                    @click="select_vector_bg(v.id)"
-                                )
+        button(
+            type="button"
+            class="flex rounded border border-default overflow-hidden cursor-pointer shrink-0 hover:opacity-80 transition-opacity"
+            :aria-label="t('background.choose_suggested_aria')"
+            @click="bg_picker_open = true"
+        )
+            img(
+                v-if="bg_image_url"
+                :src="bg_image_url"
+                alt="Current background"
+                class="w-12 h-12 object-cover block"
+            )
+            div(
+                v-else-if="selected_vector_bg"
+                class="w-12 h-12 block"
+                :style="{backgroundColor: effective_bg_color, backgroundImage: get_vector_preview_url(selected_vector_bg, effective_bg_color), backgroundSize: 'cover'}"
+            )
+            img(
+                v-else
+                v-for="bg in PREVIEW_BGS"
+                :key="bg"
+                :src="bg_thumb_url(bg)"
+                :alt="bg"
+                class="w-12 h-12 object-cover block"
+            )
         label(class="cursor-pointer")
             input(type="file" accept=".jpg,.jpeg,.png,.webp" class="sr-only" @change="on_image_change")
             UButton(as="span" color="neutral" variant="outline" size="sm") {{ t('background.upload_button') }}
@@ -78,6 +57,142 @@ div(class="flex flex-col gap-1")
     )
         UIcon(:name="dpi_warning_icon" class="w-3.5 h-3.5 shrink-0")
         span {{ dpi_warning_short }}
+
+    //- Picker dialog — Photos and Vector designs, big enough to compare many at once
+    SidebarPickerDialog(v-model:open="bg_picker_open" :title="t('background.image_dialog_title')")
+        div(class="flex flex-col gap-4")
+            //- Photos
+            div
+                label(class="text-xs font-semibold tracking-[0.02em] mb-1.5 block") {{ t('background.photos_label') }}
+                div(class="grid gap-1.5" style="grid-template-columns: repeat(auto-fill, minmax(140px, 1fr))")
+                    button(
+                        v-for="bg in BACKGROUNDS"
+                        :key="bg"
+                        type="button"
+                        class="aspect-4/3 rounded border-2 overflow-hidden cursor-pointer touch-manipulation transition-transform duration-100 hover:scale-[1.05]"
+                        :class="form.bg_image?.name === bg ? 'border-(--ui-text)' : 'border-transparent'"
+                        @click="select_suggested_bg(bg)"
+                    )
+                        img(:src="bg_thumb_url(bg)" class="w-full h-full object-cover block")
+
+            //- Vector designs
+            div(class="pt-3 border-t border-default")
+                label(class="text-xs font-semibold tracking-[0.02em] mb-1.5 block") {{ t('background.designs_label') }}
+                p(class="text-xs text-muted mb-3") {{ t('background.vector_color_note') }}
+
+                //- Duplicate of the background color controls below — colocated here so the
+                //- color can be tuned while watching its effect on the designs, without leaving
+                //- the dialog. Gradient is deliberately omitted (vector designs don't use it)
+                div(class="flex items-center gap-[12px] mb-3")
+                    label(
+                        class="relative w-[40px] h-[40px] rounded cursor-pointer overflow-hidden shrink-0 block"
+                        :style="{background: form.bg_color ?? effective_bg_color}"
+                    )
+                        input(
+                            type="color"
+                            :value="form.bg_color ?? effective_bg_color"
+                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            @input="on_bg_color_input"
+                        )
+                        span(
+                            v-if="!form.bg_color"
+                            class="absolute inset-0 flex items-center justify-center text-[10px] font-semibold uppercase pointer-events-none"
+                            :style="{color: bg_color_preview_contrast}"
+                        ) {{ t('common.auto') }}
+                    div(class="flex flex-col gap-[6px]")
+                        div(v-for="row in primary_swatch_rows" :key="row[0]" class="flex items-center gap-[6px]")
+                            button(
+                                v-for="color in row"
+                                :key="color"
+                                type="button"
+                                class="w-[24px] h-[24px] rounded-full border-2 p-0 cursor-pointer shrink-0 transition-transform duration-100 hover:scale-[1.15] outline-offset-2"
+                                :class="form.bg_color === color ? 'border-(--ui-text)' : 'border-transparent'"
+                                :style="{background: color}"
+                                @click="form.bg_color = color"
+                            )
+                    UButton(
+                        type="button"
+                        color="neutral"
+                        variant="outline"
+                        size="sm"
+                        :disabled="!form.bg_color"
+                        class="shrink-0"
+                        @click="form.bg_color = null"
+                    ) {{ t('common.auto') }}
+
+                div(class="grid gap-1.5" style="grid-template-columns: repeat(auto-fill, minmax(140px, 1fr))")
+                    button(
+                        v-for="v in VECTOR_BACKGROUNDS"
+                        :key="v.id"
+                        type="button"
+                        class="aspect-4/3 rounded border-2 overflow-hidden cursor-pointer touch-manipulation transition-transform duration-100 hover:scale-[1.05]"
+                        :class="form.bg_vector_id === v.id ? 'border-(--ui-text)' : 'border-transparent'"
+                        :style="{backgroundColor: effective_bg_color, backgroundImage: get_vector_preview_url(v, effective_bg_color), backgroundSize: 'cover'}"
+                        :title="v.name"
+                        @click="select_vector_bg(v.id)"
+                    )
+
+        //- Pinned above Done, stays in view while the grids above scroll
+        template(#sticky-footer)
+            div(class="flex flex-col gap-3")
+                div(class="flex gap-1 items-center flex-wrap")
+                    label(class="cursor-pointer")
+                        input(type="file" accept=".jpg,.jpeg,.png,.webp" class="sr-only" @change="on_image_change")
+                        UButton(as="span" color="neutral" variant="outline" size="sm") {{ t('background.upload_button') }}
+                    UButton(type="button" color="neutral" variant="outline" size="sm" @click="on_paste_click") {{ t('background.paste_button') }}
+                    UButton(
+                        type="button"
+                        color="neutral"
+                        variant="ghost"
+                        size="md"
+                        icon="material-symbols:close"
+                        class="ml-2"
+                        :aria-label="t('background.remove_image_aria')"
+                        @click="clear_background()"
+                    )
+                div(v-if='form.bg_image || form.bg_vector_id' class="flex")
+                    UButton(
+                        type="button"
+                        color="neutral"
+                        :variant="form.bg_image_coverage === 'full' ? 'solid' : 'outline'"
+                        size="sm"
+                        class="rounded-r-none w-[50px] justify-center"
+                        @click="form.bg_image_coverage = 'full'"
+                    ) {{ t('background.coverage_full') }}
+                    UButton(
+                        type="button"
+                        color="neutral"
+                        :variant="form.bg_image_coverage === 'front' ? 'solid' : 'outline'"
+                        size="sm"
+                        class="w-[50px] justify-center"
+                        :class="form.bg_image ? 'rounded-none' : 'rounded-l-none'"
+                        @click="form.bg_image_coverage = 'front'"
+                    ) {{ t('background.coverage_front') }}
+                    template(v-if="form.bg_image")
+                        UButton(
+                            type="button"
+                            color="neutral"
+                            :variant="form.bg_image_coverage === 'front_partial' ? 'solid' : 'outline'"
+                            size="sm"
+                            class="rounded-none"
+                            @click="form.bg_image_coverage = 'front_partial'"
+                        ) {{ t('background.coverage_front_partial') }}
+                        UButton(
+                            type="button"
+                            color="neutral"
+                            :variant="form.bg_image_coverage === 'feature' ? 'solid' : 'outline'"
+                            size="sm"
+                            class="rounded-none"
+                            @click="form.bg_image_coverage = 'feature'"
+                        ) {{ t('background.coverage_feature') }}
+                        UButton(
+                            type="button"
+                            color="neutral"
+                            :variant="form.bg_image_coverage === 'painted' ? 'solid' : 'outline'"
+                            size="sm"
+                            class="rounded-l-none"
+                            @click="form.bg_image_coverage = 'painted'"
+                        ) {{ t('background.coverage_painted') }}
 
 
 //- Background image coverage
@@ -198,38 +313,37 @@ div(class="flex flex-col gap-1")
     label(class="text-xs font-semibold tracking-[0.02em] mb-1") {{ t('background.pattern_label') }}
     div(class="flex items-center gap-[5px]")
         //- Trigger: square swatch showing the selected pattern, or a "+" placeholder
-        UPopover(v-model:open="pattern_picker_open")
-            //- Selected pattern preview square
-            div(
-                v-if="get_selected_pattern()"
-                class="w-10 h-10 rounded cursor-pointer shrink-0"
-                :style="{backgroundColor: effective_bg_color, backgroundImage: get_preview_url(get_selected_pattern(), pattern_preview_fill), backgroundSize: get_preview_size(get_selected_pattern())}"
-            )
-            //- Placeholder when no pattern selected: 4 example swatches + label
-            button(v-else type="button" class="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity" :aria-label="t('background.choose_pattern_aria')")
-                div(class="flex rounded border border-default overflow-hidden shrink-0 gap-1")
-                    div(
-                        v-for="pat in PREVIEW_PATTERNS"
-                        :key="pat.id"
-                        class="w-10 h-10 shrink-0"
-                        :style="{backgroundColor: effective_bg_color, backgroundImage: get_preview_url(pat, pattern_preview_fill), backgroundSize: get_preview_size(pat)}"
-                    )
-                span(class="text-sm text-muted pl-2") {{ t('background.choose_pattern_placeholder') }}
-            //- Popover content: grid of all patterns
-            template(#content)
-                div(class="p-2")
-                    div(class="overflow-y-auto" style="max-height: 320px")
-                        div(class="grid gap-1.5" style="grid-template-columns: repeat(4, 72px)")
-                            button(
-                            v-for="pat in PATTERNS"
-                            :key="pat.id"
-                            type="button"
-                            class="w-18 h-18 cursor-pointer rounded hover:bg-accented"
-                            :class="form.pattern_id === pat.id ? 'border-(--ui-text)' : 'border-default'"
-                            :title="pat.name"
-                            :style="{backgroundColor: effective_bg_color, backgroundImage: get_preview_url(pat, pattern_preview_fill), backgroundSize: get_preview_size(pat)}"
-                            @click="select_pattern(pat.id)"
-                        )
+        div(
+            v-if="get_selected_pattern()"
+            class="w-10 h-10 rounded cursor-pointer shrink-0"
+            :style="{backgroundColor: effective_bg_color, backgroundImage: get_preview_url(get_selected_pattern(), pattern_preview_fill), backgroundSize: get_preview_size(get_selected_pattern())}"
+            @click="pattern_picker_open = true"
+        )
+        //- Placeholder when no pattern selected: 4 example swatches + label
+        button(v-else type="button" class="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity" :aria-label="t('background.choose_pattern_aria')" @click="pattern_picker_open = true")
+            div(class="flex rounded border border-default overflow-hidden shrink-0 gap-1")
+                div(
+                    v-for="pat in PREVIEW_PATTERNS"
+                    :key="pat.id"
+                    class="w-10 h-10 shrink-0"
+                    :style="{backgroundColor: effective_bg_color, backgroundImage: get_preview_url(pat, pattern_preview_fill), backgroundSize: get_preview_size(pat)}"
+                )
+            span(class="text-sm text-muted pl-2") {{ t('background.choose_pattern_placeholder') }}
+
+        //- Picker dialog: grid of all patterns
+        SidebarPickerDialog(v-model:open="pattern_picker_open" :title="t('background.pattern_dialog_title')")
+            div(class="grid gap-1.5" style="grid-template-columns: repeat(auto-fill, minmax(72px, 1fr))")
+                button(
+                    v-for="pat in PATTERNS"
+                    :key="pat.id"
+                    type="button"
+                    class="w-18 h-18 cursor-pointer rounded border-2 hover:bg-accented"
+                    :class="form.pattern_id === pat.id ? 'border-(--ui-text)' : 'border-default'"
+                    :title="pat.name"
+                    :style="{backgroundColor: effective_bg_color, backgroundImage: get_preview_url(pat, pattern_preview_fill), backgroundSize: get_preview_size(pat)}"
+                    @click="select_pattern(pat.id)"
+                )
+
         //- Color swatch and scale slider — only shown when a pattern is selected
         template(v-if="form.pattern_id")
             LogSlider(
@@ -256,68 +370,94 @@ div(class="flex flex-col gap-1")
 div(class="flex flex-col gap-1")
     label(class="text-xs font-semibold tracking-[0.02em]") {{ t('background.icon_label') }}
     div(class="flex items-center gap-1.25")
-        //- 4 example thumbnails + text input, both open the same suggestions popover
-        UPopover(v-model:open="icon_picker_open")
-            div(class="flex items-center gap-2 cursor-pointer min-w-0 hover:opacity-80")
-                //- 4 example thumbnails when no icon selected; selected icon preview otherwise
-                div(class="flex overflow-hidden shrink-0 gap-1")
-                    template(v-if="!form.icon_id")
-                        img(
-                            v-for="ic in PREVIEW_ICONS"
-                            :key="ic.id"
-                            :src="ic.url"
-                            :alt="ic.id"
-                            class="w-10 h-10 p-1 shrink-0"
-                            :style="is_dark ? 'filter: brightness(0) invert(1)' : ''"
-                        )
+        //- Trigger: 4 example thumbnails, or the selected icon preview
+        button(
+            type="button"
+            class="flex items-center gap-2 cursor-pointer min-w-0 hover:opacity-80"
+            :aria-label="t('background.choose_icon_placeholder')"
+            @click="icon_picker_open = true"
+        )
+            div(class="flex overflow-hidden shrink-0 gap-1")
+                template(v-if="!form.icon_id")
                     img(
-                        v-else
-                        :src="selected_icon_url"
-                        :alt="form.icon_id"
+                        v-for="ic in PREVIEW_ICONS"
+                        :key="ic.id"
+                        :src="ic.url"
+                        :alt="ic.id"
                         class="w-10 h-10 p-1 shrink-0"
                         :style="is_dark ? 'filter: brightness(0) invert(1)' : ''"
                     )
-                //- Text input — shown when popover is open or a value exists; otherwise shows placeholder text
-                input(
-                    v-if="icon_picker_open"
-                    ref="icon_input_ref"
-                    :value="form.icon_id ?? ''"
-                    type="text"
-                    :placeholder="t('background.icon_input_placeholder')"
-                    class="flex-1 text-xs px-2 py-1.5 border border-default rounded-md bg-default outline-none min-w-0"
-                    @input="on_icon_input"
-                    @focus.stop="icon_picker_open = true"
-                    @click.stop
+                img(
+                    v-else
+                    :src="selected_icon_url"
+                    :alt="form.icon_id"
+                    class="w-10 h-10 p-1 shrink-0"
+                    :style="is_dark ? 'filter: brightness(0) invert(1)' : ''"
                 )
-                span(
-                    v-else-if='!form.icon_id'
-                    class="flex-1 text-sm px-2 py-1.5 text-muted cursor-pointer"
-                    @click.stop="icon_picker_open = true"
-                ) {{ t('background.choose_icon_placeholder') }}
-            //- Popover content: scrollable grid of all icons
-            template(#content)
-                div(class="p-2 overflow-y-auto overscroll-contain" style="max-height: min(320px, 60dvh)")
-                    div(class="grid gap-1.5" style="grid-template-columns: repeat(6, 48px)")
+            span(v-if='!form.icon_id' class="text-sm text-muted") {{ t('background.choose_icon_placeholder') }}
+
+        //- Picker dialog: grid of all icons, custom id field, and Iconify help
+        SidebarPickerDialog(v-model:open="icon_picker_open" :title="t('background.icon_dialog_title')")
+            div(class="flex flex-col gap-4")
+                div(v-for="group in ICON_GROUPS" :key="group.id")
+                    label(class="text-xs font-semibold tracking-[0.02em] mb-1.5 block") {{ t(`icon_categories.${group.id}`) }}
+                    div(class="grid gap-1.5" style="grid-template-columns: repeat(4, 1fr)")
                         button(
-                            v-for="ic in ICONS"
+                            v-for="ic in group.icons"
                             :key="ic.id"
                             type="button"
-                            class="w-12 h-12 rounded border-2 p-1 cursor-pointer touch-manipulation hover:bg-accented"
-                            :class="form.icon_id === ic.id ? 'border-primary' : 'border-none'"
+                            class="aspect-square rounded border-2 p-2 cursor-pointer touch-manipulation hover:bg-accented"
+                            :class="form.icon_id === ic.id ? 'border-primary' : 'border-transparent'"
                             :title="ic.id"
                             @click="select_icon(ic.id)"
                         )
                             img(:src="ic.url" class="w-full h-full" :alt="ic.id" :style="is_dark ? 'filter: brightness(0) invert(1)' : ''")
-                        //- "More" button — opens the Iconify help modal
-                        button(
-                            type="button"
-                            style="grid-column: span 2"
-                            class="h-12 rounded p-1 flex items-center justify-center text-sm font-bold text-primary hover:bg-accented cursor-pointer"
-                            @click.stop="icon_help_open = true"
-                        ) {{ t('background.more_button') }}
-        //- Size slider for the icon — only shown when an icon is selected and popover closed
+
+            div(class="mt-4 pt-4 border-t border-default flex flex-col gap-3 text-sm")
+                //- Inlined Iconify help (formerly a separate "More" button + modal)
+                p {{ t('iconify_help.intro') }}
+                div(class="flex flex-col gap-2")
+                    p(class="font-semibold") {{ t('iconify_help.instructions_heading') }}
+                    ol(class="flex flex-col gap-1.5 list-decimal list-inside text-(--ui-text-muted)")
+                        li
+                            | {{ t('iconify_help.step1') }}
+                            div(class="mt-1.5 list-none")
+                                UButton(
+                                    as="a"
+                                    href="https://icon-sets.iconify.design"
+                                    target="_blank"
+                                    rel="noopener"
+                                    color="neutral"
+                                    variant="subtle"
+                                    size="sm"
+                                    trailing-icon="material-symbols:open-in-new"
+                                ) {{ t('iconify_help.open_button') }}
+                        li
+                            | {{ t('iconify_help.step2') }}
+                        li
+                            | {{ t('iconify_help.step3_prefix') }}&nbsp;
+                            code(class="font-mono bg-(--ui-bg-elevated) px-1 rounded text-xs") collection:icon-name
+                            | {{ t('iconify_help.step3_suffix') }}
+                        li
+                            | {{ t('iconify_help.step4') }}
+
+                //- Custom Iconify id — same field/behavior as before, now with inline
+                //- existence verification
+                div(class="flex flex-col gap-1")
+                    label(class="text-xs font-semibold tracking-[0.02em]") {{ t('background.custom_icon_label') }}
+                    div(class="flex items-center gap-2")
+                        input(
+                            :value="form.icon_id ?? ''"
+                            type="text"
+                            :placeholder="t('background.icon_input_placeholder')"
+                            class="flex-1 text-xs px-2 py-1.5 border border-default rounded-md bg-default outline-none min-w-0"
+                            @input="on_custom_icon_input"
+                        )
+                        UIcon(v-if="icon_id_status" :name="icon_id_status_icon" class="w-3.5 h-3.5 shrink-0" :class="icon_id_status_class")
+
+        //- Size slider for the icon — only shown when an icon is selected
         LogSlider(
-            v-if="form.icon_id && !icon_picker_open"
+            v-if="form.icon_id"
             v-model="form.icon_size"
             :min="0.4"
             :max="2"
@@ -325,11 +465,11 @@ div(class="flex flex-col gap-1")
             suffix="x"
             class="flex-1"
         )
-        //- Color swatch for the icon — only shown when an icon is selected and popover closed
-        ColorSwatch(v-if="form.icon_id && !icon_picker_open" v-model="form.icon_color" clearable)
+        //- Color swatch for the icon — only shown when an icon is selected
+        ColorSwatch(v-if="form.icon_id" v-model="form.icon_color" clearable)
         //- Clear button (only visible when an icon is selected)
         UButton(
-            v-if="form.icon_id && !icon_picker_open"
+            v-if="form.icon_id"
             type="button"
             color="neutral"
             variant="ghost"
@@ -355,9 +495,6 @@ div(v-if="form.icon_id" class="flex flex-col gap-2")
         ) {{ t(`background.icon_mode_${m.value}`) }}
 
 
-//- Iconify help modal — opened by the "more" button in the icon picker
-IconifyHelpModal(v-model:open="icon_help_open")
-
 //- One-time low-resolution warning shown right after a new image is added
 UModal(v-model:open="low_res_dialog_open" :ui="{content: 'max-w-sm'}")
     template(#header)
@@ -382,14 +519,14 @@ UModal(v-model:open="low_res_dialog_open" :ui="{content: 'max-w-sm'}")
 </template>
 
 <script setup lang="ts">
-// Background section — image, icon picker, icon mode, and color controls
+// Background section — image, pattern, and icon pickers, plus color and mode controls
 
-import {inject, ref, computed, watch, nextTick, onMounted, onUnmounted} from 'vue'
+import {inject, ref, computed, watch, onMounted, onUnmounted} from 'vue'
 import {useDark} from '@vueuse/core'
 import {useI18n} from 'vue-i18n'
 import {FORM_KEY} from '../../form_state'
 import type {FormState} from '../../form_state'
-import {suggested_icons} from '../../services/icons'
+import {suggested_icons, icon_categories} from '../../services/icons'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
 import {PATTERNS, PREVIEW_PATTERNS, get_preview_url, get_preview_size} from '../../services/patterns'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
@@ -405,37 +542,32 @@ import ColorPicker from './ColorPicker.vue'
 import ColorSwatch from './ColorSwatch.vue'
 import LogSlider from '../LogSlider.vue'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
-import IconifyHelpModal from './IconifyHelpModal.vue'
+import SidebarPickerDialog from './SidebarPickerDialog.vue'
 
 // Inject the shared form state
 const form = inject(FORM_KEY)!
 const is_dark = useDark()
 const {t} = useI18n()
 
-// Available icon swatches — rendered via Iconify SVG API
-const ICONS: {id:string, url:string}[] = suggested_icons.map(id => {
-    const [collection, name] = id.split(':')
-    return {id, url: `https://api.iconify.design/${collection}/${name}.svg`}
-})
+/** Build {id, url} icon swatches (rendered via Iconify SVG API) for a list of icon ids */
+function to_icon_swatches(ids:string[]): {id:string, url:string}[] {
+    return ids.map(id => {
+        const [collection, name] = id.split(':')
+        return {id, url: `https://api.iconify.design/${collection}/${name}.svg`}
+    })
+}
+
+// Suggested icons grouped by theme, for the picker dialog's subheadings
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+const ICON_GROUPS = icon_categories.map(c => ({id: c.id, icons: to_icon_swatches(c.icons)}))
 
 // First 4 icons used as preview thumbnails in the trigger area
-const PREVIEW_ICONS = ICONS.slice(0, 4)
+const PREVIEW_ICONS = to_icon_swatches(suggested_icons.slice(0, 4))
 
-// Ref to the icon text input — used to restore focus when popover opens
-const icon_input_ref = ref<HTMLInputElement | null>(null)
-
-// Controls icon popover open state; restores focus to input whenever it opens
+// Controls each picker dialog's open state
 const icon_picker_open = ref(false)
-
-// Controls Iconify help modal open state
-// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
-const icon_help_open = ref(false)
-watch(icon_picker_open, (open) => {
-    if (open) nextTick(() => icon_input_ref.value?.focus())
-})
-
-// Controls suggested background grid popover open state
 const bg_picker_open = ref(false)
+const pattern_picker_open = ref(false)
 
 // Object URL for current bg_image File — revokes previous URL on change
 const bg_image_url = computed(() => form.bg_image ? URL.createObjectURL(form.bg_image) : '')
@@ -554,7 +686,6 @@ watch(() => form.bg_image, async (file) => {
 async function select_suggested_bg(filename:string): Promise<void> {
     form.bg_image = await fetch_bg_file(filename)
     form.bg_vector_id = null
-    bg_picker_open.value = false
 }
 
 /** Select a built-in vector background — mutually exclusive with a photo image */
@@ -563,7 +694,6 @@ function select_vector_bg(id:string): void {
     form.bg_vector_id = id
     if (form.bg_image_coverage !== 'full' && form.bg_image_coverage !== 'front')
         form.bg_image_coverage = 'full'
-    bg_picker_open.value = false
 }
 
 /** Clear whichever background (photo or vector design) is currently active */
@@ -573,18 +703,14 @@ function clear_background(): void {
     form.bg_vector_id = null
 }
 
-// Controls pattern popover open state
-const pattern_picker_open = ref(false)
-
 /** Look up a pattern by the form's pattern_id — returns undefined when none selected */
 function get_selected_pattern() {
     return form.pattern_id ? PATTERNS.find(p => p.id === form.pattern_id) : undefined
 }
 
-/** Select a pattern and close the popover */
+/** Select a pattern */
 function select_pattern(id:string): void {
     form.pattern_id = id
-    pattern_picker_open.value = false
 }
 
 // URL for the selected icon — used in the trigger area preview
@@ -594,16 +720,51 @@ const selected_icon_url = computed(() => {
     return `https://api.iconify.design/${collection}/${name}.svg`
 })
 
-/** Sync icon text input to form, treating empty string as null */
-function on_icon_input(e:Event): void {
-    const val = (e.target as HTMLInputElement).value
-    form.icon_id = val || null
-}
-
-/** Select an icon and close the popover */
+/** Select an icon from the suggested grid */
 function select_icon(id:string): void {
     form.icon_id = id
-    icon_picker_open.value = false
+    icon_id_status.value = null
+}
+
+// Existence-check state for the custom Iconify id field: null = not checked/empty
+const icon_id_status = ref<'checking' | 'valid' | 'invalid' | null>(null)
+let icon_id_check_timer: ReturnType<typeof setTimeout> | null = null
+
+// Status icon/color for the custom Iconify id field — mirrors FontUploadModal's status display
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+const icon_id_status_icon = computed(() => ({
+    checking: 'material-symbols:progress-activity',
+    valid: 'material-symbols:check-circle',
+    invalid: 'material-symbols:error',
+}[icon_id_status.value ?? 'checking']))
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+const icon_id_status_class = computed(() => ({
+    'text-muted': icon_id_status.value === 'checking',
+    'text-green-600 dark:text-green-400': icon_id_status.value === 'valid',
+    'text-red-600 dark:text-red-400': icon_id_status.value === 'invalid',
+}))
+
+/** Probe whether a given Iconify id resolves to a real icon, via image load/error */
+function check_icon_id(id:string): void {
+    const [collection, name] = id.split(':')
+    const img = new Image()
+    img.onload = () => { if (form.icon_id === id) icon_id_status.value = 'valid' }
+    img.onerror = () => { if (form.icon_id === id) icon_id_status.value = 'invalid' }
+    img.src = `https://api.iconify.design/${collection}/${name}.svg`
+}
+
+/** Sync the custom Iconify id input to form, debounced existence check */
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+function on_custom_icon_input(e:Event): void {
+    const val = (e.target as HTMLInputElement).value
+    form.icon_id = val || null
+    if (icon_id_check_timer !== null) clearTimeout(icon_id_check_timer)
+    if (!val || !val.includes(':')) {
+        icon_id_status.value = null
+        return
+    }
+    icon_id_status.value = 'checking'
+    icon_id_check_timer = setTimeout(() => check_icon_id(val), 300)
 }
 
 // Icon placement mode options — display labels are translated in the template via
