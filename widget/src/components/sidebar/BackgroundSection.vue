@@ -326,7 +326,21 @@ div(class="flex flex-col gap-1")
                     @click="select_pattern(pat.id)"
                 )
 
-        //- Color swatch and scale slider — only shown when a pattern is selected
+            //- Pinned under the title, stays in view while the grid above scrolls
+            template(#header-extra)
+                div(v-if="form.pattern_id" class="flex items-center gap-2")
+                    LogSlider(
+                        v-model="form.pattern_scale"
+                        :min="0.2"
+                        :max="5"
+                        log
+                        suffix="x"
+                        class="flex-1"
+                    )
+                    ColorSwatch(v-model="form.pattern_color" clearable)
+
+        //- Duplicate scale slider + color swatch, also shown in the sidebar row so they're
+        //- adjustable without opening the dialog
         template(v-if="form.pattern_id")
             LogSlider(
                 v-model="form.pattern_scale"
@@ -337,16 +351,18 @@ div(class="flex flex-col gap-1")
                 class="flex-1"
             )
             ColorSwatch(v-model="form.pattern_color" clearable)
-            //- Clear button (only visible when a pattern is selected)
-            UButton(
-                type="button"
-                color="neutral"
-                variant="ghost"
-                size="md"
-                icon="material-symbols:close"
-                :aria-label="t('background.remove_pattern_aria')"
-                @click="form.pattern_id = null"
-            )
+
+        //- Clear button (only visible when a pattern is selected)
+        UButton(
+            v-if="form.pattern_id"
+            type="button"
+            color="neutral"
+            variant="ghost"
+            size="md"
+            icon="material-symbols:close"
+            :aria-label="t('background.remove_pattern_aria')"
+            @click="form.pattern_id = null"
+        )
 
 //- Icon
 div(class="flex flex-col gap-1")
@@ -450,7 +466,21 @@ div(class="flex flex-col gap-1")
                         )
                         UIcon(v-if="icon_id_status" :name="icon_id_status_icon" class="w-3.5 h-3.5 shrink-0" :class="icon_id_status_class")
 
-        //- Size slider for the icon — only shown when an icon is selected
+            //- Pinned under the title, stays in view while the groups/help below scroll
+            template(#header-extra)
+                div(v-if="form.icon_id" class="flex items-center gap-2")
+                    LogSlider(
+                        v-model="form.icon_size"
+                        :min="0.4"
+                        :max="2"
+                        log
+                        suffix="x"
+                        class="flex-1"
+                    )
+                    ColorSwatch(v-model="form.icon_color" clearable)
+
+        //- Duplicate size slider + color swatch, also shown in the sidebar row so they're
+        //- adjustable without opening the dialog
         LogSlider(
             v-if="form.icon_id"
             v-model="form.icon_size"
@@ -460,8 +490,8 @@ div(class="flex flex-col gap-1")
             suffix="x"
             class="flex-1"
         )
-        //- Color swatch for the icon — only shown when an icon is selected
         ColorSwatch(v-if="form.icon_id" v-model="form.icon_color" clearable)
+
         //- Clear button (only visible when an icon is selected)
         UButton(
             v-if="form.icon_id"
