@@ -113,6 +113,7 @@ export const icon_categories: IconCategory[] = [
     {
         id: 'combat_weapons',
         icons: [
+            'game-icons:all-for-one',
             'game-icons:ancient-sword',
             'game-icons:anvil-impact',
             'game-icons:archery-target',
@@ -296,7 +297,6 @@ export const icon_categories: IconCategory[] = [
     {
         id: 'social_communication',
         icons: [
-            'game-icons:all-for-one',
             'game-icons:chat-bubble',
             'game-icons:contract',
             'game-icons:conversation',

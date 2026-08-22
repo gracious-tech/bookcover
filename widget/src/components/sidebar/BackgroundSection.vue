@@ -741,8 +741,12 @@ function on_custom_icon_input(e:Event): void {
     const val = (e.target as HTMLInputElement).value
     form.icon_id = val || null
     if (icon_id_check_timer !== null) clearTimeout(icon_id_check_timer)
-    if (!val || !val.includes(':')) {
+    if (!val) {
         icon_id_status.value = null
+        return
+    }
+    if (!val.includes(':')) {
+        icon_id_status.value = 'invalid'
         return
     }
     icon_id_status.value = 'checking'
