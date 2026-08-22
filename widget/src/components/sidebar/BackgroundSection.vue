@@ -400,11 +400,6 @@ div(class="flex flex-col gap-1")
                         name="material-symbols:error"
                         class="w-10 h-10 p-2 shrink-0 text-red-600 dark:text-red-400"
                     )
-                    UIcon(
-                        v-if="icon_preview_status === 'valid'"
-                        name="material-symbols:check-circle"
-                        class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 text-green-600 dark:text-green-400 bg-default rounded-full"
-                    )
             span(v-if='!form.icon_id' class="text-sm text-muted") {{ t('background.choose_icon_placeholder') }}
 
         //- Picker dialog: grid of all icons, custom id field, and Iconify help
