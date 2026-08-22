@@ -14,27 +14,29 @@ Teleport(to=".sidebar-panel" defer)
 
         //- Panel — padded off the sidebar's edges so the blurred sidebar peeks around it
         div(class="absolute inset-6 flex flex-col rounded-lg border border-(--ui-border) bg-(--ui-bg-elevated) shadow-2xl overflow-hidden" @click.stop)
-            div(class="flex items-center justify-between px-4 py-3 border-b border-(--ui-border) shrink-0")
-                h2(class="text-sm font-semibold") {{ title }}
-                UButton(
-                    type="button"
-                    color="neutral"
-                    variant="ghost"
-                    size="sm"
-                    icon="material-symbols:close"
-                    :aria-label="t('common.close')"
-                    @click="close"
-                )
+            div(class="shrink-0 border-b border-(--ui-border)")
+                div(class="flex items-center justify-between px-4 py-3")
+                    h2(class="text-sm font-semibold") {{ title }}
+                    UButton(
+                        type="button"
+                        color="neutral"
+                        variant="ghost"
+                        size="sm"
+                        icon="material-symbols:close"
+                        :aria-label="t('common.close')"
+                        @click="close"
+                    )
+                //- Pinned under the title, outside the scrolling body — for controls that need
+                //- to stay in view while the body content below scrolls
+                div(v-if="$slots['header-extra']" class="px-4 pb-3")
+                    slot(name="header-extra")
 
             div(class="flex-1 overflow-y-auto px-3 pt-3 pb-16")
                 slot
 
-            //- Pinned above the Done footer, outside the scrolling body — for controls that
-            //- need to stay in view while the body content above them scrolls
-            div(v-if="$slots['sticky-footer']" class="shrink-0 border-t border-(--ui-border) p-3")
-                slot(name="sticky-footer")
-
-            div(class="shrink-0 border-t border-(--ui-border) p-3 flex justify-end")
+            div(class="shrink-0 border-t border-(--ui-border) p-3 flex items-center justify-between gap-2")
+                div(class="flex items-center gap-1")
+                    slot(name="footer-start")
                 UButton(type="button" color="neutral" variant="solid" size="sm" @click="close") {{ t('common.done') }}
 
 </template>

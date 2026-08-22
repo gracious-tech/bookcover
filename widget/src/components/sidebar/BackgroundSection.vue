@@ -110,15 +110,6 @@ div(class="flex flex-col gap-1")
                                 :style="{background: color}"
                                 @click="form.bg_color = color"
                             )
-                    UButton(
-                        type="button"
-                        color="neutral"
-                        variant="outline"
-                        size="sm"
-                        :disabled="!form.bg_color"
-                        class="shrink-0"
-                        @click="form.bg_color = null"
-                    ) {{ t('common.auto') }}
 
                 div(class="grid gap-1.5" style="grid-template-columns: repeat(auto-fill, minmax(140px, 1fr))")
                     button(
@@ -132,67 +123,58 @@ div(class="flex flex-col gap-1")
                         @click="select_vector_bg(v.id)"
                     )
 
-        //- Pinned above Done, stays in view while the grids above scroll
-        template(#sticky-footer)
-            div(class="flex flex-col gap-3")
-                div(class="flex gap-1 items-center flex-wrap")
-                    label(class="cursor-pointer")
-                        input(type="file" accept=".jpg,.jpeg,.png,.webp" class="sr-only" @change="on_image_change")
-                        UButton(as="span" color="neutral" variant="outline" size="sm") {{ t('background.upload_button') }}
-                    UButton(type="button" color="neutral" variant="outline" size="sm" @click="on_paste_click") {{ t('background.paste_button') }}
+        //- Pinned under the title, stays in view while the grids below scroll
+        template(#header-extra)
+            div(v-if='form.bg_image || form.bg_vector_id' class="flex")
+                UButton(
+                    type="button"
+                    color="neutral"
+                    :variant="form.bg_image_coverage === 'full' ? 'solid' : 'outline'"
+                    size="sm"
+                    class="rounded-r-none w-[50px] justify-center"
+                    @click="form.bg_image_coverage = 'full'"
+                ) {{ t('background.coverage_full') }}
+                UButton(
+                    type="button"
+                    color="neutral"
+                    :variant="form.bg_image_coverage === 'front' ? 'solid' : 'outline'"
+                    size="sm"
+                    class="w-[50px] justify-center"
+                    :class="form.bg_image ? 'rounded-none' : 'rounded-l-none'"
+                    @click="form.bg_image_coverage = 'front'"
+                ) {{ t('background.coverage_front') }}
+                template(v-if="form.bg_image")
                     UButton(
                         type="button"
                         color="neutral"
-                        variant="ghost"
-                        size="md"
-                        icon="material-symbols:close"
-                        class="ml-2"
-                        :aria-label="t('background.remove_image_aria')"
-                        @click="clear_background()"
-                    )
-                div(v-if='form.bg_image || form.bg_vector_id' class="flex")
-                    UButton(
-                        type="button"
-                        color="neutral"
-                        :variant="form.bg_image_coverage === 'full' ? 'solid' : 'outline'"
+                        :variant="form.bg_image_coverage === 'front_partial' ? 'solid' : 'outline'"
                         size="sm"
-                        class="rounded-r-none w-[50px] justify-center"
-                        @click="form.bg_image_coverage = 'full'"
-                    ) {{ t('background.coverage_full') }}
+                        class="rounded-none"
+                        @click="form.bg_image_coverage = 'front_partial'"
+                    ) {{ t('background.coverage_front_partial') }}
                     UButton(
                         type="button"
                         color="neutral"
-                        :variant="form.bg_image_coverage === 'front' ? 'solid' : 'outline'"
+                        :variant="form.bg_image_coverage === 'feature' ? 'solid' : 'outline'"
                         size="sm"
-                        class="w-[50px] justify-center"
-                        :class="form.bg_image ? 'rounded-none' : 'rounded-l-none'"
-                        @click="form.bg_image_coverage = 'front'"
-                    ) {{ t('background.coverage_front') }}
-                    template(v-if="form.bg_image")
-                        UButton(
-                            type="button"
-                            color="neutral"
-                            :variant="form.bg_image_coverage === 'front_partial' ? 'solid' : 'outline'"
-                            size="sm"
-                            class="rounded-none"
-                            @click="form.bg_image_coverage = 'front_partial'"
-                        ) {{ t('background.coverage_front_partial') }}
-                        UButton(
-                            type="button"
-                            color="neutral"
-                            :variant="form.bg_image_coverage === 'feature' ? 'solid' : 'outline'"
-                            size="sm"
-                            class="rounded-none"
-                            @click="form.bg_image_coverage = 'feature'"
-                        ) {{ t('background.coverage_feature') }}
-                        UButton(
-                            type="button"
-                            color="neutral"
-                            :variant="form.bg_image_coverage === 'painted' ? 'solid' : 'outline'"
-                            size="sm"
-                            class="rounded-l-none"
-                            @click="form.bg_image_coverage = 'painted'"
-                        ) {{ t('background.coverage_painted') }}
+                        class="rounded-none"
+                        @click="form.bg_image_coverage = 'feature'"
+                    ) {{ t('background.coverage_feature') }}
+                    UButton(
+                        type="button"
+                        color="neutral"
+                        :variant="form.bg_image_coverage === 'painted' ? 'solid' : 'outline'"
+                        size="sm"
+                        class="rounded-l-none"
+                        @click="form.bg_image_coverage = 'painted'"
+                    ) {{ t('background.coverage_painted') }}
+
+        //- Inline with Done, no remove button here (the one outside the dialog covers that)
+        template(#footer-start)
+            label(class="cursor-pointer")
+                input(type="file" accept=".jpg,.jpeg,.png,.webp" class="sr-only" @change="on_image_change")
+                UButton(as="span" color="neutral" variant="outline" size="sm") {{ t('background.upload_button') }}
+            UButton(type="button" color="neutral" variant="outline" size="sm" @click="on_paste_click") {{ t('background.paste_button') }}
 
 
 //- Background image coverage
