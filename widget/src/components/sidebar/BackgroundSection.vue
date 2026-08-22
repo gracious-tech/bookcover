@@ -369,13 +369,26 @@ div(class="flex flex-col gap-1")
                         class="w-10 h-10 p-1 shrink-0"
                         :style="is_dark ? 'filter: brightness(0) invert(1)' : ''"
                     )
-                img(
-                    v-else
-                    :src="selected_icon_url"
-                    :alt="form.icon_id"
-                    class="w-10 h-10 p-1 shrink-0"
-                    :style="is_dark ? 'filter: brightness(0) invert(1)' : ''"
-                )
+                div(v-else class="relative shrink-0")
+                    img(
+                        v-if="icon_preview_status !== 'invalid'"
+                        :src="selected_icon_url"
+                        :alt="form.icon_id"
+                        class="w-10 h-10 p-1 shrink-0"
+                        :style="is_dark ? 'filter: brightness(0) invert(1)' : ''"
+                        @load="icon_preview_status = 'valid'"
+                        @error="icon_preview_status = 'invalid'"
+                    )
+                    UIcon(
+                        v-else
+                        name="material-symbols:error"
+                        class="w-10 h-10 p-2 shrink-0 text-red-600 dark:text-red-400"
+                    )
+                    UIcon(
+                        v-if="icon_preview_status === 'valid'"
+                        name="material-symbols:check-circle"
+                        class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 text-green-600 dark:text-green-400 bg-default rounded-full"
+                    )
             span(v-if='!form.icon_id' class="text-sm text-muted") {{ t('background.choose_icon_placeholder') }}
 
         //- Picker dialog: grid of all icons, custom id field, and Iconify help
@@ -702,10 +715,16 @@ const selected_icon_url = computed(() => {
     return `https://api.iconify.design/${collection}/${name}.svg`
 })
 
+// Load status of the trigger-area preview thumbnail itself, driven by the img's own
+// load/error events rather than a throwaway probe — covers icons already saved on mount too
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+const icon_preview_status = ref<'valid' | 'invalid' | null>(null)
+watch(selected_icon_url, () => { icon_preview_status.value = null })
+
 /** Select an icon from the suggested grid */
 function select_icon(id:string): void {
     form.icon_id = id
-    icon_id_status.value = null
+    icon_id_status.value = 'valid'
 }
 
 // Existence-check state for the custom Iconify id field: null = not checked/empty
