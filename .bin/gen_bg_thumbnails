@@ -13,13 +13,16 @@ const require = createRequire(join(root, 'generator-node/package.json'))
 const sharp = require('sharp')
 
 const src_dir = join(root, 'assets/backgrounds')
-const out_dir = join(src_dir, 'thumbnails')
+const thumb_dir = join(src_dir, 'thumbnails')
+const preview_dir = join(src_dir, 'previews')
 
 console.log('Generating background thumbnails...')
 
-// Clear existing thumbnails and recreate directory
-await rm(out_dir, {recursive: true, force: true})
-await mkdir(out_dir, {recursive: true})
+// Clear existing output dirs and recreate them
+await rm(thumb_dir, {recursive: true, force: true})
+await rm(preview_dir, {recursive: true, force: true})
+await mkdir(thumb_dir, {recursive: true})
+await mkdir(preview_dir, {recursive: true})
 
 const files = (await readdir(src_dir)).filter(f => f.endsWith('.jpg'))
 
@@ -27,7 +30,12 @@ for (const file of files) {
     await sharp(join(src_dir, file))
         .resize(160, 120, {fit: 'cover', position: 'centre'})
         .jpeg({quality: 80})
-        .toFile(join(out_dir, file))
+        .toFile(join(thumb_dir, file))
+    await sharp(join(src_dir, file))
+        .resize(800, null, {withoutEnlargement: true})
+        .jpeg({quality: 80})
+        .toFile(join(preview_dir, file))
     console.log('  ' + file)
 }
-console.log('Done:', files.length, 'thumbnails ->', out_dir)
+console.log('Done:', files.length, 'thumbnails ->', thumb_dir)
+console.log('Done:', files.length, 'previews ->', preview_dir)
