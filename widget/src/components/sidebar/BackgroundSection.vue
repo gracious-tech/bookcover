@@ -58,7 +58,7 @@ div(class="flex flex-col gap-1")
         UIcon(:name="dpi_warning_icon" class="w-3.5 h-3.5 shrink-0")
         span {{ dpi_warning_short }}
 
-    //- Picker dialog — Photos and Vector designs, big enough to compare many at once
+    //- Picker dialog — Photos and Vector illustrations, big enough to compare many at once
     SidebarPickerDialog(v-model:open="bg_picker_open" :title="t('background.image_dialog_title')")
         div(class="flex flex-col gap-4")
             //- Photos
@@ -75,14 +75,14 @@ div(class="flex flex-col gap-1")
                     )
                         img(:src="bg_thumb_url(bg)" class="w-full h-full object-cover block")
 
-            //- Vector designs
+            //- Vector illustrations
             div(class="pt-3 border-t border-default")
                 label(class="text-xs font-semibold tracking-[0.02em] mb-1.5 block") {{ t('background.designs_label') }}
                 p(class="text-xs text-muted mb-3") {{ t('background.vector_color_note') }}
 
                 //- Duplicate of the background color controls below — colocated here so the
-                //- color can be tuned while watching its effect on the designs, without leaving
-                //- the dialog. Gradient is deliberately omitted (vector designs don't use it)
+                //- color can be tuned while watching its effect on the illustrations, without leaving
+                //- the dialog. Gradient is deliberately omitted (vector illustrations don't use it)
                 div(class="flex items-center gap-[12px] mb-3")
                     label(
                         class="relative w-[40px] h-[40px] rounded cursor-pointer overflow-hidden shrink-0 block"

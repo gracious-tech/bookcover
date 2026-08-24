@@ -50,9 +50,9 @@ const eng = {
         choose_suggested_aria: 'Choose suggested background',
         // heading for the photos section inside the background image picker dialog
         photos_label: 'Photos',
-        designs_label: 'Designs',
-        // shown under the "Designs" heading in the background image picker dialog
-        vector_color_note: 'Vector designs use your chosen background color',
+        designs_label: 'Illustrations',
+        // shown under the "Illustrations" heading in the background image picker dialog
+        vector_color_note: 'Vector illustrations use your chosen background color',
         // title of the background image picker dialog
         image_dialog_title: 'Choose a background',
         upload_button: 'Upload',
