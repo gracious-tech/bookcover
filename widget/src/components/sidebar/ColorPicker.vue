@@ -9,7 +9,7 @@ div(class="flex items-center gap-1.5 w-fit")
     div(
         class="flex items-center rounded overflow-hidden min-w-50"
         :class="!modelValue ? 'bg-default border border-default text-default' : ''"
-        :style="modelValue ? {background: modelValue, color: contrast_color} : {}"
+        :style="modelValue ? {background: modelValue, color: text_color} : {}"
     )
         //- Main button area: label wraps hidden input to trigger native color picker
         label(class="relative flex items-center gap-1.5 px-2.5 h-7 text-sm font-medium cursor-pointer select-none flex-1")
@@ -47,6 +47,7 @@ div(class="flex items-center gap-1.5 w-fit")
 
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {contrast_color} from '../../svg_utils'
 
 const props = withDefaults(defineProps<{
     modelValue:string | null | undefined
@@ -83,16 +84,9 @@ const auto_button = computed(() => {
     return null
 })
 
-// White or black text, whichever contrasts more against the chosen color (ITU-R BT.601)
+// White or black text, whichever contrasts more against the chosen color
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings in new files
-const contrast_color = computed(() => {
-    if (!props.modelValue) return ''
-    const hex = props.modelValue.replace('#', '')
-    const r = parseInt(hex.slice(0, 2), 16) / 255
-    const g = parseInt(hex.slice(2, 4), 16) / 255
-    const b = parseInt(hex.slice(4, 6), 16) / 255
-    return (0.299 * r + 0.587 * g + 0.114 * b) > 0.5 ? '#000000' : '#ffffff'
-})
+const text_color = computed(() => props.modelValue ? contrast_color(props.modelValue) : '')
 
 // Debounce timer — emit only after period of no changes
 const debounce_timer = ref<ReturnType<typeof setTimeout> | null>(null)

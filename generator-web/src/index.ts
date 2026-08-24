@@ -33,7 +33,7 @@ export type {FormState, EmbedFormState, CustomFontStyle, DerivedColors} from 'bo
 
 // Dimension resolution, so hosts can locate cover panels (e.g. for background-image analysis)
 export {resolve_dimensions} from 'bookcover-core'
-export type {GetDimensionsResult} from 'bookcover-core'
+export type {GetDimensionsResult, DimensionInputs} from 'bookcover-core'
 
 // Embed protocol types for iframing the widget
 export type {InitMessage, WidgetMessage, AppLocale} from './embed_types.js'

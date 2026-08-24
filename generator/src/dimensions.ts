@@ -4,9 +4,28 @@
 import {get_service, get_custom_dimensions} from 'printing-services'
 import type {GetDimensionsArgs, GetDimensionsResult, SizeId,
     BindingTypeId, PaperTypeId, InkTypeId} from 'printing-services'
-import type {CoverSchema} from './schema.js'
 
 export type {GetDimensionsResult}
+
+/** The size/print-related subset of CoverSchema (and, structurally, of FormState — its fields
+ *  are always-populated versions of these same names) that resolve_dimensions actually reads.
+ *  Narrowed to this rather than the full CoverSchema so hosts with a FormState-shaped object
+ *  (the widget) can call it directly instead of duplicating this logic — see
+ *  widget/src/dimensions.ts, which used to do exactly that and had drifted out of sync (it never
+ *  passed paper_type/ink_type, which KDP and ctrlprint both require for an accurate spine width). */
+export interface DimensionInputs {
+    service_id:string
+    size_id?:string
+    page_count?:number
+    binding_type:string
+    ink_type?:string
+    paper_type?:string
+    custom_unit?:string
+    custom_trim_width?:number
+    custom_trim_height?:number
+    custom_bleed?:number
+    custom_spine?:number
+}
 
 // Convert a value to mm based on its unit
 function to_mm(v:number, unit:'mm' | 'inch'):number {
@@ -14,10 +33,11 @@ function to_mm(v:number, unit:'mm' | 'inch'):number {
 }
 
 /**
- * Compute cover dimensions from a parsed schema. Uses the printing-services library
- * to resolve dimensions from a service, or builds custom dimensions directly.
+ * Compute cover dimensions from a parsed schema (or any DimensionInputs-shaped object, e.g. a
+ * FormState). Uses the printing-services library to resolve dimensions from a service, or
+ * builds custom dimensions directly.
  */
-export function resolve_dimensions(schema:CoverSchema):GetDimensionsResult {
+export function resolve_dimensions(schema:DimensionInputs):GetDimensionsResult {
     if (schema.service_id === 'custom') {
         const unit = (schema.custom_unit ?? 'mm') as 'mm' | 'inch'
         const custom_size:SizeId | {width:number, height:number} = schema.size_id

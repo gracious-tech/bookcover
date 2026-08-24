@@ -64,7 +64,7 @@ export interface BuildResult {
 export {cover_schema, calculate_font_sizes, resolve_colors, darken_hsl}
 export {resolve_font_families, resolve_font_configs} from './design.js'
 export {resolve_dimensions} from './dimensions.js'
-export type {GetDimensionsResult} from './dimensions.js'
+export type {GetDimensionsResult, DimensionInputs} from './dimensions.js'
 export {calculate_crop_regions, calculate_pixel_crop_regions,
     split_svg, split_png, split_pdf} from './split.js'
 export {resolve_icon} from './icon_cache.js'

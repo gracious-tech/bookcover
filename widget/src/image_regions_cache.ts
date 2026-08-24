@@ -11,6 +11,7 @@ import type {ImageRegions} from 'bookcover-web'
 import {analyze_image_regions} from 'bookcover-web'
 import type {FormState} from './form_state'
 import {compute_cover_dims} from './dimensions'
+import {debounce} from './svg_utils'
 
 // null until a background image has been analyzed (or when there isn't one)
 export const image_regions = ref<ImageRegions | null>(null)
@@ -22,15 +23,9 @@ const DEBOUNCE_MS = 500
  *  Recomputation is debounced and deliberately does NOT depend on bg_image_coverage — toggling
  *  it should never trigger a recompute, only pick which already-cached regions get used. */
 export function init_image_regions_cache(form:FormState):void {
-    let timer:ReturnType<typeof setTimeout> | null = null
     let generation = 0
 
-    const recompute = () => {
-        if (timer !== null) clearTimeout(timer)
-        timer = setTimeout(() => {
-            void recompute_now()
-        }, DEBOUNCE_MS)
-    }
+    const recompute = debounce(() => void recompute_now(), DEBOUNCE_MS)
 
     const recompute_now = async () => {
         const file = form.bg_image

@@ -561,6 +561,7 @@ import {check_bg_image_dpi} from '../../dpi'
 import type {BgImageDpiWarning} from '../../dpi'
 import {synthesize_fill, all_image_regions, VECTOR_BG_AUTO_COLOR} from 'bookcover-web'
 import {image_regions} from '../../image_regions_cache'
+import {contrast_color} from '../../svg_utils'
 import ColorPicker from './ColorPicker.vue'
 import ColorSwatch from './ColorSwatch.vue'
 import LogSlider from '../LogSlider.vue'
@@ -607,15 +608,6 @@ const effective_bg_color = computed(() => {
     if (!regions) return form.bg_vector_id ? VECTOR_BG_AUTO_COLOR : '#ffffff'
     return synthesize_fill(all_image_regions(regions))
 })
-
-/** White or black, whichever contrasts more against a hex color (ITU-R BT.601) */
-function contrast_color(hex:string):string {
-    const stripped = hex.replace('#', '')
-    const r = parseInt(stripped.slice(0, 2), 16) / 255
-    const g = parseInt(stripped.slice(2, 4), 16) / 255
-    const b = parseInt(stripped.slice(4, 6), 16) / 255
-    return (0.299 * r + 0.587 * g + 0.114 * b) > 0.5 ? '#000000' : '#ffffff'
-}
 
 // White or black text, whichever contrasts more against effective_bg_color — used for the
 // "auto" label overlaid on the bg color preview swatch
