@@ -559,8 +559,7 @@ import {BACKGROUNDS, PREVIEW_BGS, bg_thumb_url, fetch_bg_file} from '../../servi
 import {VECTOR_BACKGROUNDS, find_vector_background, get_preview_url as get_vector_preview_url} from '../../services/vector_backgrounds'
 import {check_bg_image_dpi} from '../../dpi'
 import type {BgImageDpiWarning} from '../../dpi'
-import {synthesize_fill, VECTOR_BG_AUTO_COLOR} from 'bookcover-web'
-import type {RegionStats} from 'bookcover-web'
+import {synthesize_fill, all_image_regions, VECTOR_BG_AUTO_COLOR} from 'bookcover-web'
 import {image_regions} from '../../image_regions_cache'
 import ColorPicker from './ColorPicker.vue'
 import ColorSwatch from './ColorSwatch.vue'
@@ -600,15 +599,13 @@ watch(bg_image_url, (_new, old) => { if (old) URL.revokeObjectURL(old) })
 
 // bg_color's resolved value when left auto (null) — complements the background image, a fixed
 // neutral tan for a vector background (no pixels to sample), or white when there's neither.
-// Mirrors the same fallback build_schema() applies at generate time, so this picker's
-// swatch/preview always match what actually renders
+// Mirrors the same fallback resolve_colors() applies at generate time (see design.ts), so this
+// picker's swatch/preview always match what actually renders
 const effective_bg_color = computed(() => {
     if (form.bg_color) return form.bg_color
     const regions = image_regions.value
     if (!regions) return form.bg_vector_id ? VECTOR_BG_AUTO_COLOR : '#ffffff'
-    const all:RegionStats[] = [regions.front_top, regions.front_bottom,
-        ...(regions.back ? [regions.back] : []), ...(regions.spine ? [regions.spine] : [])]
-    return synthesize_fill(all)
+    return synthesize_fill(all_image_regions(regions))
 })
 
 /** White or black, whichever contrasts more against a hex color (ITU-R BT.601) */

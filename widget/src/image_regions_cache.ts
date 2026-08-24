@@ -1,15 +1,16 @@
 
-// Reactive cache of colors sampled from the current background image (see
-// services/image_regions.ts). Only the pixel-sampling step is cached — actual colors are
-// derived live and cheaply from it at generate time (see form_schema.ts's build_schema).
+// Reactive cache of colors sampled from the current background image (via bookcover-web's
+// analyze_image_regions). Only the pixel-sampling step is cached — actual colors are derived
+// downstream by resolve_colors() at generate time, from whatever's passed as
+// GenerateOptions.image_regions (see schema.ts and PreviewPane.vue's generate() calls).
 // A single global cache, matching fonts.ts's custom_font_families — this app assumes one form
 // instance per JS context (each embed gets its own iframe/app instance)
 
 import {ref, watch} from 'vue'
 import type {ImageRegions} from 'bookcover-web'
+import {analyze_image_regions} from 'bookcover-web'
 import type {FormState} from './form_state'
 import {compute_cover_dims} from './dimensions'
-import {analyze_image_regions} from './services/image_regions'
 
 // null until a background image has been analyzed (or when there isn't one)
 export const image_regions = ref<ImageRegions | null>(null)

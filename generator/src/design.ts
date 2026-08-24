@@ -2,22 +2,19 @@
 // Resolve final color and font values, applying defaults where fields are omitted
 
 import chroma from 'chroma-js'
-import type {CoverSchema, FontConfig} from './schema.js'
+import type {CoverSchema, FontConfig, TitlePosition} from './schema.js'
+import {hex_override_to_hsl} from './colors.js'
 
 
 // Baseline default colors — pure grays map to clean CMYK K-channel percentages
 // (e.g. hsl(0deg,0%,20%) = K80%, hsl(0deg,0%,10%) = K90%) for predictable print output
-// Format hsl(Hdeg, S%, L%) is valid in both CSS4 and Typst's color.hsl()
+// Format hsl(Hdeg, S%, L%) is valid in both CSS4 and Typst's color.hsl(). Every other color
+// field is now contrast-derived against whatever it actually sits on (see resolve_colors) —
+// these two are the only values with nothing to contrast against yet.
 const COLOR_DEFAULTS = {
-    front_background: 'hsl(0deg, 0%, 100%)',   // K=0%  (white)
-    back_background: 'hsl(0deg, 0%, 100%)',     // K=0%  (white)
-    spine_background: 'hsl(0deg, 0%, 20%)',     // K=80%
-    front_subtitle: 'hsl(0deg, 0%, 20%)',       // K=80%
-    front_author: 'hsl(0deg, 0%, 20%)',         // K=80%
-    blurb: 'hsl(0deg, 0%, 10%)',                // K=90%
-    spine_title: 'hsl(0deg, 0%, 100%)',         // K=0%  (white)
-    spine_author: 'hsl(0deg, 0%, 85%)',         // K=15%
-    accent: 'hsl(0deg, 0%, 20%)',               // K=80%
+    front_background: 'hsl(0deg, 0%, 100%)',   // K=0%  (white) — imageless, colorless base case
+    accent: 'hsl(0deg, 0%, 20%)',              // K=80% — spine_background when spine_color is
+                                                // entirely unset (not even null)
 }
 
 export interface ResolvedColors {
@@ -148,12 +145,17 @@ export function generate_palette(base:string, count:number, scheme:PaletteScheme
     return colors
 }
 
-/** Return white or near-black, whichever has more WCAG contrast against the given background */
-function auto_contrast_text(bg:string):string {
-    const L = from_hsl(bg).luminance()
+/** True when white text has more WCAG contrast than black against this color */
+function is_dark(c:chroma.Color):boolean {
+    const L = c.luminance()
     const contrast_white = 1.05 / (L + 0.05)
     const contrast_black = (L + 0.05) / 0.05
     return contrast_white >= contrast_black
+}
+
+/** Return white or near-black, whichever has more WCAG contrast against the given background */
+function auto_contrast_text(bg:string):string {
+    return is_dark(from_hsl(bg))
         ? 'hsl(0deg, 0%, 100%)'  // white — better on dark backgrounds
         : 'hsl(0deg, 0%, 10%)'   // near-black (K90% for print)
 }
@@ -389,20 +391,165 @@ export function synthesize_fill(candidates:RegionStats[], target_lightness?:numb
     return chroma.hsl(source.hue, sat, l).hex()
 }
 
-/** Merge user-supplied colors with defaults, deriving related fields when possible */
-export function resolve_colors(schema:CoverSchema):ResolvedColors {
+// -- Image-derived color resolution --
+//
+// Everything below feeds resolve_colors(): given an optional ImageRegions sample of the
+// background image, it derives a front_bg complement, a vivid image-sampled tint for front
+// title/subtitle/author text, and — for every other field — auto-contrasts against whatever
+// color it actually sits on (image-derived or not). This is the single place all of that math
+// lives; build_schema() (the FormState → schema path, used by the widget) does no color
+// derivation of its own — it passes user overrides straight through and leaves the rest unset
+// for resolve_colors() to fill in here.
+
+// Auto bg_color fallback for a vector background: there's no image to sample a complementary
+// color from, so this fixed neutral tan stands in instead of the imageless default of white.
+// Exported so callers previewing the auto color pre-generate (e.g. the widget's picker swatches)
+// can match this without duplicating the value
+export const VECTOR_BG_AUTO_COLOR = '#e1d1c4'
+
+/** Colors sampled from the background image, keyed by where they were sampled from.
+ *  front_top/front_bottom treat the whole image as the front panel — correct whenever the
+ *  image is confined to the front panel (any bg_image_coverage besides 'full'). Under 'full'
+ *  coverage the raw image is a full wrap (back+spine+front side by side), so front text should
+ *  only look at the front panel's own portion of it, not the back/spine content alongside it —
+ *  front_top_full/front_bottom_full and back/spine are that full-wrap interpretation, located
+ *  proportionally within the same image (see analyze_pixel_regions in image_regions.ts). Both
+ *  interpretations are always sampled together (when dims are resolvable) so switching
+ *  bg_image_coverage never needs a recompute — it just picks which pair to use. */
+export interface ImageRegions {
+    front_top:RegionStats
+    front_bottom:RegionStats
+    front_top_full:RegionStats | null
+    front_bottom_full:RegionStats | null
+    back:RegionStats | null
+    spine:RegionStats | null
+}
+
+/** Flatten an ImageRegions into every non-null sampled region — the candidate pool for
+ *  synthesize_fill()'s "pick the most colorful region" bg-color derivation. */
+export function all_image_regions(regions:ImageRegions):RegionStats[] {
+    return [
+        regions.front_top, regions.front_bottom,
+        ...(regions.back ? [regions.back] : []),
+        ...(regions.spine ? [regions.spine] : []),
+    ]
+}
+
+/** Convert a chroma Color to a RegionStats triple (inverse of region_hex) — a flat synthesized
+ *  color, so lightness_spread is 0 */
+function color_to_region(c:chroma.Color):RegionStats {
+    const [h, s, l] = c.hsl()
+    return {hue: h || 0, saturation: s, lightness: l, lightness_spread: 0}
+}
+
+// Baseline contrast target per position — bottom-positioned text (author, usually) tends to sit
+// over busier parts of a photo than top-positioned text (title, usually sky/simpler), so it
+// gets a higher floor before any per-image variance is even factored in
+const BASE_CONTRAST_BY_POSITION:Record<TitlePosition, number> = {top: 5.5, middle: 6, bottom: 7}
+// Scales a region's measured lightness_spread into additional required contrast — a region
+// that isn't visually uniform (text crossing both light and dark areas) needs more margin than
+// its average color alone would suggest
+const VARIANCE_CONTRAST_BOOST = 10
+
+/** The contrast target for text at a given position against its resolved backdrop region */
+function min_contrast_for(position:TitlePosition, backdrop:RegionStats):number {
+    return BASE_CONTRAST_BY_POSITION[position] + backdrop.lightness_spread * VARIANCE_CONTRAST_BOOST
+}
+
+/** The front-panel top/bottom pair to use for text placement — the full-wrap interpretation
+ *  under 'full' coverage (when it was resolvable), else the whole-image interpretation that
+ *  every other coverage mode already needs */
+function front_pair(coverage:string, regions:ImageRegions):{top:RegionStats, bottom:RegionStats} {
+    if (coverage === 'full' && regions.front_top_full && regions.front_bottom_full)
+        return {top: regions.front_top_full, bottom: regions.front_bottom_full}
+    return {top: regions.front_top, bottom: regions.front_bottom}
+}
+
+/**
+ * Resolve which sampled region a piece of front-panel text should be checked for contrast
+ * against, given its vertical position and how the background image covers the front panel:
+ * 'painted'/'feature' insets don't fill the panel, so text is assumed to sit on the front
+ * background throughout; 'front_partial' only covers the bottom two-thirds, so top-positioned
+ * text sits on the front background while middle/bottom sits on the image; any full-bleed-front
+ * coverage maps top/bottom/middle directly onto the sampled regions (see front_pair for 'full').
+ */
+function image_backdrop_for_position(
+    position:TitlePosition,
+    coverage:string,
+    regions:ImageRegions,
+    bg_region:RegionStats,
+):RegionStats {
+    if (coverage === 'painted' || coverage === 'feature')
+        return bg_region
+    if (coverage === 'front_partial')
+        return position === 'top' ? bg_region : regions.front_bottom
+    const {top, bottom} = front_pair(coverage, regions)
+    if (position === 'top') return top
+    if (position === 'bottom') return bottom
+    return blend_regions(top, bottom)
+}
+
+/**
+ * Merge user-supplied schema colors with contrast-aware defaults, deriving every unset field
+ * from whatever it actually sits on. image_regions, when provided, feeds a complementary
+ * front_bg (when bg_color itself is unset) and a vivid image-sampled tint for front-panel
+ * title/subtitle/author text (see pick_vivid_tint); every field falls through to plain
+ * auto-contrast against its real backdrop when there's no image (or no tint available).
+ */
+export function resolve_colors(schema:CoverSchema, image_regions?:ImageRegions | null):ResolvedColors {
     const accent = COLOR_DEFAULTS.accent
-    const front_bg = schema.bg_color ?? COLOR_DEFAULTS.front_background
+    const all_regions = image_regions ? all_image_regions(image_regions) : []
 
-    // Blurb background: null = transparent, undefined = derive from front background
-    const blurb_bg = schema.blurb_bg_color === null
-        ? null
-        : schema.blurb_bg_color ?? schema.bg_color ?? COLOR_DEFAULTS.back_background
+    // Front background: explicit bg_color wins; else complement the image; else a neutral tan
+    // for a vector background (no pixels to sample); else plain white
+    const front_bg_color = schema.bg_color ? parse_color(schema.bg_color)
+        : all_regions.length ? chroma(synthesize_fill(all_regions))
+            : schema.bg_vector_id ? chroma(VECTOR_BG_AUTO_COLOR)
+                : from_hsl(COLOR_DEFAULTS.front_background)
+    const front_bg = to_hsl(front_bg_color)
 
-    // Title colors: auto-contrast default for title1; title2/3 inherit title1's color
-    const title1 = schema.title1_color ?? auto_contrast_text(front_bg)
+    const coverage = schema.bg_image_coverage ?? 'front'
+
+    // Real image color behind the back panel/spine — only actually visible under full-wrap
+    // coverage; otherwise blurb/spine derive from front_bg like any other flat color
+    const image_backdrop = image_regions && coverage === 'full' && image_regions.back && image_regions.spine
+        ? {back: chroma(region_hex(image_regions.back)), spine: chroma(region_hex(image_regions.spine))}
+        : undefined
+
+    // Vivid image-sampled tint for a front-panel text field at the given position — null when
+    // there's no image (falls through to plain auto-contrast below)
+    const front_bg_region = color_to_region(front_bg_color)
+    const tint_for = (position:TitlePosition):string | null => {
+        if (!image_regions) return null
+        const {top, bottom} = front_pair(coverage, image_regions)
+        const backdrop = image_backdrop_for_position(position, coverage, image_regions, front_bg_region)
+        return pick_vivid_tint([top, bottom], backdrop, min_contrast_for(position, backdrop))
+    }
+
+    const title1 = schema.title1_color ?? hex_override_to_hsl(tint_for(schema.title_position))
+        ?? auto_contrast_text(front_bg)
     const title2 = schema.title2_color ?? title1
     const title3 = schema.title3_color ?? title1
+    const subtitle = schema.subtitle_color ?? hex_override_to_hsl(tint_for(schema.subtitle_position))
+        ?? auto_contrast_text(front_bg)
+    const author = schema.author_color ?? hex_override_to_hsl(tint_for(schema.author_position))
+        ?? auto_contrast_text(front_bg)
+
+    // Blurb: text and (unless the caller wants transparency) a banded container background,
+    // both contrasted against whatever's actually behind the blurb box — the real image color
+    // under full-wrap coverage, else front_bg
+    const blurb_backdrop = image_backdrop?.back ?? front_bg_color
+    const [blurb_h, blurb_s, blurb_l] = blurb_backdrop.hsl()
+    const blurb_background = schema.blurb_bg_color === null ? null
+        : schema.blurb_bg_color ?? to_hsl(chroma.hsl(
+            blurb_h || 0, blurb_s, is_dark(blurb_backdrop) ? Math.min(blurb_l, 0.25) : Math.max(blurb_l, 0.75)))
+    const blurb = schema.blurb_color ?? auto_contrast_text(to_hsl(blurb_backdrop))
+
+    // Spine text: real image color behind the spine (full-wrap coverage) takes priority over
+    // front_bg when spine_color itself isn't explicitly set
+    const spine_backdrop = schema.spine_color ? parse_color(schema.spine_color)
+        : image_backdrop?.spine ?? front_bg_color
+    const spine_text = auto_contrast_text(to_hsl(spine_backdrop))
 
     return {
         front_background: front_bg,
@@ -410,18 +557,18 @@ export function resolve_colors(schema:CoverSchema):ResolvedColors {
         front_gradient_start: shift_hue(front_bg, 35),
         front_gradient_end: shift_hue(front_bg, -35),
         // Back background falls back to front background
-        back_background: schema.bg_color ?? COLOR_DEFAULTS.back_background,
+        back_background: front_bg,
         // Spine background: null = no separate spine color; undefined = fall back to accent
         spine_background: schema.spine_color === undefined ? accent : schema.spine_color,
         front_title1: title1,
         front_title2: title2,
         front_title3: title3,
-        front_subtitle: schema.subtitle_color ?? COLOR_DEFAULTS.front_subtitle,
-        front_author: schema.author_color ?? COLOR_DEFAULTS.front_author,
-        blurb: schema.blurb_color ?? COLOR_DEFAULTS.blurb,
-        blurb_background: blurb_bg,
-        spine_title: schema.spine_title_color ?? COLOR_DEFAULTS.spine_title,
-        spine_author: schema.spine_author_color ?? COLOR_DEFAULTS.spine_author,
+        front_subtitle: subtitle,
+        front_author: author,
+        blurb,
+        blurb_background,
+        spine_title: schema.spine_title_color ?? spine_text,
+        spine_author: schema.spine_author_color ?? spine_text,
         accent,
     }
 }

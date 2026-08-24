@@ -522,10 +522,13 @@ async function run_generate():Promise<void> {
         const preview_h = Math.round(dims.cover_total_height.toNumber() * dpi)
         const img = await read_image_preview(form, preview_w, preview_h)
 
-        // Generate SVG with split panels (needed for 3D renderer and split view)
+        // Generate SVG with split panels (needed for 3D renderer and split view). image_regions
+        // is passed explicitly (sampled from the original file, not this downscaled preview
+        // blob) so auto text/blurb/spine coloring matches the full-res export exactly
         const result = await generator.value!.generate({
             schema,
             image: img,
+            image_regions: image_regions.value,
             format: 'svg',
             split: true,
         })
@@ -593,7 +596,7 @@ async function export_pdf():Promise<void> {
     try {
         const schema = build_schema(form)
         const img = read_image(form)
-        const result = await generator.value!.generate({schema, image: img})
+        const result = await generator.value!.generate({schema, image: img, image_regions: image_regions.value})
         // .slice() produces Uint8Array<ArrayBuffer> (not ArrayBufferLike), satisfying BlobPart
         trigger_download(new Blob([(result.data as Uint8Array).slice()], {type: 'application/pdf'}), 'cover.pdf')
     }
@@ -618,7 +621,7 @@ async function export_split_pdfs():Promise<void> {
         const schema = build_schema(form)
         const img = read_image(form)
         const result = await generator.value!.generate({
-            schema, image: img, format: 'pdf', split: true,
+            schema, image: img, image_regions: image_regions.value, format: 'pdf', split: true,
         })
 
         const parts = result.split as {front:Uint8Array, back:Uint8Array, spine?:Uint8Array}

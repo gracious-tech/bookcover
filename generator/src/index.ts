@@ -7,7 +7,9 @@ import type {GetDimensionsResult} from './dimensions.js'
 import type {CoverSchema} from './schema.js'
 import {default_spine_title} from './utils.js'
 import {calculate_font_sizes} from './font_sizes.js'
-import {resolve_colors, resolve_font_configs, darken_hsl, mix_hsl, generate_palette} from './design.js'
+import {resolve_colors, resolve_font_configs, darken_hsl, mix_hsl, generate_palette,
+    synthesize_fill, all_image_regions} from './design.js'
+import type {ImageRegions} from './design.js'
 import {build_cover_files} from './build_files.js'
 import type {Templates, ImageInput} from './build_files.js'
 import {DEFAULT_TEMPLATES} from './generated/templates_data.js'
@@ -33,12 +35,13 @@ export {list_vector_backgrounds, find_vector_background} from './vector_backgrou
 export type {VectorBackgroundDef} from './vector_backgrounds.js'
 export {generate_palette} from './design.js'
 export type {PaletteScheme} from './design.js'
-export {tinted_contrast_text, pick_vivid_tint, synthesize_fill, blend_regions, region_hex} from './design.js'
-export type {RegionStats} from './design.js'
+export {tinted_contrast_text, pick_vivid_tint, synthesize_fill, blend_regions, region_hex,
+    all_image_regions, VECTOR_BG_AUTO_COLOR} from './design.js'
+export type {RegionStats, ImageRegions} from './design.js'
 export {make_blank_form_values} from './form_state.js'
 export type {FormState, EmbedFormState} from './form_state.js'
-export {build_schema, curly_quotes, parse_font_family, VECTOR_BG_AUTO_COLOR} from './form_schema.js'
-export type {CustomFontStyle, ImageRegions} from './form_schema.js'
+export {build_schema, curly_quotes, parse_font_family} from './form_schema.js'
+export type {CustomFontStyle} from './form_schema.js'
 export {analyze_pixel_regions, get_builtin_bg_regions} from './image_regions.js'
 export {derive_colors, hex_override_to_hsl, hex_to_hsl, is_dark_color} from './colors.js'
 export type {DerivedColors} from './colors.js'
@@ -111,6 +114,11 @@ function wrap_blurb_cjk(
  *
  * templates defaults to the cover.typ/_helpers.typ baked into this package version
  * (see generated/templates_data.ts) — pass an override only to test unreleased template changes.
+ *
+ * image_regions, when provided, is passed straight through to resolve_colors() to fill in any
+ * color fields the schema left unset (see design.ts) — this function does no image decoding
+ * itself (stays pure/no I/O); generator-node/generator-web compute image_regions (via
+ * get_builtin_bg_regions or a live analyze_pixel_regions decode) and pass it in.
  */
 export async function build(
     schema:CoverSchema,
@@ -118,10 +126,11 @@ export async function build(
     frame_fn?:FrameImageFn,
     frame_data?:Blob,
     templates:Templates = DEFAULT_TEMPLATES,
+    image_regions?:ImageRegions | null,
 ):Promise<BuildResult> {
 
     // Resolve spine text — undefined means derive from titles/author; '' means explicitly empty
-    const schema_resolved = {
+    const schema_resolved:CoverSchema = {
         ...schema,
         spine_title: schema.spine_title
             ?? default_spine_title(schema.title1, schema.title2, schema.title3),
@@ -131,7 +140,7 @@ export async function build(
     // Get cover dimensions from printing-services
     const dims = resolve_dimensions(schema)
 
-    const colors = resolve_colors(schema_resolved)
+    const colors = resolve_colors(schema_resolved, image_regions)
     const configs = resolve_font_configs(schema_resolved)
     const font_sizes = calculate_font_sizes(schema_resolved, dims)
 
@@ -171,9 +180,13 @@ export async function build(
     let icon_spine:{data:Uint8Array, ext:string} | undefined
 
     if (schema_resolved.icon_id) {
-        // Main icon: use explicit icon_color if set, otherwise 50% darker than front
+        // Main icon: explicit icon_color wins; else a punchier accent sampled straight from the
+        // image, when one is active; else 50% darker than front
         // Ghost copies: faded toward background from main color; spine: derived from spine bg
-        const color_main = schema_resolved.icon_color ?? darken_hsl(colors.front_background, 0.4)
+        const image_accent_color = image_regions
+            ? synthesize_fill(all_image_regions(image_regions), 0.45) : undefined
+        const color_main = schema_resolved.icon_color ?? image_accent_color
+            ?? darken_hsl(colors.front_background, 0.4)
         const color_ghost = mix_hsl(color_main, colors.front_background, 0.75)
         const color_ghost2 = mix_hsl(color_main, colors.front_background, 0.85)
         const color_spine = darken_hsl(colors.spine_background ?? colors.front_background, 0.5)

@@ -6,8 +6,7 @@
 
 import type {Region} from 'printing-services'
 import type {GetDimensionsResult} from './dimensions.js'
-import type {RegionStats} from './design.js'
-import type {ImageRegions} from './form_schema.js'
+import type {RegionStats, ImageRegions} from './design.js'
 import {BUILTIN_BG_REGIONS} from './generated/builtin_bg_regions.js'
 
 // Pixels this transparent or more are excluded from a region's averages

@@ -7,8 +7,8 @@ import type {TypstCompiler} from '@myriaddreamin/typst.ts/compiler'
 import type {TypstRenderer} from '@myriaddreamin/typst.ts/renderer'
 import {loadFonts} from '@myriaddreamin/typst.ts'
 import {build, cover_schema, split_svg, split_png, split_pdf, frame_image, frame_asset_path,
-    collect_all_fonts} from 'bookcover-core'
-import type {OutputFormat, SplitResult} from 'bookcover-core'
+    collect_all_fonts, analyze_pixel_regions, get_builtin_bg_regions, resolve_dimensions} from 'bookcover-core'
+import type {OutputFormat, SplitResult, ImageRegions, GetDimensionsResult} from 'bookcover-core'
 import {base_font} from 'typst-fonts'
 import {load_fonts_prefix, font_urls_for as build_font_urls, fetch_font_bytes,
     fonts_to_blob_urls, revoke_blob_urls} from 'typst-fonts/web'
@@ -21,13 +21,15 @@ export {get_fonts, get_bundled_font} from 'typst-fonts'
 export {list_patterns, collect_fonts, collect_all_fonts, default_spine_title,
     list_vector_backgrounds, find_vector_background, generate_palette} from 'bookcover-core'
 export {tinted_contrast_text, pick_vivid_tint, synthesize_fill, blend_regions, region_hex,
-    analyze_pixel_regions, get_builtin_bg_regions} from 'bookcover-core'
-export type {RegionStats} from 'bookcover-core'
+    all_image_regions, analyze_pixel_regions, get_builtin_bg_regions,
+    VECTOR_BG_AUTO_COLOR} from 'bookcover-core'
+export type {RegionStats, ImageRegions} from 'bookcover-core'
 
 // Form state + form->schema conversion, so hosts can derive the renderable schema themselves
-export {make_blank_form_values, build_schema, curly_quotes, parse_font_family, find_pattern,
-    derive_colors, hex_override_to_hsl, hex_to_hsl, is_dark_color, VECTOR_BG_AUTO_COLOR} from 'bookcover-core'
-export type {FormState, EmbedFormState, CustomFontStyle, DerivedColors, ImageRegions} from 'bookcover-core'
+export {make_blank_form_values, build_schema, curly_quotes,
+    parse_font_family, find_pattern, derive_colors, hex_override_to_hsl, hex_to_hsl,
+    is_dark_color} from 'bookcover-core'
+export type {FormState, EmbedFormState, CustomFontStyle, DerivedColors} from 'bookcover-core'
 
 // Dimension resolution, so hosts can locate cover panels (e.g. for background-image analysis)
 export {resolve_dimensions} from 'bookcover-core'
@@ -56,7 +58,9 @@ export interface InitOptions {
 
 export interface GenerateOptions {
     schema:unknown
-    // Background image as a Blob (content type included)
+    // Background image as a Blob (content type included). Pass a File (or any Blob with a
+    // `name`) so a builtin background can be matched by filename for auto text/blurb/spine
+    // coloring — see get_builtin_bg_regions; a plain nameless Blob still gets a live decode.
     image?:Blob
     // Output format: 'pdf' (default), 'svg', or 'png'
     format?:OutputFormat
@@ -66,6 +70,11 @@ export interface GenerateOptions {
     split?:boolean
     // Raw TTF bytes for user-uploaded custom fonts
     custom_fonts?:Uint8Array[]
+    // Pre-sampled colors from the background image (see analyze_image_regions), for callers
+    // that already have them cached (e.g. the widget, which samples on a debounced watcher
+    // decoupled from generate() itself). When omitted, generate() samples `image` itself;
+    // pass null explicitly to skip auto-coloring even though an image is present.
+    image_regions?:ImageRegions | null
 }
 
 export interface GenerateResult {
@@ -122,6 +131,42 @@ async function canvas_crop(
     bitmap.close()
 
     return canvas_png_bytes(canvas)
+}
+
+// Downscale target (longest edge, px) for a live pixel decode — plenty of resolution for a
+// dominant-color read while keeping the pixel scan cheap
+const IMAGE_REGIONS_MAX_DIM = 400
+
+/**
+ * Sample a background image's dominant colors, under both interpretations at once — see
+ * analyze_pixel_regions for what `dims` does. Skips decoding entirely when the image matches a
+ * known builtin background by filename + byte size (see get_builtin_bg_regions) — that fast
+ * path needs a File (or any Blob with a `name`); a plain nameless Blob always gets a live
+ * decode via the Canvas API. Exported so hosts can sample ahead of generate() (e.g. the widget
+ * caches this on a debounced watcher, independent of when generate() itself runs, then passes
+ * the result back in via GenerateOptions.image_regions).
+ */
+export async function analyze_image_regions(
+    image:Blob,
+    dims:GetDimensionsResult | null,
+):Promise<ImageRegions> {
+    const filename = 'name' in image ? (image as File).name : undefined
+    const builtin = filename ? get_builtin_bg_regions(filename, image.size) : null
+    if (builtin) return builtin
+
+    const bitmap = await createImageBitmap(image)
+    const scale = Math.min(1, IMAGE_REGIONS_MAX_DIM / Math.max(bitmap.width, bitmap.height))
+    const w = Math.max(1, Math.round(bitmap.width * scale))
+    const h = Math.max(1, Math.round(bitmap.height * scale))
+
+    const canvas = make_canvas(w, h)
+    const ctx = (canvas as HTMLCanvasElement).getContext('2d')
+    if (!ctx) throw new Error('[generator-web] 2D canvas context unavailable')
+    ctx.drawImage(bitmap, 0, 0, w, h)
+    bitmap.close()
+    const {data} = ctx.getImageData(0, 0, w, h)
+
+    return analyze_pixel_regions(data, w, h, dims)
 }
 
 /** Stateful cover generator — each instance owns its own compiler and renderer */
@@ -349,9 +394,26 @@ export class CoverGenerator {
             frame_blob = await resp.blob()
         }
 
+        // Colors sampled from the background image, for auto text/blurb/spine coloring. A
+        // caller-supplied value (e.g. the widget's own debounced cache) is used as-is; otherwise
+        // this samples `image` itself (see analyze_image_regions) — best-effort, since a decode
+        // failure here would otherwise take down an unrelated generate() call.
+        let image_regions:ImageRegions | null
+        if (options.image_regions !== undefined) {
+            image_regions = options.image_regions
+        }
+        else if (options.image) {
+            image_regions = await analyze_image_regions(options.image, resolve_dimensions(parsed))
+                .catch(() => null)
+        }
+        else {
+            image_regions = null
+        }
+
         // Build all typst files in memory (templates default to the version baked into
         // bookcover-core — see its generated/templates_data.ts)
-        const {files, dims} = await build(parsed, image_input, frame_image, frame_blob)
+        const {files, dims} = await build(
+            parsed, image_input, frame_image, frame_blob, undefined, image_regions)
         this.load_files(files)
 
         // Compile to the requested format

@@ -8,9 +8,9 @@ import * as crypto from 'node:crypto'
 import {fileURLToPath} from 'node:url'
 import {spawn} from 'node:child_process'
 import {build, cover_schema, split_svg, split_png, split_pdf,
-    collect_all_fonts} from 'bookcover-core'
+    collect_all_fonts, analyze_pixel_regions, get_builtin_bg_regions, resolve_dimensions} from 'bookcover-core'
 import type {OutputFormat} from 'bookcover-core'
-import type {CoverSchema} from 'bookcover-core'
+import type {CoverSchema, ImageRegions, GetDimensionsResult} from 'bookcover-core'
 import {load_fonts_dir, write_custom_fonts,
     resolve_font_dirs as resolve_font_dirs_generic} from 'typst-fonts/node'
 import type {CustomFont} from 'typst-fonts'
@@ -23,9 +23,9 @@ export {get_fonts, get_bundled_font} from 'typst-fonts'
 export {list_patterns, collect_fonts, collect_all_fonts, default_spine_title} from 'bookcover-core'
 
 // Form state + form->schema conversion, so hosts can derive the renderable schema server-side
-export {make_blank_form_values, build_schema, curly_quotes, parse_font_family, find_pattern,
-    derive_colors, hex_override_to_hsl} from 'bookcover-core'
-export type {FormState, EmbedFormState, CustomFontStyle} from 'bookcover-core'
+export {make_blank_form_values, build_schema, curly_quotes,
+    parse_font_family, find_pattern, derive_colors, hex_override_to_hsl} from 'bookcover-core'
+export type {FormState, EmbedFormState, CustomFontStyle, ImageRegions} from 'bookcover-core'
 
 // Default assets root: the repo's top-level assets/ directory (typst templates in docs/,
 // fonts/, etc — the same tree deployed to the public assets bucket), resolved relative to the
@@ -62,6 +62,10 @@ export interface GenerateOptions {
     // User-uploaded font families (bytes + sniffed style), e.g. from the widget's embed
     // protocol — written to the work dir and scanned by typst alongside the fonts tree
     custom_fonts?:CustomFont[]
+    // Pre-sampled colors from the background image (see analyze_image_regions), for callers
+    // that already have them cached. When omitted, generate() samples the resolved background
+    // image itself; pass null explicitly to skip auto-coloring even though an image is present.
+    image_regions?:ImageRegions | null
 }
 
 export interface GenerateResult {
@@ -93,6 +97,37 @@ async function find_background_image(
         }
     }
     return null
+}
+
+// Downscale target (longest edge, px) for a live pixel decode — plenty of resolution for a
+// dominant-color read while keeping the pixel scan cheap
+const IMAGE_REGIONS_MAX_DIM = 400
+
+/**
+ * Sample a background image's dominant colors, under both interpretations at once — see
+ * analyze_pixel_regions for what `dims` does. Skips decoding entirely when `filename` matches a
+ * known builtin background by name + byte length (see get_builtin_bg_regions); otherwise
+ * decodes via sharp. Exported so hosts can sample ahead of generate() and pass the result back
+ * in via GenerateOptions.image_regions.
+ */
+export async function analyze_image_regions(
+    data:Uint8Array,
+    filename:string | undefined,
+    dims:GetDimensionsResult | null,
+):Promise<ImageRegions> {
+    const builtin = filename ? get_builtin_bg_regions(filename, data.length) : null
+    if (builtin) return builtin
+
+    const buf = Buffer.from(data)
+    const meta = await sharp(buf).metadata()
+    if (!meta.width || !meta.height) throw new Error('[generator-node] Could not read image dimensions')
+    const scale = Math.min(1, IMAGE_REGIONS_MAX_DIM / Math.max(meta.width, meta.height))
+    const w = Math.max(1, Math.round(meta.width * scale))
+    const h = Math.max(1, Math.round(meta.height * scale))
+    const {data: pixels} = await sharp(buf).resize(w, h).ensureAlpha().raw()
+        .toBuffer({resolveWithObject: true})
+    const rgba = new Uint8ClampedArray(pixels.buffer, pixels.byteOffset, pixels.byteLength)
+    return analyze_pixel_regions(rgba, w, h, dims)
 }
 
 // Resolve the on-disk font directories a schema needs, via typst-fonts/node — one per family,
@@ -239,9 +274,25 @@ export async function generate(options:GenerateOptions):Promise<GenerateResult> 
         image = {data: new Uint8Array(buf), ext: found_image.ext}
     }
 
+    // Colors sampled from the background image, for auto text/blurb/spine coloring. A
+    // caller-supplied value is used as-is; otherwise this samples the resolved image itself —
+    // best-effort, since a decode failure here would otherwise take down an unrelated generate().
+    let image_regions:ImageRegions | null
+    if (options.image_regions !== undefined) {
+        image_regions = options.image_regions
+    }
+    else if (image) {
+        const filename = found_image ? path.basename(found_image.full_path) : undefined
+        image_regions = await analyze_image_regions(image.data, filename, resolve_dimensions(parsed))
+            .catch(() => null)
+    }
+    else {
+        image_regions = null
+    }
+
     // Build all typst files in memory (templates default to the version baked into
     // bookcover-core — see its generated/templates_data.ts)
-    const {files, dims} = await build(parsed, image)
+    const {files, dims} = await build(parsed, image, undefined, undefined, undefined, image_regions)
 
     // Write to a temp directory and compile
     const tmp_dir = path.join(os.tmpdir(), `paper_cover_${crypto.randomUUID()}`)
