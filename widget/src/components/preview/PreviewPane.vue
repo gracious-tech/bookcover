@@ -250,7 +250,7 @@ import {assets_prefix} from '../../assets'
 const photo_bg_urls:Record<string, string> = Object.fromEntries(
     BACKGROUNDS.map(bg => [bg.id, `${assets_prefix}3d/backgrounds/${bg.id}.jpg`]))
 
-import {ref, watch, inject, computed, reactive, onUnmounted} from 'vue'
+import {ref, watch, inject, computed, reactive, onUnmounted, toRaw} from 'vue'
 import {useDark} from '@vueuse/core'
 import {useI18n} from 'vue-i18n'
 import {zipSync} from 'fflate'
@@ -528,7 +528,7 @@ async function run_generate():Promise<void> {
         const result = await generator.value!.generate({
             schema,
             image: img,
-            image_regions: image_regions.value,
+            image_regions: toRaw(image_regions.value),
             format: 'svg',
             split: true,
         })
@@ -596,7 +596,7 @@ async function export_pdf():Promise<void> {
     try {
         const schema = build_schema(form)
         const img = read_image(form)
-        const result = await generator.value!.generate({schema, image: img, image_regions: image_regions.value})
+        const result = await generator.value!.generate({schema, image: img, image_regions: toRaw(image_regions.value)})
         // .slice() produces Uint8Array<ArrayBuffer> (not ArrayBufferLike), satisfying BlobPart
         trigger_download(new Blob([(result.data as Uint8Array).slice()], {type: 'application/pdf'}), 'cover.pdf')
     }
@@ -621,7 +621,7 @@ async function export_split_pdfs():Promise<void> {
         const schema = build_schema(form)
         const img = read_image(form)
         const result = await generator.value!.generate({
-            schema, image: img, image_regions: image_regions.value, format: 'pdf', split: true,
+            schema, image: img, image_regions: toRaw(image_regions.value), format: 'pdf', split: true,
         })
 
         const parts = result.split as {front:Uint8Array, back:Uint8Array, spine?:Uint8Array}
