@@ -20,7 +20,8 @@ export {font_file_url} from 'typst-fonts/web'
 export {get_fonts, get_bundled_font} from 'typst-fonts'
 export {list_patterns, collect_fonts, collect_all_fonts, default_spine_title,
     list_vector_backgrounds, find_vector_background, generate_palette} from 'bookcover-core'
-export {tinted_contrast_text, pick_vivid_tint, synthesize_fill, blend_regions, region_hex} from 'bookcover-core'
+export {tinted_contrast_text, pick_vivid_tint, synthesize_fill, blend_regions, region_hex,
+    analyze_pixel_regions, get_builtin_bg_regions} from 'bookcover-core'
 export type {RegionStats} from 'bookcover-core'
 
 // Form state + form->schema conversion, so hosts can derive the renderable schema themselves

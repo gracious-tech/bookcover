@@ -8,4 +8,5 @@ dist/
 
 /assets/fonts/
 /assets/typst/
-/generator/src/generated/
+/generator/src/generated/*
+!/generator/src/generated/builtin_bg_regions.ts

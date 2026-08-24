@@ -24,7 +24,7 @@ export interface CustomFontStyle {
  *  coverage the raw image is a full wrap (back+spine+front side by side), so front text should
  *  only look at the front panel's own portion of it, not the back/spine content alongside it —
  *  front_top_full/front_bottom_full and back/spine are that full-wrap interpretation, located
- *  proportionally within the same image (see the platform wrapper's extraction). Both
+ *  proportionally within the same image (see analyze_pixel_regions in image_regions.ts). Both
  *  interpretations are always sampled together (when dims are resolvable) so switching
  *  bg_image_coverage never needs a recompute — it just picks which pair to use. */
 export interface ImageRegions {
