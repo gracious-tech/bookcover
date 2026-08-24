@@ -123,9 +123,11 @@ div(class="flex flex-col gap-1")
                         @click="select_vector_bg(v.id)"
                     )
 
-        //- Pinned under the title, stays in view while the grids below scroll
+        //- Pinned under the title, stays in view while the grids below scroll — hidden on
+        //- mobile since the dialog is full-screen there and these buttons duplicate the
+        //- always-visible coverage row below the trigger (BackgroundSection.vue's own)
         template(#header-extra)
-            div(v-if='form.bg_image || form.bg_vector_id' class="flex")
+            div(v-if='(form.bg_image || form.bg_vector_id) && !is_mobile' class="flex")
                 UButton(
                     type="button"
                     color="neutral"
@@ -314,21 +316,22 @@ div(class="flex flex-col gap-1")
 
         //- Picker dialog: grid of all patterns
         SidebarPickerDialog(v-model:open="pattern_picker_open" :title="t('background.pattern_dialog_title')")
-            div(class="grid gap-1.5" style="grid-template-columns: repeat(auto-fill, minmax(72px, 1fr))")
+            div(class="grid gap-1.5" style="grid-template-columns: repeat(3, 1fr)")
                 button(
                     v-for="pat in PATTERNS"
                     :key="pat.id"
                     type="button"
-                    class="w-18 h-18 cursor-pointer rounded border-2 hover:bg-accented"
+                    class="w-full aspect-square cursor-pointer rounded border-2 hover:bg-accented"
                     :class="form.pattern_id === pat.id ? 'border-(--ui-text)' : 'border-default'"
                     :title="pat.name"
                     :style="{backgroundColor: effective_bg_color, backgroundImage: get_preview_url(pat, pattern_preview_fill), backgroundSize: get_preview_size(pat)}"
                     @click="select_pattern(pat.id)"
                 )
 
-            //- Pinned under the title, stays in view while the grid above scrolls
+            //- Pinned under the title, stays in view while the grid above scrolls — hidden on
+            //- mobile since it duplicates the always-visible slider/swatch below the trigger
             template(#header-extra)
-                div(v-if="form.pattern_id" class="flex items-center gap-2")
+                div(v-if="form.pattern_id && !is_mobile" class="flex items-center gap-2")
                     LogSlider(
                         v-model="form.pattern_scale"
                         :min="0.2"
@@ -461,9 +464,10 @@ div(class="flex flex-col gap-1")
                         )
                         UIcon(v-if="icon_id_status" :name="icon_id_status_icon" class="w-3.5 h-3.5 shrink-0" :class="icon_id_status_class")
 
-            //- Pinned under the title, stays in view while the groups/help below scroll
+            //- Pinned under the title, stays in view while the groups/help below scroll —
+            //- hidden on mobile since it duplicates the always-visible slider/swatch below
             template(#header-extra)
-                div(v-if="form.icon_id" class="flex items-center gap-2")
+                div(v-if="form.icon_id && !is_mobile" class="flex items-center gap-2")
                     LogSlider(
                         v-model="form.icon_size"
                         :min="0.4"
@@ -544,7 +548,7 @@ UModal(v-model:open="low_res_dialog_open" :ui="{content: 'max-w-sm'}")
 import {inject, ref, computed, watch, onMounted, onUnmounted} from 'vue'
 import {useDark} from '@vueuse/core'
 import {useI18n} from 'vue-i18n'
-import {FORM_KEY} from '../../form_state'
+import {FORM_KEY, IS_MOBILE_KEY} from '../../form_state'
 import type {FormState} from '../../form_state'
 import {suggested_icons, icon_categories} from '../../services/icons'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
@@ -566,6 +570,7 @@ import SidebarPickerDialog from './SidebarPickerDialog.vue'
 
 // Inject the shared form state
 const form = inject(FORM_KEY)!
+const is_mobile = inject(IS_MOBILE_KEY)!
 const is_dark = useDark()
 const {t} = useI18n()
 

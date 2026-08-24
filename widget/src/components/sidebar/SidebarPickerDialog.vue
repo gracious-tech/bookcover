@@ -8,7 +8,7 @@
 //- very component (rendered by the same app tree) and isn't in the DOM yet on first mount —
 //- it defers target resolution until after the rest of the tree has mounted (Vue 3.5+)
 Teleport(to=".sidebar-panel" defer)
-    div(v-if="open" class="absolute inset-0 z-40")
+    div(v-if="open" class="absolute inset-0 z-50")
         //- Backdrop — blurs the sidebar behind the dialog, click dismisses
         div(class="absolute inset-0 bg-(--ui-bg)/70 backdrop-blur-sm" @click="close")
 
