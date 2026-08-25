@@ -559,7 +559,7 @@ import {BACKGROUNDS, PREVIEW_BGS, bg_thumb_url, fetch_bg_file} from '../../servi
 import {VECTOR_BACKGROUNDS, find_vector_background, get_preview_url as get_vector_preview_url} from '../../services/vector_backgrounds'
 import {check_bg_image_dpi} from '../../dpi'
 import type {BgImageDpiWarning} from '../../dpi'
-import {synthesize_fill, all_image_regions, VECTOR_BG_AUTO_COLOR} from 'bookcover-web'
+import {synthesize_fill, all_image_regions, VECTOR_BG_AUTO_COLOR, find_builtin_icon} from 'bookcover-web'
 import {image_regions} from '../../image_regions_cache'
 import {contrast_color} from '../../svg_utils'
 import ColorPicker from './ColorPicker.vue'
@@ -574,12 +574,21 @@ const is_mobile = inject(IS_MOBILE_KEY)!
 const is_dark = useDark()
 const {t} = useI18n()
 
-/** Build {id, url} icon swatches (rendered via Iconify SVG API) for a list of icon ids */
+// Resolve an icon id to a displayable image URL — a "builtin:<id>" id renders from an inline
+// data URI (bundled into the app, see bookcover-core's builtin_icons.ts), everything else
+// fetches from the Iconify API
+function icon_url(id:string): string {
+    const [collection, name] = id.split(':')
+    if (collection === 'builtin') {
+        const svg = find_builtin_icon(name)
+        return svg ? `data:image/svg+xml,${encodeURIComponent(svg)}` : ''
+    }
+    return `https://api.iconify.design/${collection}/${name}.svg`
+}
+
+/** Build {id, url} icon swatches for a list of icon ids */
 function to_icon_swatches(ids:string[]): {id:string, url:string}[] {
-    return ids.map(id => {
-        const [collection, name] = id.split(':')
-        return {id, url: `https://api.iconify.design/${collection}/${name}.svg`}
-    })
+    return ids.map(id => ({id, url: icon_url(id)}))
 }
 
 // Suggested icons grouped by theme, for the picker dialog's subheadings
@@ -728,11 +737,7 @@ function select_pattern(id:string): void {
 }
 
 // URL for the selected icon — used in the trigger area preview
-const selected_icon_url = computed(() => {
-    if (!form.icon_id) return ''
-    const [collection, name] = form.icon_id.split(':')
-    return `https://api.iconify.design/${collection}/${name}.svg`
-})
+const selected_icon_url = computed(() => form.icon_id ? icon_url(form.icon_id) : '')
 
 // Load status of the trigger-area preview thumbnail itself, driven by the img's own
 // load/error events rather than a throwaway probe — covers icons already saved on mount too
@@ -764,9 +769,14 @@ const icon_id_status_class = computed(() => ({
     'text-red-600 dark:text-red-400': icon_id_status.value === 'invalid',
 }))
 
-/** Probe whether a given Iconify id resolves to a real icon, via image load/error */
+/** Check whether a given id resolves to a real icon — a bundled builtin id checks locally,
+ *  an Iconify id via image load/error */
 function check_icon_id(id:string): void {
     const [collection, name] = id.split(':')
+    if (collection === 'builtin') {
+        icon_id_status.value = find_builtin_icon(name) ? 'valid' : 'invalid'
+        return
+    }
     const img = new Image()
     img.onload = () => { if (form.icon_id === id) icon_id_status.value = 'valid' }
     img.onerror = () => { if (form.icon_id === id) icon_id_status.value = 'invalid' }

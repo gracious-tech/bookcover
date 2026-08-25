@@ -1,5 +1,8 @@
 
-// Fetch, cache, and recolor SVG icons from the Iconify API
+// Fetch, cache, and recolor SVG icons from the Iconify API, or resolve them from the bundled
+// built-in icon set
+
+import {find_builtin_icon} from './builtin_icons.js'
 
 // Module-level in-memory cache: iconify ID → raw SVG string
 const svg_cache = new Map<string, string>()
@@ -35,7 +38,18 @@ async function fetch_icon_svg(iconify_id:string):Promise<string> {
 
     const collection = iconify_id.slice(0, colon)
     const name       = iconify_id.slice(colon + 1)
-    const url        = `https://api.iconify.design/${collection}/${name}.svg`
+
+    // "builtin:<id>" resolves from the app's own bundled icon set instead of the network
+    if (collection === 'builtin') {
+        const svg = find_builtin_icon(name)
+        if (!svg) {
+            throw new IconCacheError(`Icon does not exist: ${iconify_id}`, 'icon_not_found', {id: iconify_id})
+        }
+        svg_cache.set(iconify_id, svg)
+        return svg
+    }
+
+    const url = `https://api.iconify.design/${collection}/${name}.svg`
 
     const response = await fetch(url)
     if (!response.ok){

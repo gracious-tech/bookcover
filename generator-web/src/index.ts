@@ -19,7 +19,8 @@ export type {BundledFont, CjkVariant, CustomFont} from 'typst-fonts'
 export {font_file_url} from 'typst-fonts/web'
 export {get_fonts, get_bundled_font} from 'typst-fonts'
 export {list_patterns, collect_fonts, collect_all_fonts, default_spine_title,
-    list_vector_backgrounds, find_vector_background, generate_palette} from 'bookcover-core'
+    list_vector_backgrounds, find_vector_background, list_builtin_icons,
+    find_builtin_icon, generate_palette} from 'bookcover-core'
 export {tinted_contrast_text, pick_vivid_tint, synthesize_fill, blend_regions, region_hex,
     all_image_regions, analyze_pixel_regions, get_builtin_bg_regions,
     VECTOR_BG_AUTO_COLOR} from 'bookcover-core'

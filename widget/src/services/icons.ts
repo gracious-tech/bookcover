@@ -201,6 +201,7 @@ export const icon_categories: IconCategory[] = [
             'game-icons:chalice-drops',
             'game-icons:crown-of-thorns',
             'game-icons:crucifix',
+            'builtin:cross',
             'mdi:cross',
             'mdi:cross-outline',
             'mdi:shield-cross-outline',
