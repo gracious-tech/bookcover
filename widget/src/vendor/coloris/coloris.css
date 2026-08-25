@@ -653,6 +653,7 @@ input.clr-color:focus {
   padding: 0 6px; /* breathing room from the divider line on either side */
   font-family: sans-serif;
   font-size: 10px;
+  font-weight: bold;
   text-transform: uppercase;
   cursor: text;
   box-sizing: border-box;
@@ -673,6 +674,7 @@ input.clr-color:focus {
   background-color: transparent;
   font-family: sans-serif;
   font-size: 13px;
+  font-weight: normal;
   text-align: center;
   box-shadow: none;
   appearance: textfield;
