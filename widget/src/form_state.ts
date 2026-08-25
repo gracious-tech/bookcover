@@ -98,7 +98,7 @@ export function make_form(): FormState {
         title2_size: 2,
 
         // Demo background
-        bg_image_coverage: 'front',
-        pattern_id: 'bank-note',
+        bg_vector_id: 'seagulls',
+        pattern_id: 'morphing-diamonds',
     })
 }
