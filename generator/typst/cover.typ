@@ -211,7 +211,7 @@
 // Layer 3 — Back panel content
 // ============================================================
 
-// back_margin, back_content_w imported from _data.typ
+// back_margin, back_content_w, spiral_margin imported from _data.typ
 
 // Blurb container box with background color and 1cm padding around the text
 // Content is scaled down if it would overflow the available back-panel height
@@ -243,7 +243,8 @@
     let blurb_max_h = back_content_h - blurb_padding * 2
     place(
         top + left,
-        dx: back_x + (face_width - blurb_width) / 2,
+        // Centered within the safe area, not the full face — spiral_margin is 0 for other bindings
+        dx: back_x + (face_width - spiral_margin - blurb_width) / 2,
         dy: bleed + back_margin,
         rect(
             width: blurb_width,
@@ -344,7 +345,7 @@
 // Layer 5 — Front panel content
 // ============================================================
 
-// front_margin, front_content_w imported from _data.typ
+// front_margin, front_content_w, spiral_margin imported from _data.typ
 
 // Base font size — proportional to trim height, multiplied by per-title size modifier
 #let fs_title_base = face_height * 0.05
@@ -461,7 +462,7 @@
 #if top_has_any {
     place(
         top + left,
-        dx: front_x + front_margin,
+        dx: front_x + front_margin + spiral_margin,
         dy: bleed + front_margin,
         make_pos_box(top_has_title, top_has_subtitle, top_has_author),
     )
@@ -469,14 +470,14 @@
 #if mid_has_any {
     place(
         horizon + left,
-        dx: front_x + front_margin,
+        dx: front_x + front_margin + spiral_margin,
         make_pos_box(mid_has_title, mid_has_subtitle, mid_has_author),
     )
 }
 #if bot_has_any {
     place(
         bottom + left,
-        dx: front_x + front_margin,
+        dx: front_x + front_margin + spiral_margin,
         dy: (bleed + front_margin) * -1,
         make_pos_box(bot_has_title, bot_has_subtitle, bot_has_author),
     )
