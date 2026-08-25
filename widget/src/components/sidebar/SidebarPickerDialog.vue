@@ -13,7 +13,7 @@ Teleport(to=".sidebar-panel" defer)
         div(class="absolute inset-0 bg-(--ui-bg)/70 backdrop-blur-sm" @click="close")
 
         //- Panel — padded off the sidebar's edges so the blurred sidebar peeks around it
-        div(class="absolute inset-6 flex flex-col rounded-lg border border-(--ui-border) bg-(--ui-bg-elevated) shadow-2xl overflow-hidden" @click.stop)
+        div(ref="panel_el" class="absolute inset-6 flex flex-col rounded-lg border border-(--ui-border) bg-(--ui-bg-elevated) shadow-2xl overflow-hidden" @click.stop)
             div(class="shrink-0 border-b border-(--ui-border)")
                 div(class="flex items-center justify-between px-4 py-3")
                     h2(class="text-sm font-semibold") {{ title }}
@@ -46,13 +46,14 @@ Teleport(to=".sidebar-panel" defer)
 // a bigger, non-closing alternative to a popover so users can click through many options and
 // see them applied live, dismissing only via Done/Escape/backdrop click
 
-import {watch, onUnmounted} from 'vue'
+import {ref, watch, onUnmounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 
 const props = defineProps<{open:boolean, title:string}>()
 const emit = defineEmits<{(e:'update:open', val:boolean):void}>()
 
 const {t} = useI18n()
+const panel_el = ref<HTMLElement|null>(null)
 
 /** Close the dialog */
 function close():void {
@@ -64,9 +65,23 @@ function on_keydown(e:KeyboardEvent):void {
     if (e.key === 'Escape') close()
 }
 
+// Clicks outside the panel close it, including clicks outside the sidebar itself (e.g. the
+// preview pane) — the backdrop's own @click only covers clicks confined to the sidebar box
+function on_pointerdown(e:PointerEvent):void {
+    if (panel_el.value && !panel_el.value.contains(e.target as Node)) close()
+}
+
 watch(() => props.open, (is_open) => {
-    if (is_open) window.addEventListener('keydown', on_keydown)
-    else window.removeEventListener('keydown', on_keydown)
+    if (is_open) {
+        window.addEventListener('keydown', on_keydown)
+        window.addEventListener('pointerdown', on_pointerdown)
+    } else {
+        window.removeEventListener('keydown', on_keydown)
+        window.removeEventListener('pointerdown', on_pointerdown)
+    }
 })
-onUnmounted(() => window.removeEventListener('keydown', on_keydown))
+onUnmounted(() => {
+    window.removeEventListener('keydown', on_keydown)
+    window.removeEventListener('pointerdown', on_pointerdown)
+})
 </script>
