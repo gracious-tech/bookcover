@@ -452,6 +452,10 @@ div(class="flex flex-col gap-1")
 
                 //- Custom Iconify id — same field/behavior as before, now with inline
                 //- existence verification
+                //- DECISION: this is Iconify-id-only, deliberately no file upload for a
+                //- user's own SVG icon — someone wanting that much control may as well upload
+                //- it as a background image instead. Don't add icon-upload UI without
+                //- revisiting this decision with the user first (see icon_cache.ts)
                 div(class="flex flex-col gap-1")
                     label(class="text-xs font-semibold tracking-[0.02em]") {{ t('background.custom_icon_label') }}
                     div(class="flex items-center gap-2")

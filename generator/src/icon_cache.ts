@@ -77,8 +77,14 @@ function recolor_svg(svg:string, color:string):string {
 
 /**
  * Resolve an icon to a recolored SVG string.
- * Accepts either an iconify ID (e.g. "game-icons:sailboat") or a raw SVG string.
+ * Accepts either an iconify ID (e.g. "game-icons:sailboat"), a "builtin:<id>" ID resolved from
+ * the app's own bundled icons (see builtin_icons.ts), or a raw SVG string.
  * Iconify responses are cached in memory for the lifetime of the module.
+ *
+ * DECISION: raw SVG passthrough exists here but is only used for "builtin:" bundled icons —
+ * there's deliberately no UI for a user to upload their own arbitrary SVG icon. Someone who
+ * wants that much control over the icon artwork may as well upload it as a background image
+ * instead. Don't add icon-upload UI without revisiting this decision with the user first.
  */
 export async function resolve_icon(id_or_svg:string, color:string):Promise<string> {
     // Treat as raw SVG if the value looks like XML
