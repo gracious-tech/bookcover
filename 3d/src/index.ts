@@ -186,6 +186,7 @@ export class Book3DRenderer {
         const PT_TO_MM = 25.4 / 72
         this._d = spine_size ? spine_size.width / front_size.height
             : (depth_mm != null ? depth_mm / (front_size.height * PT_TO_MM) : 0)
+        const cover_height_mm = front_size.height * PT_TO_MM
 
         // Recreate page-edge texture scaled to this book's spine thickness
         this._page_tex = create_page_edge_texture(gl, this._d)
@@ -213,6 +214,7 @@ export class Book3DRenderer {
         const face_data:FaceData[] = build_faces(
             this._w, this._h, this._d,
             front_tex, back_tex, spine_tex, cover_type, this._page_tex!,
+            cover_height_mm,
         )
 
         for (const fd of face_data) {

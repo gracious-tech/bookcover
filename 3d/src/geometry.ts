@@ -14,15 +14,15 @@ const PAGE_COLOR:[number,number,number] = [0.94, 0.91, 0.86]
 // Hole colour: same warm cream as page edges but darkened
 const HOLE_COLOR:[number,number,number] = [0.38, 0.36, 0.33]
 
-// Hole spacing (centre-to-centre) and size in normalised units (h=1.0 = cover height)
-const HOLE_PITCH    = 0.032  // tighter spacing, roughly twice as many holes
-const HOLE_W        = 0.010  // rectangle half-width (along Z / spine depth axis)
-const HOLE_H        = 0.008  // rectangle half-height (along Y / book height axis)
-const HOLE_CORNER   = 0.003  // corner radius for rounded rect
-const HOLE_MARGIN   = 0.025  // inset from spine edge to hole centre on cover faces
-const HOLE_EDGE_GAP = 0.018  // margin from top/bottom cover edge to first/last hole centre
-const HOLE_SEGS     = 4      // segments per rounded corner (quarter-circle)
-const HOLE_EPSILON  = 0.001  // z nudge to prevent z-fighting with underlying face
+// Coil/wire hole dimensions, measured from a real spiral-bound book (mm). Converted to
+// normalised units per-book in build_holes since real hole size doesn't scale with cover height.
+const HOLE_WIDTH_MM    = 5  // horizontal extent — rounded left/right caps
+const HOLE_HEIGHT_MM   = 4  // vertical extent — straight top/bottom (corner radius = half this)
+const HOLE_GAP_MM      = 2  // vertical gap between holes, edge to edge
+const HOLE_LEFT_GAP_MM = 2  // gap from spine-side trim to the near edge of each hole
+const HOLE_EDGE_GAP_MM = 2  // gap from top trim to first hole, and minimum required at the bottom
+const HOLE_SEGS        = 4      // segments per rounded corner (quarter-circle)
+const HOLE_EPSILON     = 0.001  // z nudge to prevent z-fighting with underlying face (normalised)
 
 /** A single face ready for GPU upload: interleaved [xyz, uv, normal] × 4 verts + 6 indices */
 export interface FaceData {
@@ -32,19 +32,23 @@ export interface FaceData {
     color:[number,number,number]
 }
 
-/** Build a filled rounded-rectangle on a cover face for coil/wire hole rendering.
- *  The shape sits in the XY plane at a fixed z; nx/ny/nz is the face normal.
- *  Corners are approximated with HOLE_SEGS arc segments each. */
+/** Build a filled stadium shape (straight top/bottom, semicircular left/right caps) on a
+ *  cover face for coil/wire hole rendering. The shape sits in the XY plane at a fixed z;
+ *  nx/ny/nz is the face normal. half_w/half_h are the hole's half-extents (normalised units).
+ *  Corner radius equals half_h, so each "corner" arc is actually half of a left/right cap —
+ *  two adjacent quarter-arcs sharing a centre combine into one semicircle. */
 function make_hole_rect(
     cx:number, cy:number, cz:number,
     nx:number, ny:number, nz:number,
+    half_w:number, half_h:number,
 ):FaceData {
     const verts:number[] = []
     const indices:number[] = []
 
-    // Inner rect extents (full half-extents minus corner radius)
-    const iw = HOLE_W - HOLE_CORNER
-    const ih = HOLE_H - HOLE_CORNER
+    // Inner rect extents (full half-extents minus corner radius, which equals half_h)
+    const iw = half_w - half_h
+    const ih = 0
+    const radius = half_h
 
     // Corner centres (dx, dy) and starting angle for each of the 4 corners
     const corners:[number, number, number][] = [
@@ -62,8 +66,8 @@ function make_hole_rect(
         for (let s = 0; s <= HOLE_SEGS; s++) {
             const a = start_a + (s / HOLE_SEGS) * (Math.PI / 2)
             verts.push(
-                cx + ox + Math.cos(a) * HOLE_CORNER,
-                cy + oy + Math.sin(a) * HOLE_CORNER,
+                cx + ox + Math.cos(a) * radius,
+                cy + oy + Math.sin(a) * radius,
                 cz, 0.5, 0.5, nx, ny, nz,
             )
         }
@@ -77,24 +81,33 @@ function make_hole_rect(
     return {vertices: verts, indices, texture: null, color: HOLE_COLOR}
 }
 
-/** Build painted-on binding holes on front and back cover faces for coil/wire bindings */
-function build_holes(hw:number, hh:number, hd:number):FaceData[] {
+/** Build painted-on binding holes on front and back cover faces for coil/wire bindings.
+ *  cover_height_mm is this book's real cover height, used to convert the fixed real-world
+ *  hole measurements (HOLE_*_MM) to this book's normalised units — hole size is constant in
+ *  mm regardless of book size, unlike hh which is always 0.5 by construction. */
+function build_holes(hw:number, hh:number, hd:number, cover_height_mm:number):FaceData[] {
     const faces:FaceData[] = []
+    const mm = (v:number) => v / cover_height_mm
 
-    // Fill from near the top edge to near the bottom edge
-    const usable = hh * 2 - HOLE_EDGE_GAP * 2
-    const hole_count = Math.max(1, Math.round(usable / HOLE_PITCH) + 1)
-    const span = (hole_count - 1) * HOLE_PITCH
-    const y0 = span / 2
+    const half_w = mm(HOLE_WIDTH_MM / 2)
+    const half_h = mm(HOLE_HEIGHT_MM / 2)
+    const pitch = mm(HOLE_HEIGHT_MM + HOLE_GAP_MM)          // centre-to-centre
+    const cx = -hw + mm(HOLE_LEFT_GAP_MM + HOLE_WIDTH_MM / 2)
+
+    // Pack from 2mm below the top trim downward, dropping the last hole if it wouldn't
+    // leave at least HOLE_EDGE_GAP_MM clear at the bottom — not centred, matching how real
+    // coil punching is anchored from the top
+    const first_cy = hh - mm(HOLE_EDGE_GAP_MM + HOLE_HEIGHT_MM / 2)
+    const min_cy = -hh + mm(HOLE_EDGE_GAP_MM) + half_h
+    const hole_count = Math.max(1, Math.floor((first_cy - min_cy) / pitch) + 1)
 
     for (let i = 0; i < hole_count; i++) {
-        const cy = y0 - i * HOLE_PITCH
-        const cx = -hw + HOLE_MARGIN
+        const cy = first_cy - i * pitch
 
         // Front cover (+z normal), nudged forward to avoid z-fighting
-        faces.push(make_hole_rect(cx, cy, hd + HOLE_EPSILON,  0, 0,  1))
+        faces.push(make_hole_rect(cx, cy, hd + HOLE_EPSILON,  0, 0,  1, half_w, half_h))
         // Back cover (-z normal), nudged backward
-        faces.push(make_hole_rect(cx, cy, -(hd + HOLE_EPSILON), 0, 0, -1))
+        faces.push(make_hole_rect(cx, cy, -(hd + HOLE_EPSILON), 0, 0, -1, half_w, half_h))
     }
 
     return faces
@@ -482,7 +495,9 @@ function build_hardcover(
 }
 
 /** Build all faces of the book using normalised dimensions (h = 1).
- *  w = cover_width / cover_height, d = spine_width / cover_height. */
+ *  w = cover_width / cover_height, d = spine_width / cover_height.
+ *  cover_height_mm is the book's real cover height, needed only to size coil/wire holes
+ *  at their true physical mm size regardless of this book's normalised scale. */
 export function build_faces(
     w:number,
     h:number,
@@ -492,6 +507,7 @@ export function build_faces(
     spine_tex:WebGLTexture | null,
     cover_type:CoverType,
     page_tex:WebGLTexture,
+    cover_height_mm:number,
 ):FaceData[] {
 
     // Half-extents
@@ -507,7 +523,7 @@ export function build_faces(
 
     // Coil and wire bindings get painted-on holes near the spine edge
     if (cover_type === 'paperback_coil' || cover_type === 'paperback_wire')
-        faces.push(...build_holes(hw, hh, hd))
+        faces.push(...build_holes(hw, hh, hd, cover_height_mm))
 
     return faces
 }
