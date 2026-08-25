@@ -23,7 +23,7 @@ export {list_patterns, collect_fonts, collect_all_fonts, default_spine_title,
     find_builtin_icon, generate_palette, cover_schema} from 'bookcover-core'
 export {tinted_contrast_text, pick_vivid_tint, synthesize_fill, blend_regions, region_hex,
     all_image_regions, analyze_pixel_regions, get_builtin_bg_regions,
-    VECTOR_BG_AUTO_COLOR, resolve_colors} from 'bookcover-core'
+    VECTOR_BG_AUTO_COLOR, resolve_colors, darken_hsl} from 'bookcover-core'
 export type {RegionStats, ImageRegions, ResolvedColors} from 'bookcover-core'
 
 // Form state + form->schema conversion, so hosts can derive the renderable schema themselves

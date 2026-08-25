@@ -13,7 +13,8 @@
 
 import {ref, watch} from 'vue'
 import {generateText} from '@tiptap/vue-3'
-import {resolve_colors, cover_schema, hex_override_to_hsl} from 'bookcover-web'
+import {resolve_colors, cover_schema, hex_override_to_hsl, darken_hsl,
+    synthesize_fill, all_image_regions} from 'bookcover-web'
 import type {ResolvedColors} from 'bookcover-web'
 import type {FormState} from './form_state'
 import {build_schema} from './schema'
@@ -68,11 +69,19 @@ const COLOR_FIELDS:ColorFieldSpec[] = [
     {form_key: 'spine_title_color', resolved_keys: ['spine_title'], active: has_spine_text},
     {form_key: 'spine_author_color', resolved_keys: ['spine_author'], active: has_spine_text},
     {form_key: 'spine_color', resolved_keys: ['spine_background'], active: has_spine},
-    {form_key: 'bg_color', resolved_keys: ['front_background', 'back_background',
-        'front_gradient_start', 'front_gradient_end'], active: () => true},
+    {form_key: 'bg_color', resolved_keys: ['front_background', 'back_background'], active: () => true},
+    // Auto values handled separately below (not part of ResolvedColors) — see recompute_now
     {form_key: 'pattern_color', resolved_keys: [], active: form => !!form.pattern_id},
     {form_key: 'icon_color', resolved_keys: [], active: form => !!form.icon_id},
 ]
+
+/** Normalize a color to hsl(...) form — pattern/icon auto colors can come back as plain hex
+ *  (an explicit override, or synthesize_fill()'s image-sampled result) or already-hsl (the
+ *  darken_hsl()/front_background fallbacks), and every suggestion needs the same format or
+ *  dedup against the rest of the list silently misses matches */
+function to_hsl_str(color:string):string {
+    return color.startsWith('hsl(') ? color : hex_override_to_hsl(color) ?? color
+}
 
 /** Dedupe a color list case-insensitively, keeping first occurrence order */
 function dedupe(colors:string[]):string[] {
@@ -119,10 +128,30 @@ export function init_color_palette_cache(form:FormState):void {
             const schema = cover_schema.parse(build_schema(form))
             const resolved = resolve_colors(schema, image_regions.value)
             const active_keys = new Set(active_fields.flatMap(spec => spec.resolved_keys))
+            // Gradient stops only ever render when the gradient toggle is actually on
+            if (form.bg_color_gradient) {
+                active_keys.add('front_gradient_start')
+                active_keys.add('front_gradient_end')
+            }
             for (const key of active_keys) {
                 const value = resolved[key]
                 if (value !== null)
                     auto.push(value)
+            }
+
+            // Pattern/icon auto colors aren't part of ResolvedColors — they're derived later,
+            // inside generate()'s build() step (see generator/src/index.ts), since they need the
+            // pattern svg / sampled image regions. Mirror those same formulas here so their auto
+            // value still shows as a suggestion
+            if (schema.pattern) {
+                auto.push(to_hsl_str(schema.pattern_color ?? (schema.bg_color_gradient
+                    ? resolved.front_background : darken_hsl(resolved.front_background, 0.05))))
+            }
+            if (schema.icon_id) {
+                const image_accent = image_regions.value
+                    ? synthesize_fill(all_image_regions(image_regions.value), 0.45) : undefined
+                auto.push(to_hsl_str(
+                    schema.icon_color ?? image_accent ?? darken_hsl(resolved.front_background, 0.4)))
             }
         } catch {
             // Form isn't in a resolvable state yet (mid-edit/incomplete) — explicit colors alone
@@ -140,7 +169,7 @@ export function init_color_palette_cache(form:FormState):void {
         // Explicit color fields + the content fields their "active" checks read
         ...COLOR_FIELDS.map(spec => form[spec.form_key]),
         form.title2, form.title3, form.subtitle, form.author, form.blurb,
-        form.pattern_id, form.icon_id,
+        form.pattern_id, form.icon_id, form.bg_color_gradient,
         // Dimension-affecting fields (mirrors image_regions_cache.ts) — has_spine/has_spine_text
         // depend on these, and image_regions.value alone doesn't change when there's no bg image
         form.service_id, form.size_id, form.page_count, form.binding_type,
