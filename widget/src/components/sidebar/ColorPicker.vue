@@ -11,11 +11,13 @@ div(class="flex items-center gap-1.5 w-fit")
         :class="!modelValue ? 'bg-default border border-default text-default' : ''"
         :style="modelValue ? {background: modelValue, color: text_color} : {}"
     )
-        //- Main button area: label wraps hidden input to trigger native color picker
+        //- Main button area: label wraps hidden input to trigger the Coloris color picker
         label(class="relative flex items-center gap-1.5 px-2.5 h-7 text-sm font-medium cursor-pointer select-none flex-1")
             input(
-                type="color"
-                :value="modelValue ?? '#000000'"
+                type="text"
+                data-coloris
+                readonly
+                :value="modelValue ?? ''"
                 class="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
                 @input="on_input"
             )

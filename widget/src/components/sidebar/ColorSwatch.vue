@@ -4,7 +4,7 @@
 //- ColorSwatch: compact square color picker; shows palette icon when no color is set
 
 div(class="relative shrink-0")
-    //- Swatch: clicking opens native color picker; palette icon shown when null
+    //- Swatch: clicking opens the Coloris color picker; palette icon shown when null
     label(
         class="w-8 h-8 rounded hover:bg-accented cursor-pointer flex items-center justify-center relative overflow-hidden block"
         :class="modelValue ? 'border-transparent' : 'border-default'"
@@ -12,8 +12,10 @@ div(class="relative shrink-0")
         :title="modelValue ?? t('common.set_color_title')"
     )
         input(
-            type="color"
-            :value="modelValue ?? '#000000'"
+            type="text"
+            data-coloris
+            readonly
+            :value="modelValue ?? ''"
             class="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
             @input="on_input"
         )
@@ -31,7 +33,7 @@ div(class="relative shrink-0")
 </template>
 
 <script setup lang="ts">
-// ColorSwatch — compact square swatch that opens a native color picker on click
+// ColorSwatch — compact square swatch that opens the Coloris color picker on click
 
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'

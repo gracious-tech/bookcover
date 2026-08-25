@@ -16,7 +16,7 @@ div(class="flex flex-col gap-2")
                 :ui="{base: text_align_class(form.title_alignment)}"
                 @keydown="block_enter"
             )
-            UPopover(v-model:open="title_style_open[i]" class="flex")
+            UPopover(v-model:open="title_style_open[i]" class="flex" :content="coloris_popover_content")
                 UButton(
                     type="button"
                     color="neutral"
@@ -42,7 +42,7 @@ div(class="flex flex-col gap-1")
     label(class="text-xs font-semibold tracking-[0.02em]") {{ t('content.subtitle_label') }}
     div(class="flex gap-1 items-stretch")
         UTextarea(v-model="form.subtitle" :rows="2" resize="none" class="flex-1" :ui="{base: text_align_class(form.subtitle_alignment)}" @keydown="limit_subtitle")
-        UPopover(v-model:open="subtitle_style_open" class="flex")
+        UPopover(v-model:open="subtitle_style_open" class="flex" :content="coloris_popover_content")
             UButton(
                 type="button"
                 color="neutral"
@@ -68,7 +68,7 @@ div(class="flex flex-col gap-1")
     label(class="text-xs font-semibold tracking-[0.02em]") {{ t('content.author_label') }}
     div(class="flex gap-1 items-stretch")
         UInput(v-model="form.author" class="flex-1" :ui="{base: text_align_class(form.author_alignment)}")
-        UPopover(v-model:open="author_style_open" class="flex")
+        UPopover(v-model:open="author_style_open" class="flex" :content="coloris_popover_content")
             UButton(
                 type="button"
                 color="neutral"
@@ -105,7 +105,7 @@ div(class="flex flex-col gap-1")
                 v-html="blurb_preview_html"
             )
             div(v-else class="text-dimmed italic") {{ t('content.blurb_empty_placeholder') }}
-        UPopover(v-model:open="blurb_style_open" class="flex")
+        UPopover(v-model:open="blurb_style_open" class="flex" :content="coloris_popover_content")
             UButton(
                 type="button"
                 color="neutral"
@@ -137,6 +137,8 @@ import {FORM_KEY} from '../../form_state'
 import type {FormState} from '../../form_state'
 import {generateHTML, generateText} from '@tiptap/vue-3'
 import {blurb_extensions} from '../../blurb_extensions'
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+import {coloris_popover_content} from '../../coloris'
 import BlurbEditorModal from './BlurbEditorModal.vue'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
 import FontStyleOptions from './FontStyleOptions.vue'

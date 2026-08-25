@@ -13,8 +13,6 @@ import {hex_override_to_hsl} from './colors.js'
 // these two are the only values with nothing to contrast against yet.
 const COLOR_DEFAULTS = {
     front_background: 'hsl(0deg, 0%, 100%)',   // K=0%  (white) — imageless, colorless base case
-    accent: 'hsl(0deg, 0%, 20%)',              // K=80% — spine_background when spine_color is
-                                                // entirely unset (not even null)
 }
 
 export interface ResolvedColors {
@@ -32,7 +30,6 @@ export interface ResolvedColors {
     blurb_background:string | null  // null = transparent (no fill)
     spine_title:string
     spine_author:string
-    accent:string
 }
 
 /** Parse an hsl(Hdeg, S%, L%) string into a chroma Color instance */
@@ -497,7 +494,6 @@ function image_backdrop_for_position(
  * auto-contrast against its real backdrop when there's no image (or no tint available).
  */
 export function resolve_colors(schema:CoverSchema, image_regions?:ImageRegions | null):ResolvedColors {
-    const accent = COLOR_DEFAULTS.accent
     const all_regions = image_regions ? all_image_regions(image_regions) : []
 
     // Front background: explicit bg_color wins; else complement the image; else a neutral tan
@@ -558,8 +554,8 @@ export function resolve_colors(schema:CoverSchema, image_regions?:ImageRegions |
         front_gradient_end: shift_hue(front_bg, -35),
         // Back background falls back to front background
         back_background: front_bg,
-        // Spine background: null = no separate spine color; undefined = fall back to accent
-        spine_background: schema.spine_color === undefined ? accent : schema.spine_color,
+        // Spine background: null (or unset) = no separate spine color (spine uses primary)
+        spine_background: schema.spine_color ?? null,
         front_title1: title1,
         front_title2: title2,
         front_title3: title3,
@@ -569,7 +565,6 @@ export function resolve_colors(schema:CoverSchema, image_regions?:ImageRegions |
         blurb_background,
         spine_title: schema.spine_title_color ?? spine_text,
         spine_author: schema.spine_author_color ?? spine_text,
-        accent,
     }
 }
 

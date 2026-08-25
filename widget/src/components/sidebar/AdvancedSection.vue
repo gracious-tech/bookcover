@@ -10,7 +10,7 @@ div(class="flex flex-col gap-1")
             :placeholder="spine_title_placeholder"
             class="flex-1"
         )
-        UPopover(v-model:open="spine_title_style_open" class="flex")
+        UPopover(v-model:open="spine_title_style_open" class="flex" :content="coloris_popover_content")
             UButton(
                 type="button"
                 color="neutral"
@@ -38,7 +38,7 @@ div(class="flex flex-col gap-1")
             :placeholder="form.author || t('advanced.author_name_placeholder')"
             class="flex-1"
         )
-        UPopover(v-model:open="spine_author_style_open" class="flex")
+        UPopover(v-model:open="spine_author_style_open" class="flex" :content="coloris_popover_content")
             UButton(
                 type="button"
                 color="neutral"
@@ -180,6 +180,8 @@ import {ref, computed, inject} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {FORM_KEY, make_blank_form_values} from '../../form_state'
 import {default_spine_title} from 'bookcover-web'
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+import {coloris_popover_content} from '../../coloris'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
 import FontStyleOptions from './FontStyleOptions.vue'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings

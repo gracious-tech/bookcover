@@ -8,6 +8,7 @@ import type {Messages} from './eng'
 const vie:Messages = {
     common: {
         auto: 'Tự động',
+        chosen: 'Đã chọn',
         close: 'Đóng',
         cancel: 'Hủy',
         done: 'Xong',

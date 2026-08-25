@@ -9,6 +9,8 @@ const eng = {
     common: {
         // generic "use the automatically-derived value" toggle (font picker, blurb background)
         auto: 'Auto',
+        // color picker swatch group label for the user's own explicitly-chosen colors
+        chosen: 'Chosen',
         // generic modal/dialog dismiss button or aria-label
         close: 'Close',
         cancel: 'Cancel',

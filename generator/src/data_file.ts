@@ -158,7 +158,6 @@ export function build_data_file(
     lines.push(color('color_blurb_bg', colors.blurb_background))
     lines.push(color('color_spine_title', colors.spine_title))
     lines.push(color('color_spine_author', colors.spine_author))
-    lines.push(color('color_accent', colors.accent))
     lines.push('')
 
     // Typography

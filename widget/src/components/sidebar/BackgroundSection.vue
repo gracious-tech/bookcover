@@ -89,7 +89,9 @@ div(class="flex flex-col gap-1")
                         :style="{background: form.bg_color ?? effective_bg_color}"
                     )
                         input(
-                            type="color"
+                            type="text"
+                            data-coloris
+                            readonly
                             :value="form.bg_color ?? effective_bg_color"
                             class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                             @input="on_bg_color_input"
@@ -233,15 +235,15 @@ div(class="flex flex-col gap-1")
     div(class="flex items-center gap-[12px]")
 
         //- Preview swatch: a plain styled div carries the visible color/text so it paints in
-        //- normal DOM order — native color inputs render via their own widget layer (esp. on
-        //- Linux/GTK) and can composite above sibling overlays regardless of z-index, which
-        //- made the "auto" label unreadable. The actual input is invisible and just relays clicks
+        //- normal DOM order. The actual input is invisible and just relays clicks
         label(
             class="relative w-[40px] h-[40px] rounded cursor-pointer overflow-hidden shrink-0 block"
             :style="{background: form.bg_color ?? effective_bg_color}"
         )
             input(
-                type="color"
+                type="text"
+                data-coloris
+                readonly
                 :value="form.bg_color ?? effective_bg_color"
                 class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 @input="on_bg_color_input"

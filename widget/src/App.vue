@@ -32,6 +32,8 @@ import {assets_prefix} from './assets'
 import {init_embed, embed_seeded} from './embed'
 import {fetch_bg_file} from './services/backgrounds'
 import {init_image_regions_cache} from './image_regions_cache'
+import {init_color_palette_cache} from './color_palette'
+import {init_coloris} from './coloris'
 
 import SidebarPanel from './components/sidebar/SidebarPanel.vue'
 import PreviewPane from './components/preview/PreviewPane.vue'
@@ -47,6 +49,8 @@ const {t} = useI18n()
 const form = embed_seeded.value ? make_blank_form() : make_form()
 provide(FORM_KEY, form)
 init_image_regions_cache(form)
+init_color_palette_cache(form)
+init_coloris()
 
 // Wire up the postMessage embed API — no-ops when not running inside an iframe
 init_embed(form)
