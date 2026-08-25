@@ -15,7 +15,7 @@
      stroke-linecap="round"
      stroke-linejoin="round"
      id="polyline1"
-     transform="matrix(1.083682,0,0,1,-53.373262,-100)"
+     transform="matrix(1.083682,0,0,1,-53.373262,-140)"
      style="stroke-linecap:square;stroke-linejoin:miter" />
   <polyline
      points="40,810 640,560 1235,810"
@@ -25,7 +25,7 @@
      stroke-linecap="round"
      stroke-linejoin="round"
      id="polyline2"
-     transform="matrix(1.083682,0,0,1,-53.373262,-100)"
+     transform="matrix(1.083682,0,0,1,-53.373262,-140)"
      style="stroke-linecap:square;stroke-linejoin:miter" />
   <polyline
      points="40,720 640,470 1235,720"
@@ -35,6 +35,6 @@
      stroke-linecap="round"
      stroke-linejoin="round"
      id="polyline3"
-     transform="matrix(1.083682,0,0,1,-53.373262,-100)"
+     transform="matrix(1.083682,0,0,1,-53.373262,-140)"
      style="stroke-linecap:square;stroke-linejoin:miter" />
 </svg>

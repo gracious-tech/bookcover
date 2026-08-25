@@ -10,7 +10,7 @@
   <g
      fill="#6e79ac"
      id="g2"
-     transform="translate(532.58681,111.33171)">
+     transform="translate(492.58681,111.33171)">
     <rect
        x="300"
        y="540"
@@ -27,7 +27,7 @@
   <g
      fill="#be89b3"
      id="g4"
-     transform="translate(344.5265,60.179301)">
+     transform="translate(304.5265,60.179301)">
     <rect
        x="440"
        y="470"
@@ -44,7 +44,7 @@
   <g
      fill="#76538e"
      id="g6"
-     transform="translate(344.5265,60.179301)">
+     transform="translate(304.5265,60.179301)">
     <rect
        x="600"
        y="580"
@@ -61,7 +61,7 @@
   <g
      fill="#6e79ac"
      id="g8"
-     transform="translate(170.00652,48.14344)">
+     transform="translate(130.00652,48.14344)">
     <rect
        x="740"
        y="500"
@@ -78,7 +78,7 @@
   <g
      fill="#be89b3"
      id="g10"
-     transform="translate(170.00652,48.14344)">
+     transform="translate(130.00652,48.14344)">
     <rect
        x="880"
        y="560"
@@ -94,7 +94,8 @@
   </g>
   <g
      fill="#76538e"
-     id="g12">
+     id="g12"
+     transform="translate(-40)">
     <rect
        x="1020"
        y="480"
@@ -111,7 +112,7 @@
   <g
      fill="#6e79ac"
      id="g14"
-     transform="translate(-9.0268951,-31.594133)">
+     transform="translate(-49.026895,-31.594133)">
     <rect
        x="1150"
        y="580"
@@ -127,7 +128,8 @@
   </g>
   <g
      fill="#be89b3"
-     id="g16">
+     id="g16"
+     transform="translate(-40)">
     <rect
        x="1180"
        y="650"
