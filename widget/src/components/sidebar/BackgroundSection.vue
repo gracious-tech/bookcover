@@ -7,36 +7,44 @@ div(class="flex flex-col gap-1")
 
     //- Trigger + suggested images and upload/paste buttons
     div(class="flex gap-1 items-center")
-        button(
-            type="button"
-            class="flex rounded border border-default overflow-hidden cursor-pointer shrink-0 hover:opacity-80 transition-opacity"
-            :aria-label="t('background.choose_suggested_aria')"
-            @click="bg_picker_open = true"
-        )
-            img(
-                v-if="bg_image_url"
-                :src="bg_image_url"
-                alt="Current background"
-                class="w-12 h-12 object-cover block"
+        div(class="flex items-center gap-1")
+            button(
+                v-if="has_active_bg"
+                type="button"
+                class="flex rounded border border-default overflow-hidden cursor-pointer shrink-0 hover:opacity-80 transition-opacity"
+                :aria-label="t('background.choose_suggested_aria')"
+                @click="bg_picker_open = true"
             )
-            div(
-                v-else-if="selected_vector_bg"
-                class="w-12 h-12 block"
-                :style="{backgroundColor: effective_bg_color, backgroundImage: get_vector_preview_url(selected_vector_bg, effective_bg_color), backgroundSize: 'cover'}"
+                img(
+                    v-if="bg_image_url"
+                    :src="bg_image_url"
+                    alt="Current background"
+                    class="w-12 h-12 object-cover block"
+                )
+                div(
+                    v-else-if="selected_vector_bg"
+                    class="w-12 h-12 block"
+                    :style="{backgroundColor: effective_bg_color, backgroundImage: get_vector_preview_url(selected_vector_bg, effective_bg_color), backgroundSize: 'cover'}"
+                )
+            button(
+                type="button"
+                class="flex rounded border border-default overflow-hidden cursor-pointer shrink-0 hover:opacity-80 transition-opacity"
+                :aria-label="t('background.choose_suggested_aria')"
+                @click="bg_picker_open = true"
             )
-            img(
-                v-else
-                v-for="bg in PREVIEW_BGS"
-                :key="bg"
-                :src="bg_thumb_url(bg)"
-                :alt="bg"
-                class="w-12 h-12 object-cover block"
-            )
+                img(
+                    v-for="bg in PREVIEW_BGS"
+                    :key="bg"
+                    :src="bg_thumb_url(bg)"
+                    :class="has_active_bg ? 'w-6 h-6 object-cover block' : 'w-12 h-12 object-cover block'"
+                    :alt="bg"
+                )
         label(class="cursor-pointer")
             input(type="file" accept=".jpg,.jpeg,.png,.webp" class="sr-only" @change="on_image_change")
             UButton(as="span" color="neutral" variant="outline" size="sm") {{ t('background.upload_button') }}
         UButton(type="button" color="neutral" variant="outline" size="sm" @click="on_paste_click") {{ t('background.paste_button') }}
         UButton(
+            v-if="has_active_bg"
             type="button"
             color="neutral"
             variant="ghost"
@@ -640,6 +648,11 @@ const pattern_preview_fill = computed(() => form.pattern_color ?? contrast_color
 const selected_vector_bg = computed(() => (
     form.bg_vector_id ? find_vector_background(form.bg_vector_id) : undefined
 ))
+
+// Whether the trigger is showing an active image/vector preview — shrinks the suggested
+// examples so they fit alongside it instead of replacing them
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+const has_active_bg = computed(() => !!bg_image_url.value || !!selected_vector_bg.value)
 
 // Intrinsic pixel dimensions of the current bg_image, decoded async whenever the file changes
 const bg_image_px = ref<{width:number, height:number} | null>(null)
