@@ -518,8 +518,8 @@ async function run_generate():Promise<void> {
         // Full res still used for save and export
         const dims = compute_cover_dims(form)
         const dpi = 96 * 2  // Standard screen 96dpi × 2 for zoom
-        const preview_w = Math.round(dims.cover_total_width.toNumber() * dpi)
-        const preview_h = Math.round(dims.cover_total_height.toNumber() * dpi)
+        const preview_w = Math.round(dims.cover_total_width.toNumber() / 25.4 * dpi)
+        const preview_h = Math.round(dims.cover_total_height.toNumber() / 25.4 * dpi)
         const img = await read_image_preview(form, preview_w, preview_h)
 
         // Generate SVG with split panels (needed for 3D renderer and split view). image_regions
