@@ -157,6 +157,15 @@ function auto_contrast_text(bg:string):string {
         : 'hsl(0deg, 0%, 10%)'   // near-black (K90% for print)
 }
 
+/** Same contrast choice as auto_contrast_text, but hex-in/hex-out — for callers (pick_vivid_tint)
+ *  that need to stay in hex rather than the hsl(Hdeg, S%, L%) string format */
+function auto_contrast_hex(bg_hex:string):string {
+    const white = chroma.hsl(0, 0, 1)
+    const black = chroma.hsl(0, 0, 0.1)
+    const bg = chroma(bg_hex)
+    return (contrast_ratio(white, bg) >= contrast_ratio(black, bg) ? white : black).hex()
+}
+
 // A dominant color sampled from one region of a background image — hue 0-360deg,
 // saturation/lightness as 0-1 fractions (chroma's convention, matching the rest of this file).
 // lightness_spread is the standard deviation of per-pixel lightness within the region (0 for a
@@ -317,12 +326,8 @@ const EXTREME_BACKDROP_LIGHTNESS:[number, number] = [0.1, 0.9]
  */
 export function pick_vivid_tint(candidates:RegionStats[], backdrop:RegionStats, min_contrast = 4.5):string {
     const backdrop_hex = region_hex(backdrop)
-    if (backdrop.lightness < EXTREME_BACKDROP_LIGHTNESS[0] || backdrop.lightness > EXTREME_BACKDROP_LIGHTNESS[1]) {
-        const white = chroma.hsl(0, 0, 1)
-        const black = chroma.hsl(0, 0, 0.1)
-        const bg = chroma(backdrop_hex)
-        return (contrast_ratio(white, bg) >= contrast_ratio(black, bg) ? white : black).hex()
-    }
+    if (backdrop.lightness < EXTREME_BACKDROP_LIGHTNESS[0] || backdrop.lightness > EXTREME_BACKDROP_LIGHTNESS[1])
+        return auto_contrast_hex(backdrop_hex)
     const TIE_EPSILON = 0.01
     const grayscale:RegionStats = {hue: 0, saturation: 0, lightness: 0.5, lightness_spread: 0}
     const pool = [...candidates, grayscale]
@@ -331,7 +336,12 @@ export function pick_vivid_tint(candidates:RegionStats[], backdrop:RegionStats, 
         // band like a real candidate would turn it into a hue=0 (red) color instead of neutral
         const sat = region === grayscale ? 0
             : Math.min(TINT_SATURATION_RANGE[1], Math.max(TINT_SATURATION_RANGE[0], region.saturation))
-        const hex = tinted_contrast_text(region.hue, sat, backdrop_hex, min_contrast)
+        // The grayscale fallback goes straight to black/white rather than through
+        // tinted_contrast_text — at 0 saturation that can plateau at an actual mid-gray (l=0.5)
+        // whenever plain gray already clears min_contrast, which reads as washed-out, not neutral
+        const hex = region === grayscale
+            ? auto_contrast_hex(backdrop_hex)
+            : tinted_contrast_text(region.hue, sat, backdrop_hex, min_contrast)
         const lightness = chroma(hex).hsl()[2] || 0
         let deviation = Math.abs(lightness - 0.5)
         // The grayscale entry is the deliberate neutral fallback — its 0 saturation must never
