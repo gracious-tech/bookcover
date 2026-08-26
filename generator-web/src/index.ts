@@ -138,6 +138,10 @@ async function canvas_crop(
 // dominant-color read while keeping the pixel scan cheap
 const IMAGE_REGIONS_MAX_DIM = 400
 
+// How many generate() calls to allow between forced memory resets, as a fallback for whatever
+// slow growth an image-identity change alone wouldn't catch — see reset_memory_if_needed
+const MEMORY_RESET_INTERVAL = 25
+
 /**
  * Sample a background image's dominant colors, under both interpretations at once — see
  * analyze_pixel_regions for what `dims` does. Skips decoding entirely when the image matches a
@@ -188,6 +192,13 @@ export class CoverGenerator {
     // Identity-based ids for custom font byte arrays (see custom_font_id)
     private custom_font_ids = new WeakMap<Uint8Array, number>()
     private next_custom_font_id = 1
+
+    // Fingerprint (size:type) of the background image passed to the last generate() call, so a
+    // new image (the main driver of WASM memory growth — see reset_memory_if_needed) is detected
+    // without hashing bytes. null means no image.
+    private last_image_key:string | null = null
+    // generate() calls since the last memory reset — MEMORY_RESET_INTERVAL fallback trigger
+    private generates_since_reset = 0
 
     constructor(opts:InitOptions, renderer:TypstRenderer | null) {
         this.opts = opts
@@ -258,6 +269,42 @@ export class CoverGenerator {
         })
 
         this.compiler = c
+    }
+
+    /** Recreate the renderer WASM instance. Unlike the compiler, the renderer has no reset()
+     *  of its own (see reset_memory_if_needed), so periodically discarding and rebuilding it is
+     *  the only way to let its grown-but-unneeded WASM memory become garbage-collectable. */
+    private async reinit_renderer():Promise<void> {
+        if (!this.opts.renderer_wasm_url) return
+        const r = createTypstRenderer()
+        await r.init({
+            getModule: () => ({module_or_path: this.opts.renderer_wasm_url!}),
+            beforeBuild: [loadFonts([])],
+        })
+        this.renderer = r
+    }
+
+    /** WASM linear memory only grows, never shrinks, so a compiler/renderer kept alive across
+     *  many generate() calls ratchets memory upward as it processes differently-sized inputs
+     *  (chiefly the background image) — confirmed via a heap snapshot showing two
+     *  WebAssembly.Memory buffers as the overwhelming majority of worker memory after cycling
+     *  through many background images. There's no cheap per-compile eviction exposed by the
+     *  wasm-bindgen bindings (typst's native CompilerUniverse::evict isn't part of the JS API),
+     *  so this calls the heavier compiler.reset() (clears Typst's internal caches, but keeps the
+     *  WASM instance and loaded fonts — much cheaper than a full reinit_compiler) plus a renderer
+     *  rebuild, triggered when the background image changes (the main driver of new memory highs)
+     *  or after MEMORY_RESET_INTERVAL calls as a fallback for slower accumulation. */
+    private async reset_memory_if_needed(image:Blob | undefined):Promise<void> {
+        const image_key = image ? `${image.size}:${image.type}` : null
+        const image_changed = image_key !== this.last_image_key
+        this.last_image_key = image_key
+        this.generates_since_reset += 1
+
+        if (!image_changed && this.generates_since_reset < MEMORY_RESET_INTERVAL) return
+
+        await this.compiler.reset()
+        await this.reinit_renderer()
+        this.generates_since_reset = 0
     }
 
     /** Load the typst file map into the compiler's shadow filesystem */
@@ -378,6 +425,9 @@ export class CoverGenerator {
             await this.reinit_compiler(this.font_urls_for(needed_fonts), options.custom_fonts)
             this.active_fonts = cache_key
         }
+
+        // Bound the compiler/renderer's WASM memory growth — see reset_memory_if_needed
+        await this.reset_memory_if_needed(options.image)
 
         // Convert Blob to ImageInput (Uint8Array + extension) for the core builder
         let image_input:{data:Uint8Array, ext:string} | undefined
