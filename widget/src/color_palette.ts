@@ -162,7 +162,6 @@ export function init_color_palette_cache(form:FormState):void {
         const auto_only = dedupe(auto).filter(c => !chosen_set.has(c.toLowerCase()))
 
         current_cover_colors.value = {chosen, auto: auto_only}
-        console.log('[color_palette] suggested colors — chosen:', chosen, 'auto:', auto_only)
     }
 
     watch(() => [
