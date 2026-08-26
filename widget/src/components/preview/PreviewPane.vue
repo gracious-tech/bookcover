@@ -715,6 +715,15 @@ watch(
     () => { text_changed = true; schedule_generate() },
 )
 
+// Flag set when the background image itself changes, so the deep watcher below skips its
+// immediate (stale-colors) generate and waits for the image_regions watcher instead — avoids
+// rendering once with the new image but the old image's auto-colors, then again moments later
+// once color sampling catches up. Whenever bg_image actually changes, image_regions is
+// guaranteed to be reassigned afterwards (to freshly-sampled regions, or to null if cleared),
+// so exactly one render still always follows — just the single, correct one.
+let bg_image_changed = false
+watch(() => form.bg_image, () => { bg_image_changed = true })
+
 // Push uploaded fonts to the generator worker (it holds a copy, not our array reference),
 // then re-generate with them. Uploads before the worker is ready are sent by App.vue instead.
 watch(all_custom_font_bytes, async (fonts) => {
@@ -724,16 +733,23 @@ watch(all_custom_font_bytes, async (fonts) => {
     void run_generate()
 })
 
-// Background-image color sampling (image_regions_cache.ts) runs debounced and async, so it
-// settles after the deep form watcher below has already generated once with stale/no data —
-// re-generate again once it catches up so auto-matched colors actually appear
+// Background-image color sampling (image_regions_cache.ts) runs debounced and async. This is
+// the sole generate trigger for a bg_image change (the deep watcher below defers to it via
+// bg_image_changed) so the new image renders once, already with its own matched colors, instead
+// of once with stale colors and again once sampling catches up. It also still doubles as a
+// catch-up call for other dims-affecting fields (page size, binding, etc.) that resample colors
+// without going through bg_image_changed.
 watch(image_regions, () => run_generate())
 
 // All other form changes (selects, toggles, etc.) run immediately;
-// text field changes are handled above and suppressed here via the flag
+// text field and background-image changes are handled above and suppressed here via their flags
 watch(
     () => form,
-    () => { if (text_changed) { text_changed = false; return } run_generate() },
+    () => {
+        if (text_changed) { text_changed = false; return }
+        if (bg_image_changed) { bg_image_changed = false; return }
+        run_generate()
+    },
     {deep: true},
 )
 
