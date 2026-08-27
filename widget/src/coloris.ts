@@ -40,18 +40,23 @@ export function init_coloris():void {
     })
 }
 
+/** True if an event target lands inside a currently-open Coloris popup. Coloris always appends
+ *  its popup straight to document.body, so it's never a descendant of whatever trigger/dialog/
+ *  popover opened it — any "outside interaction" detector needs this check or it'll treat every
+ *  click inside the color picker as outside and dismiss its container before a pick registers */
+export function is_inside_coloris_popup(target:EventTarget | null):boolean {
+    return target instanceof Element && !!target.closest('.clr-picker')
+}
+
 /**
  * Nuxt UI's <UPopover> (e.g. the title/subtitle/author/spine text style popovers, via
  * FontStyleOptions.vue's ColorPicker) auto-closes on any "outside" pointerdown/focus, per Reka
- * UI's DismissableLayer. Coloris always appends its own popup straight to document.body, so
- * it's never inside the popover's own DOM subtree — every click inside the color picker reads
- * as an outside interaction and the popover slams shut before a pick can register. Spread this
- * onto that UPopover's `content` prop to tell it clicks/focus inside .clr-picker don't count.
+ * UI's DismissableLayer. Spread this onto that UPopover's `content` prop to tell it clicks/focus
+ * inside .clr-picker don't count — see is_inside_coloris_popup above.
  */
 export const coloris_popover_content = {
     onInteractOutside: (event:CustomEvent<{originalEvent:Event}>) => {
-        const target = event.detail.originalEvent.target
-        if (target instanceof Element && target.closest('.clr-picker'))
+        if (is_inside_coloris_popup(event.detail.originalEvent.target))
             event.preventDefault()
     },
 }

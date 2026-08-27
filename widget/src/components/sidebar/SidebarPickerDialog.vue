@@ -12,8 +12,12 @@ Teleport(to=".sidebar-panel" defer)
         //- Backdrop — blurs the sidebar behind the dialog, click dismisses
         div(class="absolute inset-0 bg-(--ui-bg)/70 backdrop-blur-sm" @click="close")
 
-        //- Panel — padded off the sidebar's edges so the blurred sidebar peeks around it
-        div(ref="panel_el" class="absolute inset-6 flex flex-col rounded-lg border border-(--ui-border) bg-(--ui-bg-elevated) shadow-2xl overflow-hidden" @click.stop)
+        //- Panel — padded off the sidebar's edges so the blurred sidebar peeks around it. No
+        //- @click.stop here: the backdrop's own close handler is a sibling, not an ancestor, so
+        //- it's never reachable by bubbling from panel content anyway — and stopping the click
+        //- would also block Coloris's color picker, which opens via a document-level click
+        //- listener (see coloris.ts) that a stopped click would never reach
+        div(ref="panel_el" class="absolute inset-6 flex flex-col rounded-lg border border-(--ui-border) bg-(--ui-bg-elevated) shadow-2xl overflow-hidden")
             div(class="shrink-0 border-b border-(--ui-border)")
                 div(class="flex items-center justify-between px-4 py-3")
                     h2(class="text-sm font-semibold") {{ title }}
@@ -48,6 +52,7 @@ Teleport(to=".sidebar-panel" defer)
 
 import {ref, watch, onUnmounted} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {is_inside_coloris_popup} from '../../coloris'
 
 const props = defineProps<{open:boolean, title:string}>()
 const emit = defineEmits<{(e:'update:open', val:boolean):void}>()
@@ -66,9 +71,14 @@ function on_keydown(e:KeyboardEvent):void {
 }
 
 // Clicks outside the panel close it, including clicks outside the sidebar itself (e.g. the
-// preview pane) — the backdrop's own @click only covers clicks confined to the sidebar box
+// preview pane) — the backdrop's own @click only covers clicks confined to the sidebar box.
+// Coloris's popup lives outside the panel (appended straight to document.body — see
+// is_inside_coloris_popup), so it needs an explicit exemption or picking a color closes
+// the whole dialog before the pick registers
 function on_pointerdown(e:PointerEvent):void {
-    if (panel_el.value && !panel_el.value.contains(e.target as Node)) close()
+    if (!panel_el.value || panel_el.value.contains(e.target as Node)) return
+    if (is_inside_coloris_popup(e.target)) return
+    close()
 }
 
 watch(() => props.open, (is_open) => {
