@@ -47,7 +47,7 @@ div(class="flex items-center gap-1.5 w-fit")
 <script setup lang="ts">
 // ColorPicker — button whose background is the chosen color, with contrast-aware text
 
-import {computed, ref} from 'vue'
+import {computed, ref, onUnmounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {contrast_color} from '../../svg_utils'
 
@@ -92,11 +92,25 @@ const text_color = computed(() => props.modelValue ? contrast_color(props.modelV
 
 // Debounce timer — emit only after period of no changes
 const debounce_timer = ref<ReturnType<typeof setTimeout> | null>(null)
+let pending_value:string | null = null
 
 /** Debounce color input: emit to v-model only after period of no changes */
 function on_input(e:Event): void {
     const value = (e.target as HTMLInputElement).value
+    pending_value = value
     if (debounce_timer.value !== null) clearTimeout(debounce_timer.value)
-    debounce_timer.value = setTimeout(() => emit('update:modelValue', value), 800)
+    debounce_timer.value = setTimeout(() => {
+        debounce_timer.value = null
+        emit('update:modelValue', pending_value)
+    }, 800)
 }
+
+// Flush a pending debounced pick immediately on unmount (e.g. a style popover closing right
+// after a pick) — otherwise Vue's emit() silently no-ops once the component is unmounted, and
+// the change is lost with no error
+onUnmounted(() => {
+    if (debounce_timer.value === null) return
+    clearTimeout(debounce_timer.value)
+    emit('update:modelValue', pending_value)
+})
 </script>

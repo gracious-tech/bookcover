@@ -35,7 +35,7 @@ div(class="relative shrink-0")
 <script setup lang="ts">
 // ColorSwatch — compact square swatch that opens the Coloris color picker on click
 
-import {ref} from 'vue'
+import {ref, onUnmounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 
 const props = withDefaults(defineProps<{
@@ -53,11 +53,25 @@ const {t} = useI18n()
 
 // Debounce timer — emit only after 2s of no changes
 const debounce_timer = ref<ReturnType<typeof setTimeout> | null>(null)
+let pending_value:string | null = null
 
 /** Debounce color input: emit to v-model only after 2s of no changes */
 function on_input(e:Event): void {
     const value = (e.target as HTMLInputElement).value
+    pending_value = value
     if (debounce_timer.value !== null) clearTimeout(debounce_timer.value)
-    debounce_timer.value = setTimeout(() => emit('update:modelValue', value), 2000)
+    debounce_timer.value = setTimeout(() => {
+        debounce_timer.value = null
+        emit('update:modelValue', pending_value)
+    }, 2000)
 }
+
+// Flush a pending debounced pick immediately on unmount (e.g. a picker dialog closing right
+// after a pick) — otherwise Vue's emit() silently no-ops once the component is unmounted, and
+// the change is lost with no error
+onUnmounted(() => {
+    if (debounce_timer.value === null) return
+    clearTimeout(debounce_timer.value)
+    emit('update:modelValue', pending_value)
+})
 </script>
