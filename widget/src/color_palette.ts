@@ -14,7 +14,7 @@
 import {ref, watch} from 'vue'
 import {generateText} from '@tiptap/vue-3'
 import {resolve_colors, cover_schema, hex_override_to_hsl, darken_hsl,
-    synthesize_fill, all_image_regions} from 'bookcover-web'
+    synthesize_fill, all_image_regions, generate_palette} from 'bookcover-web'
 import type {ResolvedColors} from 'bookcover-web'
 import type {FormState} from './form_state'
 import {build_schema} from './schema'
@@ -22,6 +22,7 @@ import {blurb_extensions} from './blurb_extensions'
 import {image_regions} from './image_regions_cache'
 import {compute_cover_dims} from './dimensions'
 import {debounce} from './svg_utils'
+import {find_vector_background} from './services/vector_backgrounds'
 
 /** True once the blurb's ProseMirror doc actually contains text (the blank-form doc is a
  *  single empty paragraph, which generates to an empty string) */
@@ -153,6 +154,17 @@ export function init_color_palette_cache(form:FormState):void {
                 auto.push(to_hsl_str(
                     schema.icon_color ?? image_accent ?? darken_hsl(resolved.front_background, 0.4)))
             }
+
+            // A vector background recolors itself from a small generated palette (see
+            // generate_palette/find_vector_background) rather than a single auto color — mirror
+            // that same derivation here so its palette shows up as suggestions too
+            if (schema.bg_vector_id) {
+                const design = find_vector_background(schema.bg_vector_id)
+                if (design) {
+                    const palette = generate_palette(resolved.front_background, design.color_count, design.scheme)
+                    auto.push(...palette.map(to_hsl_str))
+                }
+            }
         } catch {
             // Form isn't in a resolvable state yet (mid-edit/incomplete) — explicit colors alone
         }
@@ -168,7 +180,7 @@ export function init_color_palette_cache(form:FormState):void {
         // Explicit color fields + the content fields their "active" checks read
         ...COLOR_FIELDS.map(spec => form[spec.form_key]),
         form.title2, form.title3, form.subtitle, form.author, form.blurb,
-        form.pattern_id, form.icon_id, form.bg_color_gradient,
+        form.pattern_id, form.icon_id, form.bg_color_gradient, form.bg_vector_id,
         // Dimension-affecting fields (mirrors image_regions_cache.ts) — has_spine/has_spine_text
         // depend on these, and image_regions.value alone doesn't change when there's no bg image
         form.service_id, form.size_id, form.page_count, form.binding_type,
