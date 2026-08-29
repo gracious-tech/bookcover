@@ -137,7 +137,7 @@ div(class="flex flex-col gap-1")
         //- mobile since the dialog is full-screen there and these buttons duplicate the
         //- always-visible coverage row below the trigger (BackgroundSection.vue's own)
         template(#header-extra)
-            div(v-if='(form.bg_image || form.bg_vector_id) && !is_mobile' class="flex")
+            div(v-if='form.bg_image && !is_mobile' class="flex")
                 UButton(
                     type="button"
                     color="neutral"
@@ -189,8 +189,8 @@ div(class="flex flex-col gap-1")
             UButton(type="button" color="neutral" variant="outline" size="sm" @click="on_paste_click") {{ t('background.paste_button') }}
 
 
-//- Background image coverage
-div(v-if='form.bg_image || form.bg_vector_id' class="flex flex-col gap-1")
+//- Background image coverage — hidden for vector backgrounds (always full-wrap, forced by the generator)
+div(v-if='form.bg_image' class="flex flex-col gap-1")
     div(class="text-xs font-semibold tracking-[0.02em]") {{ t('background.position_label') }}
     div(class="flex mt-3")
         UButton(
@@ -734,8 +734,8 @@ async function select_suggested_bg(filename:string): Promise<void> {
 function select_vector_bg(id:string): void {
     form.bg_image = null
     form.bg_vector_id = id
-    if (form.bg_image_coverage !== 'full' && form.bg_image_coverage !== 'front')
-        form.bg_image_coverage = 'full'
+    // Vector backgrounds are always rendered full-wrap (generator forces it, position UI is hidden)
+    form.bg_image_coverage = 'full'
 }
 
 /** Clear whichever background (photo or vector design) is currently active */

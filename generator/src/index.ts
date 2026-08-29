@@ -136,6 +136,9 @@ export async function build(
         spine_title: schema.spine_title
             ?? default_spine_title(schema.title1, schema.title2, schema.title3),
         spine_author: schema.spine_author ?? schema.author,
+        // Built-in vector backgrounds are full-wrap designs — always spread them across the whole
+        // cover regardless of the requested coverage (the widget hides the position option for them)
+        bg_image_coverage: (!image && schema.bg_vector_id) ? 'full' : schema.bg_image_coverage,
     }
 
     // Get cover dimensions from printing-services
