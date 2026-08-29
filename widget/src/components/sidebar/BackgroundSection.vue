@@ -24,7 +24,7 @@ div(class="flex flex-col gap-1")
                 div(
                     v-else-if="selected_vector_bg"
                     class="w-12 h-12 block"
-                    :style="{backgroundColor: effective_bg_color, backgroundImage: get_vector_preview_url(selected_vector_bg, effective_bg_color), backgroundSize: 'cover'}"
+                    :style="{backgroundColor: effective_bg_color, backgroundImage: get_vector_preview_url(selected_vector_bg, effective_bg_color), backgroundSize: 'cover', backgroundPosition: 'right center'}"
                 )
             button(
                 type="button"
@@ -121,14 +121,14 @@ div(class="flex flex-col gap-1")
                                 @click="form.bg_color = color"
                             )
 
-                div(class="grid gap-1.5" style="grid-template-columns: repeat(auto-fill, minmax(140px, 1fr))")
+                div(class="grid gap-1.5" style="grid-template-columns: repeat(3, 1fr)")
                     button(
                         v-for="v in VECTOR_BACKGROUNDS"
                         :key="v.id"
                         type="button"
-                        class="aspect-4/3 rounded border-2 overflow-hidden cursor-pointer touch-manipulation transition-transform duration-100 hover:scale-[1.05]"
+                        class="aspect-2/3 rounded border-2 overflow-hidden cursor-pointer touch-manipulation transition-transform duration-100 hover:scale-[1.05]"
                         :class="form.bg_vector_id === v.id ? 'border-(--ui-text)' : 'border-transparent'"
-                        :style="{backgroundColor: effective_bg_color, backgroundImage: get_vector_preview_url(v, effective_bg_color), backgroundSize: 'cover'}"
+                        :style="{backgroundColor: effective_bg_color, backgroundImage: get_vector_preview_url(v, effective_bg_color), backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'right center'}"
                         :title="v.name"
                         @click="select_vector_bg(v.id)"
                     )

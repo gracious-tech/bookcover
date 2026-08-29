@@ -14,7 +14,9 @@ export function find_vector_background(id:string):VectorBackgroundDef | undefine
 }
 
 /** Generate a CSS background-image data URL for the preview thumbnail, deriving the
- *  design's palette live from the given background color (hex or hsl() string) */
+ *  design's palette live from the given background color (hex or hsl() string). Designs are
+ *  full-wrap (1275x900, front face is the rightmost 600px); callers show just the front face
+ *  with a 2:3 thumbnail box plus background-size:cover and background-position:right. */
 export function get_preview_url(design:VectorBackgroundDef | undefined, base_color:string):string {
     if (!design) return ''
     const palette = generate_palette(base_color, design.color_count, design.scheme)
