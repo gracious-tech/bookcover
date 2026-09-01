@@ -241,7 +241,7 @@ export function make_blank_form_values(): FormState {
         custom_spine: 10,
 
         margin_front: 8,
-        margin_back: 8,
+        margin_back: 5,
         home_print_margin: false,
 
         // BACKGROUND — white, no image, no icon, no pattern
