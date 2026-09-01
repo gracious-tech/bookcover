@@ -151,8 +151,8 @@ export function build_schema(
         title_alignment: form.title_alignment !== 'center' ? form.title_alignment : undefined,
         title_position: form.title_position,
         title_spacing: form.title_spacing !== 3 ? form.title_spacing : undefined,
-        title_margin_top: form.title_margin_top !== 10 ? form.title_margin_top : undefined,
-        title_margin_bottom: form.title_margin_bottom !== 10 ? form.title_margin_bottom : undefined,
+        title_margin_top: form.title_margin_top !== 3 ? form.title_margin_top : undefined,
+        title_margin_bottom: form.title_margin_bottom !== 3 ? form.title_margin_bottom : undefined,
 
         subtitle: form.subtitle ? q(form.subtitle) : undefined,
         subtitle_font: build_font_config(form.subtitle_font, custom_fonts),
@@ -163,8 +163,8 @@ export function build_schema(
         subtitle_alignment: form.subtitle_alignment !== 'center' ? form.subtitle_alignment : undefined,
         subtitle_position: form.subtitle_position,
         subtitle_spacing: form.subtitle_spacing !== 1.5 ? form.subtitle_spacing : undefined,
-        subtitle_margin_top: form.subtitle_margin_top !== 10 ? form.subtitle_margin_top : undefined,
-        subtitle_margin_bottom: form.subtitle_margin_bottom !== 10 ? form.subtitle_margin_bottom : undefined,
+        subtitle_margin_top: form.subtitle_margin_top !== 3 ? form.subtitle_margin_top : undefined,
+        subtitle_margin_bottom: form.subtitle_margin_bottom !== 3 ? form.subtitle_margin_bottom : undefined,
 
         author: form.author ? q(form.author) : undefined,
         author_font: build_font_config(form.author_font, custom_fonts),
@@ -174,8 +174,8 @@ export function build_schema(
         author_color: hex_override_to_hsl(form.author_color) ?? undefined,
         author_alignment: form.author_alignment !== 'center' ? form.author_alignment : undefined,
         author_position: form.author_position,
-        author_margin_top: form.author_margin_top !== 10 ? form.author_margin_top : undefined,
-        author_margin_bottom: form.author_margin_bottom !== 10 ? form.author_margin_bottom : undefined,
+        author_margin_top: form.author_margin_top !== 3 ? form.author_margin_top : undefined,
+        author_margin_bottom: form.author_margin_bottom !== 3 ? form.author_margin_bottom : undefined,
 
         blurb: build_blurb(form.blurb),
         blurb_font: build_font_config(form.blurb_font, custom_fonts),
@@ -187,8 +187,8 @@ export function build_schema(
                 ? null  // transparent
                 : hex_override_to_hsl(form.blurb_bg_color) ?? undefined,
         blurb_alignment: form.blurb_alignment !== 'left' ? form.blurb_alignment : undefined,
-        blurb_padding: form.blurb_padding !== 7 ? form.blurb_padding : undefined,
-        blurb_width: form.blurb_width !== 80 ? form.blurb_width : undefined,
+        blurb_padding: form.blurb_padding !== 3 ? form.blurb_padding : undefined,
+        blurb_width: form.blurb_width !== 100 ? form.blurb_width : undefined,
         blurb_spacing: form.blurb_spacing !== 1 ? form.blurb_spacing : undefined,
 
         spine_title: form.spine_title || undefined,
@@ -212,8 +212,8 @@ export function build_schema(
         paper_type: form.paper_type || undefined,
         ...size_fields,
 
-        margin_front: form.margin_front !== 10 ? form.margin_front : undefined,
-        margin_back: form.margin_back !== 10 ? form.margin_back : undefined,
+        margin_front: form.margin_front !== 8 ? form.margin_front : undefined,
+        margin_back: form.margin_back !== 5 ? form.margin_back : undefined,
         home_print_margin: form.home_print_margin || undefined,
 
         // Background

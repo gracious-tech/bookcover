@@ -209,19 +209,19 @@ export function build_data_file(
     const face_height_mm = dims.cover_face_height.toNumber()
     const face_width_mm = dims.cover_face_width.toNumber()
     const cover_margin_mm = dims.cover_margin.toNumber()
-    // Blurb padding (% of face_width, resolved to mm) — computed early as back margin depends on it
+    // Blurb padding (% of face height, resolved to mm) — computed early as back margin depends on it
     const min_blurb_padding_mm = 5
     const blurb_padding_mm = Math.max(
-        face_height_mm * (schema.blurb_padding ?? 1) / 100, min_blurb_padding_mm)
+        face_height_mm * (schema.blurb_padding ?? 3) / 100, min_blurb_padding_mm)
     // Front minimum is 0.5" or the service's cover margin, whichever is greater
     const min_front_margin_mm = Math.max(13, cover_margin_mm)  // 13mm = ~0.5"
     // Back minimum is cover margin minus blurb padding (blurb sits inside the margin)
     const min_back_margin_mm = cover_margin_mm - blurb_padding_mm
     const front_margin_mm = Math.max(
-        face_height_mm * (schema.margin_front ?? 10) / 100, min_front_margin_mm,
+        face_height_mm * (schema.margin_front ?? 8) / 100, min_front_margin_mm,
     )
     const back_margin_mm = Math.max(
-        face_height_mm * (schema.margin_back ?? 10) / 100, min_back_margin_mm,
+        face_height_mm * (schema.margin_back ?? 5) / 100, min_back_margin_mm,
     )
     lines.push(mmval('front_margin', front_margin_mm))
     lines.push(mmval('back_margin', back_margin_mm))
@@ -236,7 +236,7 @@ export function build_data_file(
     // blurb_width can't get pushed past the fore-edge margin once centering shifts it left.
     const back_content_w_mm = face_width_mm - back_margin_mm * 2 - spiral_margin_mm
     const blurb_w_mm = Math.min(
-        face_width_mm * (schema.blurb_width ?? 80) / 100, back_content_w_mm,
+        face_width_mm * (schema.blurb_width ?? 100) / 100, back_content_w_mm,
     )
     lines.push(mmval('blurb_width', blurb_w_mm))
     lines.push(mmval('blurb_padding', blurb_padding_mm))
@@ -246,13 +246,13 @@ export function build_data_file(
     // Vertical margins (% of face height)
     lines.push('// Vertical margins')
     lines.push(num('title_spacing', schema.title_spacing ?? 3))
-    lines.push(num('title_margin_top', schema.title_margin_top ?? 10))
-    lines.push(num('title_margin_bottom', schema.title_margin_bottom ?? 10))
+    lines.push(num('title_margin_top', schema.title_margin_top ?? 3))
+    lines.push(num('title_margin_bottom', schema.title_margin_bottom ?? 3))
     lines.push(num('subtitle_spacing', schema.subtitle_spacing ?? 1.5))
-    lines.push(num('subtitle_margin_top', schema.subtitle_margin_top ?? 10))
-    lines.push(num('subtitle_margin_bottom', schema.subtitle_margin_bottom ?? 10))
-    lines.push(num('author_margin_top', schema.author_margin_top ?? 10))
-    lines.push(num('author_margin_bottom', schema.author_margin_bottom ?? 10))
+    lines.push(num('subtitle_margin_top', schema.subtitle_margin_top ?? 3))
+    lines.push(num('subtitle_margin_bottom', schema.subtitle_margin_bottom ?? 3))
+    lines.push(num('author_margin_top', schema.author_margin_top ?? 3))
+    lines.push(num('author_margin_bottom', schema.author_margin_bottom ?? 3))
     lines.push('')
 
     // Image, icon, and barcode
