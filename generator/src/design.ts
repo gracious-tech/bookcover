@@ -549,7 +549,10 @@ export function resolve_colors(schema:CoverSchema, image_regions?:ImageRegions |
     const blurb_background = schema.blurb_bg_color === null ? null
         : schema.blurb_bg_color ?? to_hsl(chroma.hsl(
             blurb_h || 0, blurb_s, is_dark(blurb_backdrop) ? Math.min(blurb_l, 0.25) : Math.max(blurb_l, 0.75)))
-    const blurb = schema.blurb_color ?? auto_contrast_text(to_hsl(blurb_backdrop))
+    // Auto blurb text contrasts against the fill it actually sits on: the resolved container
+    // background when solid, or the cover backdrop when the box is transparent
+    const blurb_text_bg = blurb_background === null ? blurb_backdrop : parse_color(blurb_background)
+    const blurb = schema.blurb_color ?? auto_contrast_text(to_hsl(blurb_text_bg))
 
     // Spine text: real image color behind the spine (full-wrap coverage) takes priority over
     // front_bg when spine_color itself isn't explicitly set
