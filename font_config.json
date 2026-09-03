@@ -11,6 +11,7 @@
         {"family": "Merriweather", "group": "Commonly used inside books", "style": "serif"},
         {"family": "Crimson Pro", "group": "Commonly used inside books", "style": "serif"},
         {"family": "Libre Baskerville", "group": "Commonly used inside books", "style": "serif"},
-        {"family": "Lora", "group": "Commonly used inside books", "style": "serif"}
+        {"family": "Lora", "group": "Commonly used inside books", "style": "serif"},
+        {"family": "Source Serif 4", "group": "Commonly used inside books", "style": "serif"}
     ]
 }
