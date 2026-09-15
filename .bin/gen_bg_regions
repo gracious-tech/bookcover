@@ -19,7 +19,7 @@ cd "$ROOT/generator" && npm run build --silent
 
 ROOT="$ROOT" node --input-type=module <<'EOF'
 import {createRequire} from 'module'
-import {readdir, writeFile, stat} from 'fs/promises'
+import {readdir, readFile, writeFile, stat} from 'fs/promises'
 import {join} from 'path'
 
 const root = process.env.ROOT
@@ -46,6 +46,29 @@ const dims = resolve_dimensions({
 })
 
 const files = (await readdir(src_dir)).filter(f => f.endsWith('.jpg')).sort()
+
+// Cross-check the directory against the widget's ID lists. This runs here because this script
+// is what you run when the asset set changes — the moment the two can drift apart. A name with
+// no file can no longer be rendered by any cover that stored it; a file with no name is either
+// an unlisted addition or a retirement that forgot RETIRED_BACKGROUNDS (see the contract at the
+// top of widget/src/services/backgrounds.ts)
+const bg_src = await readFile(join(root, 'widget/src/services/backgrounds.ts'), 'utf8')
+const listed = new Set()
+for (const list of ['BACKGROUNDS', 'RETIRED_BACKGROUNDS']) {
+    // Capture to the first ']' — handles an empty RETIRED_BACKGROUNDS without running on into
+    // the next list (entries are plain quoted strings, so the body never contains a bracket)
+    const block = bg_src.match(new RegExp(`export const ${list}:\\s*string\\[\\] = \\[([^\\]]*)\\]`))
+    for (const m of block?.[1].matchAll(/'([^']+)'/g) ?? [])
+        listed.add(m[1])
+}
+const missing_file = [...listed].filter(name => !files.includes(name))
+const unlisted = files.filter(name => !listed.has(name))
+if (missing_file.length)
+    throw new Error(`Listed in backgrounds.ts but missing from assets/backgrounds/: `
+        + `${missing_file.join(', ')} — covers naming these can no longer render`)
+if (unlisted.length)
+    console.warn(`Warning: in assets/backgrounds/ but listed in neither BACKGROUNDS nor `
+        + `RETIRED_BACKGROUNDS: ${unlisted.join(', ')}`)
 
 // Values are averages/std-devs over an already-quantized (8-bit, JPEG-compressed) pixel
 // sample, consumed only via coarse threshold comparisons in design.ts — float64's ~17

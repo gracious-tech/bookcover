@@ -7,6 +7,7 @@ import type {CoverSchema} from './schema.js'
 import type {GetDimensionsResult} from 'printing-services'
 import type {ResolvedColors} from './design.js'
 import type {FontSizes} from './font_sizes.js'
+import {SCHEMA_DEFAULTS} from './defaults.js'
 
 /** Helper: emit a Typst #let binding for a millimetre value */
 function mmval(name:string, mm:number):string {
@@ -101,7 +102,7 @@ export function build_data_file(
     lines.push(bool('has_bleed', dims.cover_has_bleed))
     // Home-print white margin: a fixed white border with rounded inner corners
     // overlaid on the whole cover for home inkjet printers that can't print to the edge
-    lines.push(bool('home_print', schema.home_print_margin ?? false))
+    lines.push(bool('home_print', schema.home_print_margin ?? SCHEMA_DEFAULTS.home_print_margin))
     lines.push(mmval('home_margin', 8))   // white border width
     lines.push(mmval('home_corner', 6))   // rounded-corner radius of the artwork
     lines.push('')
@@ -130,14 +131,14 @@ export function build_data_file(
 
     // Per-text sizing (relative multipliers, default 1.0)
     lines.push('// Per-text sizing')
-    lines.push(num('title1_size', schema.title1_size ?? 1))
-    lines.push(num('title2_size', schema.title2_size ?? 1))
-    lines.push(num('title3_size', schema.title3_size ?? 1))
-    lines.push(num('subtitle_size', schema.subtitle_size ?? 1))
-    lines.push(num('author_size', schema.author_size ?? 1))
-    lines.push(num('blurb_size', schema.blurb_size ?? 1))
-    lines.push(num('spine_title_size_mod', schema.spine_title_size ?? 1))
-    lines.push(num('spine_author_size_mod', schema.spine_author_size ?? 1))
+    lines.push(num('title1_size', schema.title1_size ?? SCHEMA_DEFAULTS.title1_size))
+    lines.push(num('title2_size', schema.title2_size ?? SCHEMA_DEFAULTS.title2_size))
+    lines.push(num('title3_size', schema.title3_size ?? SCHEMA_DEFAULTS.title3_size))
+    lines.push(num('subtitle_size', schema.subtitle_size ?? SCHEMA_DEFAULTS.subtitle_size))
+    lines.push(num('author_size', schema.author_size ?? SCHEMA_DEFAULTS.author_size))
+    lines.push(num('blurb_size', schema.blurb_size ?? SCHEMA_DEFAULTS.blurb_size))
+    lines.push(num('spine_title_size_mod', schema.spine_title_size ?? SCHEMA_DEFAULTS.spine_title_size))
+    lines.push(num('spine_author_size_mod', schema.spine_author_size ?? SCHEMA_DEFAULTS.spine_author_size))
     lines.push('')
 
     // Colors
@@ -171,20 +172,20 @@ export function build_data_file(
     lines.push(arr('font_blurb_family', font_blurb_family))
     lines.push(arr('font_spine_title_family', font_spine_title_family))
     lines.push(arr('font_spine_author_family', font_spine_author_family))
-    lines.push(num('title1_weight', schema.title1_weight ?? 700))
-    lines.push(bool('title1_italic', schema.title1_italic ?? false))
-    lines.push(num('title2_weight', schema.title2_weight ?? 700))
-    lines.push(bool('title2_italic', schema.title2_italic ?? false))
-    lines.push(num('title3_weight', schema.title3_weight ?? 700))
-    lines.push(bool('title3_italic', schema.title3_italic ?? false))
-    lines.push(num('subtitle_weight', schema.subtitle_weight ?? 100))
-    lines.push(bool('subtitle_italic', schema.subtitle_italic ?? false))
-    lines.push(num('author_weight', schema.author_weight ?? 400))
-    lines.push(bool('author_italic', schema.author_italic ?? false))
-    lines.push(num('spine_title_weight', schema.spine_title_weight ?? 700))
-    lines.push(bool('spine_title_italic', schema.spine_title_italic ?? false))
-    lines.push(num('spine_author_weight', schema.spine_author_weight ?? 400))
-    lines.push(bool('spine_author_italic', schema.spine_author_italic ?? false))
+    lines.push(num('title1_weight', schema.title1_weight ?? SCHEMA_DEFAULTS.title1_weight))
+    lines.push(bool('title1_italic', schema.title1_italic ?? SCHEMA_DEFAULTS.title1_italic))
+    lines.push(num('title2_weight', schema.title2_weight ?? SCHEMA_DEFAULTS.title2_weight))
+    lines.push(bool('title2_italic', schema.title2_italic ?? SCHEMA_DEFAULTS.title2_italic))
+    lines.push(num('title3_weight', schema.title3_weight ?? SCHEMA_DEFAULTS.title3_weight))
+    lines.push(bool('title3_italic', schema.title3_italic ?? SCHEMA_DEFAULTS.title3_italic))
+    lines.push(num('subtitle_weight', schema.subtitle_weight ?? SCHEMA_DEFAULTS.subtitle_weight))
+    lines.push(bool('subtitle_italic', schema.subtitle_italic ?? SCHEMA_DEFAULTS.subtitle_italic))
+    lines.push(num('author_weight', schema.author_weight ?? SCHEMA_DEFAULTS.author_weight))
+    lines.push(bool('author_italic', schema.author_italic ?? SCHEMA_DEFAULTS.author_italic))
+    lines.push(num('spine_title_weight', schema.spine_title_weight ?? SCHEMA_DEFAULTS.spine_title_weight))
+    lines.push(bool('spine_title_italic', schema.spine_title_italic ?? SCHEMA_DEFAULTS.spine_title_italic))
+    lines.push(num('spine_author_weight', schema.spine_author_weight ?? SCHEMA_DEFAULTS.spine_author_weight))
+    lines.push(bool('spine_author_italic', schema.spine_author_italic ?? SCHEMA_DEFAULTS.spine_author_italic))
     lines.push(mmval('fs_back_blurb', font_sizes.back_blurb))
     lines.push(mmval('fs_spine_title', font_sizes.spine_title))
     lines.push(mmval('fs_spine_author', font_sizes.spine_author))
@@ -196,10 +197,10 @@ export function build_data_file(
     lines.push(str('subtitle_position', schema.subtitle_position))
     lines.push(str('author_position', schema.author_position))
     // Alignment emitted as raw Typst values (left/center/right)
-    lines.push(`#let title_alignment = ${schema.title_alignment ?? 'center'}`)
-    lines.push(`#let subtitle_alignment = ${schema.subtitle_alignment ?? 'center'}`)
-    lines.push(`#let author_alignment = ${schema.author_alignment ?? 'center'}`)
-    const blurb_align = schema.blurb_alignment ?? 'left'
+    lines.push(`#let title_alignment = ${schema.title_alignment ?? SCHEMA_DEFAULTS.title_alignment}`)
+    lines.push(`#let subtitle_alignment = ${schema.subtitle_alignment ?? SCHEMA_DEFAULTS.subtitle_alignment}`)
+    lines.push(`#let author_alignment = ${schema.author_alignment ?? SCHEMA_DEFAULTS.author_alignment}`)
+    const blurb_align = schema.blurb_alignment ?? SCHEMA_DEFAULTS.blurb_alignment
     lines.push(`#let blurb_alignment = ${blurb_align === 'justified' ? 'left' : blurb_align}`)
     lines.push(bool('blurb_justify', blurb_align === 'justified'))
     lines.push('')
@@ -212,16 +213,16 @@ export function build_data_file(
     // Blurb padding (% of face height, resolved to mm) — computed early as back margin depends on it
     const min_blurb_padding_mm = 5
     const blurb_padding_mm = Math.max(
-        face_height_mm * (schema.blurb_padding ?? 3) / 100, min_blurb_padding_mm)
+        face_height_mm * (schema.blurb_padding ?? SCHEMA_DEFAULTS.blurb_padding) / 100, min_blurb_padding_mm)
     // Front minimum is 0.5" or the service's cover margin, whichever is greater
     const min_front_margin_mm = Math.max(13, cover_margin_mm)  // 13mm = ~0.5"
     // Back minimum is cover margin minus blurb padding (blurb sits inside the margin)
     const min_back_margin_mm = cover_margin_mm - blurb_padding_mm
     const front_margin_mm = Math.max(
-        face_height_mm * (schema.margin_front ?? 8) / 100, min_front_margin_mm,
+        face_height_mm * (schema.margin_front ?? SCHEMA_DEFAULTS.margin_front) / 100, min_front_margin_mm,
     )
     const back_margin_mm = Math.max(
-        face_height_mm * (schema.margin_back ?? 5) / 100, min_back_margin_mm,
+        face_height_mm * (schema.margin_back ?? SCHEMA_DEFAULTS.margin_back) / 100, min_back_margin_mm,
     )
     lines.push(mmval('front_margin', front_margin_mm))
     lines.push(mmval('back_margin', back_margin_mm))
@@ -236,40 +237,40 @@ export function build_data_file(
     // blurb_width can't get pushed past the fore-edge margin once centering shifts it left.
     const back_content_w_mm = face_width_mm - back_margin_mm * 2 - spiral_margin_mm
     const blurb_w_mm = Math.min(
-        face_width_mm * (schema.blurb_width ?? 100) / 100, back_content_w_mm,
+        face_width_mm * (schema.blurb_width ?? SCHEMA_DEFAULTS.blurb_width) / 100, back_content_w_mm,
     )
     lines.push(mmval('blurb_width', blurb_w_mm))
     lines.push(mmval('blurb_padding', blurb_padding_mm))
-    lines.push(num('blurb_spacing', schema.blurb_spacing ?? 1))
+    lines.push(num('blurb_spacing', schema.blurb_spacing ?? SCHEMA_DEFAULTS.blurb_spacing))
     lines.push('')
 
     // Vertical margins (% of face height)
     lines.push('// Vertical margins')
-    lines.push(num('title_spacing', schema.title_spacing ?? 3))
-    lines.push(num('title_margin_top', schema.title_margin_top ?? 3))
-    lines.push(num('title_margin_bottom', schema.title_margin_bottom ?? 3))
-    lines.push(num('subtitle_spacing', schema.subtitle_spacing ?? 1.5))
-    lines.push(num('subtitle_margin_top', schema.subtitle_margin_top ?? 3))
-    lines.push(num('subtitle_margin_bottom', schema.subtitle_margin_bottom ?? 3))
-    lines.push(num('author_margin_top', schema.author_margin_top ?? 3))
-    lines.push(num('author_margin_bottom', schema.author_margin_bottom ?? 3))
+    lines.push(num('title_spacing', schema.title_spacing ?? SCHEMA_DEFAULTS.title_spacing))
+    lines.push(num('title_margin_top', schema.title_margin_top ?? SCHEMA_DEFAULTS.title_margin_top))
+    lines.push(num('title_margin_bottom', schema.title_margin_bottom ?? SCHEMA_DEFAULTS.title_margin_bottom))
+    lines.push(num('subtitle_spacing', schema.subtitle_spacing ?? SCHEMA_DEFAULTS.subtitle_spacing))
+    lines.push(num('subtitle_margin_top', schema.subtitle_margin_top ?? SCHEMA_DEFAULTS.subtitle_margin_top))
+    lines.push(num('subtitle_margin_bottom', schema.subtitle_margin_bottom ?? SCHEMA_DEFAULTS.subtitle_margin_bottom))
+    lines.push(num('author_margin_top', schema.author_margin_top ?? SCHEMA_DEFAULTS.author_margin_top))
+    lines.push(num('author_margin_bottom', schema.author_margin_bottom ?? SCHEMA_DEFAULTS.author_margin_bottom))
     lines.push('')
 
     // Image, icon, and barcode
     lines.push('// Assets')
     lines.push(bool('has_image', image_filename !== null))
     lines.push(str('image_filename', image_filename ?? ''))
-    lines.push(str('image_coverage', schema.bg_image_coverage ?? 'front'))
+    lines.push(str('image_coverage', schema.bg_image_coverage ?? SCHEMA_DEFAULTS.bg_image_coverage))
     lines.push(bool('image_is_vector', image_is_vector))
     lines.push(bool('has_icon', has_icon))
-    lines.push(str('icon_mode', schema.icon_mode ?? 'center'))
-    lines.push(num('icon_size_mod', schema.icon_size ?? 1))
+    lines.push(str('icon_mode', schema.icon_mode ?? SCHEMA_DEFAULTS.icon_mode))
+    lines.push(num('icon_size_mod', schema.icon_size ?? SCHEMA_DEFAULTS.icon_size))
     // Spine icon shown when icon_spine is enabled and the spine is wide enough for text
-    lines.push(bool('has_spine_icon', has_icon && (schema.icon_spine ?? false) && dims.cover_has_spine_text))
+    lines.push(bool('has_spine_icon', has_icon && (schema.icon_spine ?? SCHEMA_DEFAULTS.icon_spine) && dims.cover_has_spine_text))
     lines.push(bool('has_barcode', has_barcode))
     lines.push(bool('has_pattern', has_pattern))
     // Tile width from schema; height derived from SVG's natural aspect ratio so non-square patterns tile correctly
-    const pattern_tile_w = schema.pattern_tile_mm ?? 80
+    const pattern_tile_w = schema.pattern_tile_mm ?? SCHEMA_DEFAULTS.pattern_tile_mm
     const pattern_tile_h = pattern_aspect_ratio ? pattern_tile_w / pattern_aspect_ratio : pattern_tile_w
     lines.push(mmval('pattern_tile_w', pattern_tile_w))
     lines.push(mmval('pattern_tile_h', pattern_tile_h))

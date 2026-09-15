@@ -20,9 +20,9 @@
         "dev": "tsc --watch"
     },
     "dependencies": {
-        "@myriaddreamin/typst-ts-renderer": "^0.7.0",
-        "@myriaddreamin/typst-ts-web-compiler": "^0.7.0",
-        "@myriaddreamin/typst.ts": "^0.7.0",
+        "@myriaddreamin/typst-ts-renderer": "0.7.0",
+        "@myriaddreamin/typst-ts-web-compiler": "0.7.0",
+        "@myriaddreamin/typst.ts": "0.7.0",
         "bookcover-core": "^0.10.0",
         "typst-fonts": "^0.1.0"
     }

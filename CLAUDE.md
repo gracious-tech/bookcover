@@ -127,6 +127,8 @@ see Build).
 ### Generator core (`generator/src/`)
 
 - `schema.ts` — Zod schema for cover input; validates and parses all user options
+- `defaults.ts` — `SCHEMA_VERSION`/`RENDER_VERSION` plus the single source of truth for every
+  fixed default (`SCHEMA_DEFAULTS`, `FORM_DEFAULTS`) — see Stored records below
 - `dimensions.ts` — Queries `printing-services` for bleed, spine, trim, and cover regions
 - `design.ts` — Derives colors (auto-contrast, gradient, blurb bg) from schema
 - `font_sizes.ts` — Computes font sizes proportional to trim height; balances subtitle lines
@@ -250,6 +252,59 @@ size_id: 'us_trade', page_count: 300,
 // or custom size:
 custom_trim_width: 152, custom_trim_height: 229, custom_unit: 'mm', page_count: 300,
 ```
+
+## Stored records and render determinism
+
+`EmbedFormState` (`generator/src/form_state.ts`) is the ONLY thing that outlives a session —
+it's what embed hosts persist. Nothing else here is a record: a `CoverSchema` is a transient
+render input and must never be stored (its `blurb` is already-rendered Typst markup, so a stored
+schema is version-locked and not re-editable). Two invariants hold it together:
+
+- **No binaries.** The background image and custom font bytes are never in the record. They
+  travel as separate structured-clone fields on the embed messages, and the host owns their
+  storage and identity. `WidgetMessage.bg_image_builtin` reports which built-in background the
+  user picked as ADVISORY protocol data (the published `backgrounds/` filename) purely so a host
+  can store a reference instead of its own copy of a shipped image — nothing here resolves bytes
+  from it, and hosts must check it against their own allowlist before trusting it.
+- **Absence means nothing.** Every field in the record is always present and explicitly valued.
+  Where a value is meant to be derived at render time it says so with a sentinel (`'auto'`,
+  `null`, `''`), never by omitting a key. So `build_schema()` knows nothing about defaults and
+  never omits a field for matching one — it emits ~60 fields explicitly, and leaves a field out
+  ONLY to request a derivation that can't be a constant (auto-contrast colors, blurb background,
+  spine text from the titles, an icon color sampled from the image). A record plus a
+  `RENDER_VERSION` therefore determines the output; changing a default can't shift a stored cover.
+
+`SCHEMA_VERSION` versions the record's shape. `RENDER_VERSION` is separate and versions render
+*behaviour* — bump it for any change to the Typst templates, `SCHEMA_DEFAULTS`, the derivations
+in `design.ts`/`font_sizes.ts`, font fallback resolution, or the bundled pattern/vector/icon
+data, and bump core/-node/-web together when you do. Hosts record it at freeze time so a
+re-render years later is detectably different rather than silently different.
+
+For the same reason both typst compilers are pinned exactly — the CLI in `.bin/setup_typst`
+(which asserts the version it got) and `@myriaddreamin/*` in `generator-web/package.json`. They
+render the same cover on two paths; letting either float meant identical git state could produce
+different output. The two pins must stay MATCHED: typst.ts vendors typst as a Rust dependency, so
+the mapping is in typst.ts's `Cargo.toml` at its release tag (`workspace.dependencies` → `typst`)
+— v0.7.0 → typst 0.14.2 (current), v0.8.1 → typst 0.15.1. Bump both together and bump
+`RENDER_VERSION`.
+
+Asset IDs (`pattern_id`, `bg_vector_id`, `icon_id`, `backgrounds/` filenames) and the
+`blurb_extensions` node/mark list are API surface: a stored record names them, so renaming or
+pruning one breaks covers that can no longer be reproduced (the `black_`/`white_` background
+prefix drop in 0.9.0 already did this once). Unknown IDs now warn via `warn_unknown()` instead of
+vanishing silently. Finalize and prune all of these before 1.0, then treat them as append-only.
+
+For backgrounds specifically, **the filename is the ID** — hosts path-join it to fetch bytes and
+slice its extension off for the MIME type, with no lookup table anywhere. So a re-encode is a new
+ID, not new bytes behind an old one, and `bg_image_builtin` must keep carrying a filename.
+
+Retiring a background is a UI-only change local to this app: move its name from `BACKGROUNDS` to
+`RETIRED_BACKGROUNDS` in `widget/src/services/backgrounds.ts` and it leaves the picker while
+staying fully valid. Its file must stay in `assets/backgrounds/` byte-for-byte — deleting or
+re-optimising it drops existing covers off the baked `builtin_bg_regions.ts` fast path (the entry
+is keyed by filename AND byte length) and onto a live pixel decode, which shifts their auto
+colours. `.bin/gen_bg_regions` cross-checks the directory against both lists and fails on a name
+with no file. Full contract in that file's header.
 
 ## Key patterns
 

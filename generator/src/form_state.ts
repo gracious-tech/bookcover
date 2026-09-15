@@ -4,18 +4,30 @@
 
 import type {CjkVariant} from 'typst-fonts'
 import type {PmDoc} from 'pm-to-typst'
+import {FORM_DEFAULTS} from './defaults.js'
 
 /** JSON-safe form values — every form field except the bg_image binary. This is the shape
- *  hosts store and round-trip (e.g. via the widget's embed protocol); the image travels
- *  separately as a File/Blob */
+ *  hosts store and round-trip (e.g. via the widget's embed protocol).
+ *
+ *  Two invariants hosts can rely on, and must preserve:
+ *  - NO BINARIES. The background image and custom font bytes are never in this record; they
+ *    are referenced out-of-band by the host, which owns their storage and identity. The widget
+ *    reports which built-in background the user picked as an advisory protocol field, never as
+ *    a field in here (see generator-web's embed_types.ts).
+ *  - ABSENCE MEANS NOTHING. Every field is always present and explicitly valued. Where a value
+ *    is meant to be derived at render time, it says so with an explicit sentinel ('auto'/null),
+ *    never by omitting the key — so a record's meaning can't shift when a default changes. */
 export interface EmbedFormState {
+
+    // Shape of this record — see SCHEMA_VERSION in defaults.ts
+    schema_version: number
 
     // TEXT
 
     title1: string
     title1_font: string
     title1_size: number  // Text size is a relative x0.5 -> x2 modifier on the default font size
-    title1_weight: number  // Defaults to 400
+    title1_weight: number  // CSS-style numeric weight
     title1_italic: boolean
     title1_color: string | null  // Defaults to white/black 90% opacity on primary color
 
@@ -68,7 +80,8 @@ export interface EmbedFormState {
     blurb_font: string
     blurb_size: number
     blurb_color: string | null
-    blurb_bg_color: string | null | undefined
+    // 'auto' = derive from bg_color at render time; null = transparent; otherwise an explicit color
+    blurb_bg_color: string | 'auto' | null
     blurb_alignment:'center'|'left'|'right'|'justified'
     blurb_padding:number
     blurb_width:number
@@ -91,15 +104,19 @@ export interface EmbedFormState {
     // SIZE
 
     service_id: string
-    size_id: string    // service size ID, or '' for custom
+    // Whether size comes from the service's size list or from the custom_trim_* fields. Replaces
+    // the old sentinels (size_id: '' / service_id: 'custom'), which overloaded id fields whose
+    // values come from printing-services
+    size_mode: 'preset' | 'custom'
+    size_id: string    // service size ID; ignored when size_mode is 'custom'
     page_count: number
     binding_type: string
     ink_type: string
     paper_type: string
 
     custom_unit: string    // custom size unit affecting both trim and bleed/spine
-    custom_trim_width: number    // custom size width (used when size_id is '')
-    custom_trim_height: number    // custom size height (used when size_id is '')
+    custom_trim_width: number    // custom size width (used when size_mode is 'custom')
+    custom_trim_height: number    // custom size height (used when size_mode is 'custom')
     custom_bleed: number
     custom_spine: number
 
@@ -114,6 +131,9 @@ export interface EmbedFormState {
     bg_color: string | null  // null = auto (complements the background image, white if none)
     bg_color_gradient: boolean
 
+    // Icon ID only ('builtin:cross', or an Iconify ID like 'game-icons:sailboat') — never raw
+    // SVG. CoverSchema.icon_id additionally accepts raw SVG for direct API callers; keeping it
+    // out of the stored record keeps records small and single-typed
     icon_id: string | null
     icon_mode: 'center' | 'offset' | 'echo'
     icon_size: number  // Relative size multiplier
@@ -140,135 +160,9 @@ export interface FormState extends EmbedFormState {
     bg_image: File | null
 }
 
-/** An empty ProseMirror document — the blank-form blurb value */
-function empty_doc():PmDoc {
-    return {type: 'doc', content: [{type: 'paragraph'}]}
-}
-
-/** Plain object with blank/empty values — no demo content, white background, no icon or pattern */
+/** Plain object with blank/empty values — no demo content, white background, no icon or
+ *  pattern. Values come from FORM_DEFAULTS; the blurb document is cloned so each form gets its
+ *  own mutable ProseMirror doc. */
 export function make_blank_form_values(): FormState {
-    return {
-
-        // TEXT — all empty, styles at their defaults
-
-        title1: '',
-        title1_font: '',
-        title1_size: 1,
-        title1_weight: 700,
-        title1_italic: false,
-        title1_color: null,
-
-        title2: '',
-        title2_font: '',
-        title2_size: 1,
-        title2_weight: 700,
-        title2_italic: false,
-        title2_color: null,
-
-        title3: '',
-        title3_font: '',
-        title3_size: 1,
-        title3_weight: 700,
-        title3_italic: false,
-        title3_color: null,
-
-        title_alignment: 'center',
-        title_position: 'top',
-        title_spacing: 3,
-        title_margin_top: 3,
-        title_margin_bottom: 3,
-
-        subtitle: '',
-        subtitle_font: '',
-        subtitle_size: 1,
-        subtitle_weight: 700,
-        subtitle_italic: false,
-        subtitle_color: null,
-        subtitle_alignment: 'center',
-        subtitle_position: 'top',
-        subtitle_spacing: 1.5,
-        subtitle_margin_top: 3,
-        subtitle_margin_bottom: 3,
-
-        author: '',
-        author_font: '',
-        author_size: 1,
-        author_weight: 700,
-        author_italic: false,
-        author_color: null,
-        author_alignment: 'center',
-        author_position: 'bottom',
-        author_margin_top: 3,
-        author_margin_bottom: 3,
-
-        blurb: empty_doc(),
-        blurb_font: '',
-        blurb_size: 1,
-        blurb_color: null,
-        blurb_bg_color: undefined,
-        blurb_alignment: 'left',
-        blurb_padding: 3,
-        blurb_width: 100,
-        blurb_spacing: 1,
-
-        spine_title: '',
-        spine_title_font: '',
-        spine_title_size: 1,
-        spine_title_weight: 700,
-        spine_title_italic: false,
-        spine_title_color: null,
-
-        spine_author: '',
-        spine_author_font: '',
-        spine_author_size: 1,
-        spine_author_weight: 400,
-        spine_author_italic: false,
-        spine_author_color: null,
-
-        // SIZE — keep service defaults so print config is preserved
-
-        service_id: 'lulu',
-        size_id: 'us_trade',
-        page_count: 300,
-        binding_type: 'paperback',
-        ink_type: 'bw',
-        paper_type: 'white',
-
-        custom_unit: 'mm',
-        custom_trim_width: 152,
-        custom_trim_height: 229,
-        custom_bleed: 3,
-        custom_spine: 10,
-
-        margin_front: 8,
-        margin_back: 5,
-        home_print_margin: false,
-
-        // BACKGROUND — white, no image, no icon, no pattern
-
-        bg_image: null,
-        bg_image_coverage: 'full',
-
-        bg_color: null,
-        bg_color_gradient: false,
-
-        icon_id: null,
-        icon_mode: 'center',
-        icon_size: 1,
-        icon_color: null,
-        icon_spine: true,
-
-        pattern_id: null,
-        pattern_scale: 1,
-        pattern_color: null,
-
-        bg_vector_id: null,
-
-        spine_color: null,
-
-        // OTHER
-
-        isbn: '',
-        cjk_variant: 'auto',
-    }
+    return {...FORM_DEFAULTS, blurb: structuredClone(FORM_DEFAULTS.blurb)}
 }

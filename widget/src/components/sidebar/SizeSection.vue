@@ -26,7 +26,7 @@ div(class="flex flex-col gap-1")
     //- Preset size: dropdown when > 5 options, buttons otherwise
     div(v-if="size_items.length > 5" class="flex flex-col")
         USelect(
-            :model-value="form.size_id || '__custom__'"
+            :model-value="form.size_mode === 'custom' ? '__custom__' : form.size_id"
             :items="[...size_items.map(s => ({label: s.name, value: s.id, dims: s.dims})), {label: t('size.custom_option'), value: '__custom__'}]"
             @update:model-value="v => v === '__custom__' ? select_custom() : select_size(v)"
         )
@@ -38,20 +38,20 @@ div(class="flex flex-col gap-1")
             :key="s.id"
             type="button"
             size="sm"
-            :color="form.size_id === s.id ? 'primary' : 'neutral'"
-            :variant="form.size_id === s.id ? 'solid' : 'outline'"
+            :color="form.size_mode === 'preset' && form.size_id === s.id ? 'primary' : 'neutral'"
+            :variant="form.size_mode === 'preset' && form.size_id === s.id ? 'solid' : 'outline'"
             @click="select_size(s.id)"
         ) {{ s.name }}
         UButton(
             type="button"
             size="sm"
-            :color="form.size_id === '' ? 'primary' : 'neutral'"
-            :variant="form.size_id === '' ? 'solid' : 'outline'"
+            :color="form.size_mode === 'custom' ? 'primary' : 'neutral'"
+            :variant="form.size_mode === 'custom' ? 'solid' : 'outline'"
             @click="select_custom"
         ) {{ t('size.custom_button') }}
 
-//- Custom dimension inputs (shown only when no size_id is selected)
-div(v-show="form.size_id === ''" class="flex flex-row gap-[24px]")
+//- Custom dimension inputs (shown only in custom size mode)
+div(v-show="form.size_mode === 'custom'" class="flex flex-row gap-[24px]")
     div(class="flex flex-col gap-1")
         label(class="text-xs font-semibold tracking-[0.02em]") {{ t('size.width_label') }}
         div(class="flex gap-[6px]")
@@ -191,7 +191,7 @@ const size_items = computed(() =>
 const binding_items = computed(() =>
     service.value?.get_binding_types({
         all: true,
-        size: (form.size_id || undefined) as SizeId | undefined,
+        size: (form.size_mode === 'preset' ? form.size_id : undefined) as SizeId | undefined,
         pages: form.page_count,
     }).map(b => ({label: b.name, value: b.id, valid: b.valid})) ?? [],
 )
@@ -219,12 +219,13 @@ const show_paper_type = computed(() => service.value?.cover_calc_requires_paper 
 
 /** Select a service-defined or common size preset */
 function select_size(id:string):void {
+    form.size_mode = 'preset'
     form.size_id = id
 }
 
 /** Switch to custom size mode */
 function select_custom():void {
-    form.size_id = ''
+    form.size_mode = 'custom'
 }
 
 /** Convert a value between mm and inch, rounded to 3 decimal places */
@@ -253,7 +254,7 @@ function reset_binding_if_invalid(): void {
     if (!service.value)
         return
     const valid = service.value.get_binding_types({
-        size: (form.size_id || undefined) as SizeId | undefined,
+        size: (form.size_mode === 'preset' ? form.size_id : undefined) as SizeId | undefined,
         pages: form.page_count,
     })
     if (valid.length > 0 && !valid.some(b => b.id === form.binding_type)) {
@@ -289,11 +290,13 @@ watch(() => form.service_id, () => {
     if (is_custom.value) {
         // For custom service, default to the first common size and reset binding
         const sizes = get_common_sizes()
+        form.size_mode = sizes.length > 0 ? 'preset' : 'custom'
         form.size_id = sizes.length > 0 ? sizes[0]!.id : ''
         form.binding_type = 'paperback'
         return
     }
     const sizes = service.value!.get_sizes()
+    form.size_mode = sizes.length > 0 ? 'preset' : 'custom'
     form.size_id = sizes.length > 0 ? sizes[0]!.id : ''
 
     const bindings = service.value!.get_binding_types()
@@ -307,7 +310,7 @@ watch(() => form.service_id, () => {
 })
 
 // When size changes, reset binding immediately (size is a select/button, not a text field)
-watch(() => form.size_id, () => {
+watch(() => [form.size_mode, form.size_id], () => {
     reset_binding_if_invalid()
 })
 

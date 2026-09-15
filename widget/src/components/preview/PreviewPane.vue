@@ -494,7 +494,7 @@ async function run_generate():Promise<void> {
         if (form.service_id !== 'custom') {
             const svc = get_service(form.service_id as Parameters<typeof get_service>[0])
             const valid_bindings = svc.get_binding_types({
-                size: (form.size_id || undefined) as SizeId | undefined,
+                size: (form.size_mode === 'preset' ? form.size_id : undefined) as SizeId | undefined,
                 pages: form.page_count,
             })
             if (!valid_bindings.some(b => b.id === form.binding_type)) {

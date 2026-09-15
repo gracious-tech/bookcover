@@ -4,6 +4,7 @@
 import chroma from 'chroma-js'
 import type {CoverSchema, FontConfig, TitlePosition} from './schema.js'
 import {hex_override_to_hsl} from './colors.js'
+import {SCHEMA_DEFAULTS} from './defaults.js'
 
 
 // Baseline default colors — pure grays map to clean CMYK K-channel percentages
@@ -514,7 +515,7 @@ export function resolve_colors(schema:CoverSchema, image_regions?:ImageRegions |
                 : from_hsl(COLOR_DEFAULTS.front_background)
     const front_bg = to_hsl(front_bg_color)
 
-    const coverage = schema.bg_image_coverage ?? 'front'
+    const coverage = schema.bg_image_coverage ?? SCHEMA_DEFAULTS.bg_image_coverage
 
     // Real image color behind the back panel/spine — only actually visible under full-wrap
     // coverage; otherwise blurb/spine derive from front_bg like any other flat color

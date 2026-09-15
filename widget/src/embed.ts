@@ -9,8 +9,8 @@ import {ref, watch, toRaw} from 'vue'
 import type {EmbedFormState, InitMessage, WidgetMessage, AppLocale} from 'bookcover-web'
 import type {CustomFont} from 'typst-fonts'
 import type {FormState} from './form_state'
-import {build_schema} from './schema'
 import {add_custom_fonts, custom_font_families} from './fonts'
+import {builtin_bg_filename} from './services/backgrounds'
 import {debounce} from './svg_utils'
 
 // Swaps the primary export button into a "Finished" signal instead of a PDF download
@@ -38,6 +38,7 @@ let parent_origin:string | null = null
 // init_embed). bg_image distinguishes absent (undefined) from an explicit null
 let pending_preset:Partial<EmbedFormState> | null = null
 let pending_bg_image:File | null | undefined
+let pending_bg_builtin:string | null | undefined
 let pending_fonts:CustomFont[] | undefined
 
 /** Post a message to the parent frame, once its origin is known (falls back to '*' for 'ready') */
@@ -50,12 +51,6 @@ function serialize_form(form:FormState):EmbedFormState {
     const {bg_image, ...rest} = form
     // The JSON round-trip strips undefined values and Vue reactivity proxies
     return JSON.parse(JSON.stringify(rest)) as EmbedFormState
-}
-
-/** Build the renderable generator schema from the form, as plain JSON — the round-trip strips
- *  undefined values (which build_schema emits and e.g. Firestore rejects) */
-function renderable_schema(form:FormState):Record<string, unknown> {
-    return JSON.parse(JSON.stringify(build_schema(form))) as Record<string, unknown>
 }
 
 /** Raw (deproxied) snapshot of the custom font store — structured clone can't serialize Vue
@@ -94,15 +89,15 @@ export function is_form_dirty(form:FormState):boolean {
     return JSON.stringify(serialize_form(form)) !== baseline_json
 }
 
-/** Notify the parent the user is done — used by the "Finished" button. Posts the final form,
- *  schema, and binaries so edits made within the debounce window before clicking aren't lost
- *  and a host that only persists on finish gets the complete state. */
+/** Notify the parent the user is done — used by the "Finished" button. Posts the final form and
+ *  binaries so edits made within the debounce window before clicking aren't lost and a host that
+ *  only persists on finish gets the complete state. */
 export function notify_finished(form:FormState):void {
     post({
         type: 'finished',
         data: serialize_form(form),
-        schema: renderable_schema(form),
         bg_image: form.bg_image,
+        bg_image_builtin: builtin_bg_filename.value,
         custom_fonts: raw_fonts(),
     })
 }
@@ -118,6 +113,9 @@ function apply_preset(form:FormState):void {
         Object.assign(form, pending_preset)
     if (pending_bg_image !== undefined)
         form.bg_image = pending_bg_image
+    // Seed advisory identity so a restored built-in isn't reported back as a user upload
+    if (pending_bg_builtin !== undefined)
+        builtin_bg_filename.value = pending_bg_builtin
     // Families land in the store synchronously; only preview @font-face registration is async
     if (pending_fonts?.length)
         void add_custom_fonts(pending_fonts)
@@ -148,6 +146,7 @@ export function wait_for_embed_init():Promise<void> {
             if (msg.locale !== undefined) embed_locale.value = msg.locale
             if (msg.preset) pending_preset = msg.preset
             pending_bg_image = msg.bg_image
+            pending_bg_builtin = msg.bg_image_builtin
             if (msg.custom_fonts) pending_fonts = msg.custom_fonts
             if (msg.preset || msg.bg_image !== undefined) embed_seeded.value = true
             finish()
@@ -184,8 +183,8 @@ export function init_embed(form:FormState):void {
         post({
             type: 'data',
             data,
-            schema: renderable_schema(form),
             bg_image: form.bg_image,
+            bg_image_builtin: builtin_bg_filename.value,
             ...(send_fonts ? {custom_fonts: raw_fonts()} : {}),
         })
         if (send_fonts)

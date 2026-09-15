@@ -19,3 +19,11 @@ export function default_spine_title(title1?:string, title2?:string, title3?:stri
         .trim()
         .replace(/ +/g, ' ')
 }
+
+/** Report a value naming something this package version doesn't have (a pruned or renamed
+ *  pattern, vector background, or background image). The feature is dropped rather than failing
+ *  the whole render, but never silently — a missing ID means a stored record can no longer be
+ *  reproduced, and the host needs to be able to see that happen. */
+export function warn_unknown(field:string, id:string):void {
+    console.warn(`bookcover: unknown ${field} "${id}" — ignoring it for this render`)
+}

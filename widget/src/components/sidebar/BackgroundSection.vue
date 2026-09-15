@@ -568,7 +568,8 @@ import {suggested_icons, icon_categories} from '../../services/icons'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
 import {PATTERNS, PREVIEW_PATTERNS, get_preview_url, get_preview_size} from '../../services/patterns'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
-import {BACKGROUNDS, PREVIEW_BGS, bg_thumb_url, fetch_bg_file} from '../../services/backgrounds'
+import {BACKGROUNDS, PREVIEW_BGS, bg_thumb_url, fetch_bg_file,
+    builtin_bg_filename} from '../../services/backgrounds'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
 import {VECTOR_BACKGROUNDS, find_vector_background, get_preview_url as get_vector_preview_url} from '../../services/vector_backgrounds'
 import {check_bg_image_dpi} from '../../dpi'
@@ -727,12 +728,14 @@ watch(() => form.bg_image, async (file) => {
 /** Fetch a suggested background by filename, convert to File, and apply it */
 async function select_suggested_bg(filename:string): Promise<void> {
     form.bg_image = await fetch_bg_file(filename)
+    builtin_bg_filename.value = filename
     form.bg_vector_id = null
 }
 
 /** Select a built-in vector background — mutually exclusive with a photo image */
 function select_vector_bg(id:string): void {
     form.bg_image = null
+    builtin_bg_filename.value = null
     form.bg_vector_id = id
     // Vector backgrounds are always rendered full-wrap (generator forces it, position UI is hidden)
     form.bg_image_coverage = 'full'
@@ -742,6 +745,7 @@ function select_vector_bg(id:string): void {
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
 function clear_background(): void {
     form.bg_image = null
+    builtin_bg_filename.value = null
     form.bg_vector_id = null
 }
 
@@ -852,6 +856,7 @@ function on_image_change(event:Event): void {
     const file = input.files?.[0] ?? null
     if (file) bg_image_is_user_upload = true
     form.bg_image = file
+    builtin_bg_filename.value = null
     form.bg_vector_id = null
 }
 
@@ -875,6 +880,7 @@ async function on_paste_click(): Promise<void> {
             const blob = await item.getType(image_type)
             bg_image_is_user_upload = true
             form.bg_image = new File([blob], 'pasted', {type: image_type})
+            builtin_bg_filename.value = null
             form.bg_vector_id = null
             return
         }
@@ -891,6 +897,7 @@ function on_global_paste(event:ClipboardEvent): void {
         event.preventDefault()
         bg_image_is_user_upload = true
         form.bg_image = file
+        builtin_bg_filename.value = null
         form.bg_vector_id = null
     }
 }

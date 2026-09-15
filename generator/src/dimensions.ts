@@ -4,6 +4,7 @@
 import {get_service, get_custom_dimensions} from 'printing-services'
 import type {GetDimensionsArgs, GetDimensionsResult, SizeId,
     BindingTypeId, PaperTypeId, InkTypeId} from 'printing-services'
+import {SCHEMA_DEFAULTS} from './defaults.js'
 
 export type {GetDimensionsResult}
 
@@ -39,15 +40,15 @@ function to_mm(v:number, unit:'mm' | 'inch'):number {
  */
 export function resolve_dimensions(schema:DimensionInputs):GetDimensionsResult {
     if (schema.service_id === 'custom') {
-        const unit = (schema.custom_unit ?? 'mm') as 'mm' | 'inch'
+        const unit = (schema.custom_unit ?? SCHEMA_DEFAULTS.custom_unit) as 'mm' | 'inch'
         const custom_size:SizeId | {width:number, height:number} = schema.size_id
             ? schema.size_id as SizeId
             : {width: to_mm(schema.custom_trim_width!, unit), height: to_mm(schema.custom_trim_height!, unit)}
         return get_custom_dimensions({
             unit: 'mm',
             size: custom_size,
-            bleed: to_mm(schema.custom_bleed ?? 0, unit),
-            spine: to_mm(schema.custom_spine ?? 0, unit),
+            bleed: to_mm(schema.custom_bleed ?? SCHEMA_DEFAULTS.custom_bleed, unit),
+            spine: to_mm(schema.custom_spine ?? SCHEMA_DEFAULTS.custom_spine, unit),
         })
     }
 

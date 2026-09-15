@@ -29,10 +29,10 @@ div(class="p-3 flex flex-col gap-4 w-100")
     )
     //- Background color: auto (derived) / transparent / custom hex
     ColorPicker(
-        :modelValue="bg_color"
-        :label="bg_color === undefined ? t('blurb_font.bg_auto_label') : bg_color ? t('blurb_font.bg_label') : t('blurb_font.bg_none_label')"
+        :modelValue="bg_color === 'auto' ? undefined : bg_color"
+        :label="bg_color === 'auto' ? t('blurb_font.bg_auto_label') : bg_color ? t('blurb_font.bg_label') : t('blurb_font.bg_none_label')"
         clear_mode="auto_none"
-        @update:modelValue="$emit('update:bg_color', $event)"
+        @update:modelValue="$emit('update:bg_color', $event === undefined ? 'auto' : $event)"
     )
     //- Alignment toggle buttons (left / center / right / justified)
     div(class="flex flex-col gap-1")
@@ -88,7 +88,7 @@ defineProps<{
     size:number
     font:string
     color:string | null
-    bg_color:string | null | undefined
+    bg_color:string | 'auto' | null
     alignment:'center' | 'left' | 'right' | 'justified'
     preview_text?:string
 }>()
@@ -97,7 +97,7 @@ defineEmits<{
     'update:size': [value:number]
     'update:font': [value:string]
     'update:color': [value:string | null]
-    'update:bg_color': [value:string | null | undefined]
+    'update:bg_color': [value:string | 'auto' | null]
     'update:alignment': [value:'center' | 'left' | 'right' | 'justified']
 }>()
 

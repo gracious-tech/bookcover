@@ -183,7 +183,7 @@ export function init_color_palette_cache(form:FormState):void {
         form.pattern_id, form.icon_id, form.bg_color_gradient, form.bg_vector_id,
         // Dimension-affecting fields (mirrors image_regions_cache.ts) — has_spine/has_spine_text
         // depend on these, and image_regions.value alone doesn't change when there's no bg image
-        form.service_id, form.size_id, form.page_count, form.binding_type,
+        form.service_id, form.size_mode, form.size_id, form.page_count, form.binding_type,
         form.paper_type, form.ink_type, form.custom_unit, form.custom_trim_width,
         form.custom_trim_height, form.custom_bleed, form.custom_spine,
         image_regions.value,

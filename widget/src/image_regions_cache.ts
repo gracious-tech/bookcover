@@ -45,7 +45,7 @@ export function init_image_regions_cache(form:FormState):void {
     }
 
     watch(() => [
-        form.bg_image, form.service_id, form.size_id, form.page_count, form.binding_type,
+        form.bg_image, form.service_id, form.size_mode, form.size_id, form.page_count, form.binding_type,
         form.paper_type, form.ink_type, form.custom_unit, form.custom_trim_width,
         form.custom_trim_height, form.custom_bleed, form.custom_spine,
     ], recompute, {immediate: true})

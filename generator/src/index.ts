@@ -5,7 +5,7 @@ import {cover_schema} from './schema.js'
 import {resolve_dimensions} from './dimensions.js'
 import type {GetDimensionsResult} from './dimensions.js'
 import type {CoverSchema} from './schema.js'
-import {default_spine_title} from './utils.js'
+import {default_spine_title, warn_unknown} from './utils.js'
 import {calculate_font_sizes} from './font_sizes.js'
 import {resolve_colors, resolve_font_configs, darken_hsl, mix_hsl, generate_palette,
     synthesize_fill, all_image_regions} from './design.js'
@@ -41,7 +41,10 @@ export {tinted_contrast_text, pick_vivid_tint, synthesize_fill, blend_regions, r
 export type {RegionStats, ImageRegions} from './design.js'
 export {make_blank_form_values} from './form_state.js'
 export type {FormState, EmbedFormState} from './form_state.js'
-export {build_schema, curly_quotes, parse_font_family} from './form_schema.js'
+export {SCHEMA_VERSION, RENDER_VERSION, SCHEMA_DEFAULTS, FORM_DEFAULTS} from './defaults.js'
+export {warn_unknown} from './utils.js'
+export {build_schema, curly_quotes, parse_font_family, normalize_font_family,
+    font_families_in_form} from './form_schema.js'
 export type {CustomFontStyle} from './form_schema.js'
 export {analyze_pixel_regions, get_builtin_bg_regions} from './image_regions.js'
 export {derive_colors, hex_override_to_hsl, hex_to_hsl, is_dark_color} from './colors.js'
@@ -233,6 +236,8 @@ export async function build(
         if (design) {
             const palette = generate_palette(colors.front_background, design.color_count, design.scheme)
             vector_image = {data: encoder.encode(design.render(palette)), ext: '.svg', is_vector: true}
+        } else {
+            warn_unknown('bg_vector_id', schema_resolved.bg_vector_id)
         }
     }
 

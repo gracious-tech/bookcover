@@ -1,12 +1,36 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Download the typst CLI that generator-node spawns.
+#
+# PINNED ON PURPOSE, AND THE PIN MUST MATCH typst.ts. This binary and the typst.ts WASM compiler
+# in generator-web render the same cover on two different paths (a browser preview vs a
+# server-side PDF), and a stored record is re-rendered long after it was approved. Resolving
+# "latest" here meant whoever last ran this script decided what shipped, so two machines could
+# produce different output from identical git state.
+#
+# The version below must equal the typst version the pinned @myriaddreamin/* packages embed —
+# they vendor typst as a Rust dependency, so the mapping is in typst.ts's own Cargo.toml at its
+# release tag (workspace.dependencies -> typst):
+#     typst.ts v0.7.0  ->  typst 0.14.2   <- current
+#     typst.ts v0.8.1  ->  typst 0.15.1
+# Bump both together, check the new mapping at the tag, and bump RENDER_VERSION
+# (generator/src/defaults.ts) since the output can change.
+TYPST_VERSION="v0.14.2"
+
 ASSET="typst-x86_64-unknown-linux-musl.tar.xz"
 BIN_DIR="$(dirname "$0")"
 
-URL=$(curl -fsSL https://api.github.com/repos/typst/typst/releases/latest \
-    | grep -o "https://[^\"]*$ASSET")
+URL="https://github.com/typst/typst/releases/download/$TYPST_VERSION/$ASSET"
 
 # Extract only the typst binary directly into the .bin dir
 curl -fsSL "$URL" | tar -xJ -C "$BIN_DIR" --strip-components=1 \
     "typst-x86_64-unknown-linux-musl/typst"
+
+# Fail loudly if the downloaded binary isn't the pinned version
+GOT="$("$BIN_DIR/typst" --version | awk '{print "v"$2}')"
+if [ "$GOT" != "$TYPST_VERSION" ]; then
+    echo "setup_typst: expected $TYPST_VERSION but got $GOT" >&2
+    exit 1
+fi
+echo "typst $TYPST_VERSION installed"
