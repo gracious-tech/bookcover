@@ -304,7 +304,11 @@ staying fully valid. Its file must stay in `assets/backgrounds/` byte-for-byte â
 re-optimising it drops existing covers off the baked `builtin_bg_regions.ts` fast path (the entry
 is keyed by filename AND byte length) and onto a live pixel decode, which shifts their auto
 colours. `.bin/gen_bg_regions` cross-checks the directory against both lists and fails on a name
-with no file. Full contract in that file's header.
+with no file. Retiring needs no coordination with anyone â€” consumer apps fetch backgrounds from
+the assets bucket by name and never read our picker list, so a retired background keeps working
+for them (some name our files directly as their own cover defaults). What no background survives
+is being DELETED, which breaks every stored cover naming it and 404s for any app referencing it.
+Full contract in that file's header.
 
 ## Key patterns
 

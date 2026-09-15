@@ -108,7 +108,10 @@ export interface EmbedFormState {
     // the old sentinels (size_id: '' / service_id: 'custom'), which overloaded id fields whose
     // values come from printing-services
     size_mode: 'preset' | 'custom'
-    size_id: string    // service size ID; ignored when size_mode is 'custom'
+    // Service size ID. Always present (like every field here) — when size_mode is 'custom' it is
+    // ignored, NOT omitted, so write '' rather than leaving a stale preset ID spread in from a
+    // stored form. build_schema is what drops it from the schema in custom mode
+    size_id: string
     page_count: number
     binding_type: string
     ink_type: string
