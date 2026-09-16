@@ -16,8 +16,8 @@ const PAGE_COLOR:[number,number,number] = [0.94, 0.91, 0.86]
 // centre, all still warm-cream tinted like the page edges rather than flat grey.
 const HOLE_RINGS:{scale:number, color:[number, number, number]}[] = [
     {scale: 1.0, color: [0.60, 0.57, 0.52]},
-    {scale: 0.68, color: [0.44, 0.42, 0.38]},
-    {scale: 0.38, color: [0.26, 0.24, 0.21]},
+    {scale: 0.85, color: [0.44, 0.42, 0.38]},
+    {scale: 0.7, color: [0.26, 0.24, 0.21]},
 ]
 
 // Coil/wire hole dimensions, measured from a real spiral-bound book (mm). Converted to
