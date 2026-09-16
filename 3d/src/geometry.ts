@@ -11,8 +11,14 @@ const BOARD_THICKNESS = 0.007
 // Cream colour for page-edge faces (fore-edge, top, bottom)
 const PAGE_COLOR:[number,number,number] = [0.94, 0.91, 0.86]
 
-// Hole colour: same warm cream as page edges but darkened
-const HOLE_COLOR:[number,number,number] = [0.38, 0.36, 0.33]
+// Hole rings, rim to centre — faked radial depth gradient. Each hole is drawn as several
+// concentric stadium shapes shrinking toward the centre, lit rim through to a dark shadowed
+// centre, all still warm-cream tinted like the page edges rather than flat grey.
+const HOLE_RINGS:{scale:number, color:[number, number, number]}[] = [
+    {scale: 1.0, color: [0.60, 0.57, 0.52]},
+    {scale: 0.68, color: [0.44, 0.42, 0.38]},
+    {scale: 0.38, color: [0.26, 0.24, 0.21]},
+]
 
 // Coil/wire hole dimensions, measured from a real spiral-bound book (mm). Converted to
 // normalised units per-book in build_holes since real hole size doesn't scale with cover height.
@@ -24,10 +30,21 @@ const HOLE_EDGE_GAP_MM = 2  // gap from top trim to first hole, and minimum requ
 const HOLE_SEGS        = 4      // segments per rounded corner (quarter-circle)
 const HOLE_EPSILON     = 0.001  // z nudge to prevent z-fighting with underlying face (normalised)
 
-/** A single face ready for GPU upload: interleaved [xyz, uv, normal] × 4 verts + 6 indices */
+// Binding wire. One closed loop per hole rather than a true continuous helix — the only part
+// of a loop that is ever visible is the arc wrapping the spine edge, where a real coil's slant
+// is imperceptible at preview size, so coil and wire-o share this one geometry.
+const COIL_WIRE_MM  = 1.5   // wire diameter
+const COIL_MAJOR_SEGS = 20  // segments around the loop
+const COIL_MINOR_SEGS = 6   // segments around the wire's cross-section
+const COIL_COLOR:[number,number,number] = [0.28, 0.28, 0.30]  // dark plastic; ambient is 0.7 so
+                                                              // near-black would read as a flat
+                                                              // silhouette with no visible form
+
+/** A mesh ready for GPU upload as one draw call: interleaved [xyz, uv, normal] per vertex.
+ *  Usually a single quad, but anything sharing one texture/colour can be one FaceData. */
 export interface FaceData {
-    vertices:number[]             // 4 × 8 floats
-    indices:number[]              // 6 ints (two triangles, zero-based within this face)
+    vertices:number[]             // 8 floats per vertex
+    indices:number[]              // 3 ints per triangle, zero-based within this mesh
     texture:WebGLTexture | null
     color:[number,number,number]
 }
@@ -41,6 +58,7 @@ function make_hole_rect(
     cx:number, cy:number, cz:number,
     nx:number, ny:number, nz:number,
     half_w:number, half_h:number,
+    color:[number, number, number],
 ):FaceData {
     const verts:number[] = []
     const indices:number[] = []
@@ -78,15 +96,15 @@ function make_hole_rect(
     for (let i = 0; i < perimeter; i++)
         indices.push(0, 1 + i, 1 + (i + 1) % perimeter)
 
-    return {vertices: verts, indices, texture: null, color: HOLE_COLOR}
+    return {vertices: verts, indices, texture: null, color}
 }
 
-/** Build painted-on binding holes on front and back cover faces for coil/wire bindings.
- *  cover_height_mm is this book's real cover height, used to convert the fixed real-world
- *  hole measurements (HOLE_*_MM) to this book's normalised units — hole size is constant in
- *  mm regardless of book size, unlike hh which is always 0.5 by construction. */
-function build_holes(hw:number, hh:number, hd:number, cover_height_mm:number):FaceData[] {
-    const faces:FaceData[] = []
+/** Where the binding holes sit. The painted holes and the wire loops must agree exactly on
+ *  this, so both derive their positions here. cover_height_mm is this book's real cover
+ *  height, used to convert the fixed real-world hole measurements (HOLE_*_MM) to this book's
+ *  normalised units — hole size is constant in mm regardless of book size, unlike hh which is
+ *  always 0.5 by construction. */
+function hole_layout(hw:number, hh:number, cover_height_mm:number) {
     const mm = (v:number) => v / cover_height_mm
 
     const half_w = mm(HOLE_WIDTH_MM / 2)
@@ -99,18 +117,104 @@ function build_holes(hw:number, hh:number, hd:number, cover_height_mm:number):Fa
     // coil punching is anchored from the top
     const first_cy = hh - mm(HOLE_EDGE_GAP_MM + HOLE_HEIGHT_MM / 2)
     const min_cy = -hh + mm(HOLE_EDGE_GAP_MM) + half_h
-    const hole_count = Math.max(1, Math.floor((first_cy - min_cy) / pitch) + 1)
+    const count = Math.max(1, Math.floor((first_cy - min_cy) / pitch) + 1)
 
-    for (let i = 0; i < hole_count; i++) {
-        const cy = first_cy - i * pitch
+    const ys:number[] = []
+    for (let i = 0; i < count; i++)
+        ys.push(first_cy - i * pitch)
 
-        // Front cover (+z normal), nudged forward to avoid z-fighting
-        faces.push(make_hole_rect(cx, cy, hd + HOLE_EPSILON,  0, 0,  1, half_w, half_h))
-        // Back cover (-z normal), nudged backward
-        faces.push(make_hole_rect(cx, cy, -(hd + HOLE_EPSILON), 0, 0, -1, half_w, half_h))
+    return {mm, cx, half_w, half_h, ys}
+}
+
+/** Build painted-on binding holes on front and back cover faces for coil/wire bindings. */
+function build_holes(hw:number, hh:number, hd:number, cover_height_mm:number):FaceData[] {
+    const faces:FaceData[] = []
+    const {cx, half_w, half_h, ys} = hole_layout(hw, hh, cover_height_mm)
+
+    for (const cy of ys) {
+        // Each ring nudged further out than the last so smaller (inner) rings always render
+        // in front of larger ones, avoiding z-fighting between the stacked layers themselves
+        HOLE_RINGS.forEach((ring, r) => {
+            const eps = HOLE_EPSILON * (r + 1)
+            // Front cover (+z normal), nudged forward to avoid z-fighting
+            faces.push(make_hole_rect(
+                cx, cy, hd + eps, 0, 0, 1, half_w * ring.scale, half_h * ring.scale, ring.color,
+            ))
+            // Back cover (-z normal), nudged backward
+            faces.push(make_hole_rect(
+                cx, cy, -(hd + eps), 0, 0, -1, half_w * ring.scale, half_h * ring.scale, ring.color,
+            ))
+        })
     }
 
     return faces
+}
+
+/** Build the binding wire: one closed tube loop per hole, lying in that hole's plane (constant
+ *  y) and wrapping around the spine edge.
+ *
+ *  Each loop is the circle through both hole centres (cx, ±hd) whose centre sits left of the
+ *  hole. That placement does all the work: the left arc rises above the cover as it runs from
+ *  the hole to the spine edge, clears the corner and wraps around outside, while the right arc
+ *  falls away inside the book where the covers hide it via the depth test — so no clipping or
+ *  hole cut-outs are needed, and the tube emerging at the hole centre reads as the wire passing
+ *  through it. All loops share one colour, so the whole coil is a single FaceData. */
+function build_coil(hw:number, hh:number, hd:number, cover_height_mm:number):FaceData {
+    const {mm, cx, ys} = hole_layout(hw, hh, cover_height_mm)
+    const wire_r = mm(COIL_WIRE_MM / 2)
+
+    // Loop centre, placed so the arc passes exactly one wire-radius above the cover at the
+    // spine corner — i.e. the tube wraps snug around the edge without biting into it. Solving
+    // "circle through (cx, hd) reaches hd + r at the spine edge" for the centre gives this;
+    // the centre drifts left as the book thickens, which is what keeps that clearance.
+    const off = cx + hw          // hole centre's distance from the spine edge
+    const x0 = -hw + (off * off - 2 * hd * wire_r - wire_r * wire_r) / (2 * off)
+    const major_r = Math.hypot(cx - x0, hd)
+
+    const vertices:number[] = []
+    const indices:number[] = []
+
+    for (const cy of ys) {
+        const base = vertices.length / 8
+
+        // Sweep a circular cross-section along the loop. The loop lies in the XZ plane, so its
+        // axis is Y and each cross-section spans the radial direction and Y — the offset from
+        // the centreline is itself the outward surface normal.
+        for (let i = 0; i < COIL_MAJOR_SEGS; i++) {
+            const a = (i / COIL_MAJOR_SEGS) * Math.PI * 2
+            const ca = Math.cos(a)
+            const sa = Math.sin(a)
+
+            for (let j = 0; j < COIL_MINOR_SEGS; j++) {
+                const b = (j / COIL_MINOR_SEGS) * Math.PI * 2
+                const cb = Math.cos(b)
+                const nx = ca * cb
+                const ny = Math.sin(b)
+                const nz = sa * cb
+                vertices.push(
+                    x0 + ca * major_r + nx * wire_r,
+                    cy + ny * wire_r,
+                    sa * major_r + nz * wire_r,
+                    0.5, 0.5, nx, ny, nz,
+                )
+            }
+        }
+
+        // Stitch quads between consecutive cross-sections, wrapping closed both ways
+        for (let i = 0; i < COIL_MAJOR_SEGS; i++) {
+            const i2 = (i + 1) % COIL_MAJOR_SEGS
+            for (let j = 0; j < COIL_MINOR_SEGS; j++) {
+                const j2 = (j + 1) % COIL_MINOR_SEGS
+                const v00 = base + i * COIL_MINOR_SEGS + j
+                const v01 = base + i * COIL_MINOR_SEGS + j2
+                const v10 = base + i2 * COIL_MINOR_SEGS + j
+                const v11 = base + i2 * COIL_MINOR_SEGS + j2
+                indices.push(v00, v10, v11, v00, v11, v01)
+            }
+        }
+    }
+
+    return {vertices, indices, texture: null, color: COIL_COLOR}
 }
 
 /** Build a quad face from 4 [x,y,z,u,v] vertices + a flat normal */
@@ -521,9 +625,12 @@ export function build_faces(
 
     const faces = build_paperback(hw, hh, hd, front_tex, back_tex, spine_tex, page_tex)
 
-    // Coil and wire bindings get painted-on holes near the spine edge
-    if (cover_type === 'paperback_coil' || cover_type === 'paperback_wire')
+    // Coil and wire bindings get painted-on holes near the spine edge, with the binding wire
+    // threaded through them
+    if (cover_type === 'paperback_coil' || cover_type === 'paperback_wire') {
         faces.push(...build_holes(hw, hh, hd, cover_height_mm))
+        faces.push(build_coil(hw, hh, hd, cover_height_mm))
+    }
 
     return faces
 }
