@@ -6,7 +6,7 @@ import type {CoverSchema} from './schema.js'
 import type {GetDimensionsResult} from 'printing-services'
 
 export interface FontSizes {
-    subtitle_lines:string[] // balanced subtitle lines (max 2), ready to emit to Typst
+    subtitle_lines:string[] // the user's own subtitle lines (max 2), ready to emit to Typst
     back_blurb:number   // mm
     spine_title:number  // mm (0 if spine too narrow)
     spine_author:number // mm (0 if spine too narrow)
@@ -14,9 +14,6 @@ export interface FontSizes {
 
 // Average character width as a fraction of font size (proportional fonts)
 const CHAR_WIDTH_RATIO = 0.55
-
-// Assumed side margin as fraction of panel width
-const MARGIN_RATIO = 0.12
 
 // Minimum spine width in mm before text is suppressed
 const MIN_SPINE_MM = 5
@@ -42,44 +39,13 @@ export function calculate_font_sizes(
     schema:CoverSchema,
     dims:GetDimensionsResult,
 ):FontSizes {
-    const panel_mm = dims.cover_face_width.toNumber()
-    const available_mm = panel_mm * (1 - 2 * MARGIN_RATIO)
-
-    // Subtitle/author font sizes match the Typst ratios — used here only for line-splitting
-    const height_mm = dims.cover_face_height.toNumber()
-    const subtitle_mm = height_mm * 0.045
-    const subtitle_clean = (schema.subtitle ?? '')
+    // Subtitle lines come from the user's own break only — the UI field takes up to 2 lines.
+    // An unbroken line that is too wide is scaled down by shrink-to-width in the template.
+    const subtitle_lines = (schema.subtitle ?? '')
         .split('\n')
         .map((p:string) => p.trim().replace(/ +/g, ' '))
         .filter((p:string) => p.length > 0)
         .slice(0, 2)
-        .join('\n')
-
-    // Compute balanced subtitle lines: if no user \n, split at the point that minimises
-    // the difference in line lengths; otherwise respect the user's explicit break
-    let subtitle_lines:string[] = []
-    if (subtitle_clean) {
-        const chars_per_line = available_mm / (subtitle_mm * CHAR_WIDTH_RATIO)
-        if (subtitle_clean.includes('\n')) {
-            subtitle_lines = subtitle_clean.split('\n')
-        } else if (subtitle_clean.length <= chars_per_line || !subtitle_clean.includes(' ')) {
-            // Fits on one line or is a single word — no split needed
-            subtitle_lines = [subtitle_clean]
-        } else {
-            // Balance: try every word split, pick the one with most equal line lengths.
-            // No chars_per_line guard — shrink-to-width in Typst handles any overflow.
-            const words = subtitle_clean.split(' ')
-            let best_i = Math.ceil(words.length / 2)
-            let best_diff = Infinity
-            for (let i = 1; i < words.length; i++) {
-                const l1 = words.slice(0, i).join(' ')
-                const l2 = words.slice(i).join(' ')
-                const diff = Math.abs(l1.length - l2.length)
-                if (diff < best_diff) { best_diff = diff; best_i = i }
-            }
-            subtitle_lines = [words.slice(0, best_i).join(' '), words.slice(best_i).join(' ')]
-        }
-    }
 
     // Back blurb: fixed size (content length varies too much)
     const back_blurb = 3.5
