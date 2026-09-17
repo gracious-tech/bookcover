@@ -27,15 +27,19 @@ const PLACEHOLDER_COLORS = ['#6e79ac', '#be89b3', '#76538e']
 
 /** Swap each placeholder color for its resolved palette color. A plain case-insensitive text
  *  substitution rather than DOM parsing, so it still works if an SVG editor moves a color into
- *  a <style> block or CSS class instead of leaving it as an inline fill/stroke attribute. */
+ *  a <style> block or CSS class instead of leaving it as an inline fill/stroke attribute.
+ *  All placeholders are swapped in ONE pass: a palette color can itself be a placeholder value
+ *  (e.g. bg #c8b0d8 generates exactly the placeholder set, permuted), and replacing them one at
+ *  a time would let a later pass re-replace an earlier pass's output, collapsing two slots onto
+ *  the same color. */
 function recolor_svg(svg:string, colors:string[]):string {
-    let out = svg
-    for (let i = 0; i < PLACEHOLDER_COLORS.length && i < colors.length; i++) {
         // Negative lookahead guards against an editor re-exporting with an 8-digit alpha hex
         // (e.g. #ff0000aa), which would otherwise partial-match on the 6-digit placeholder
-        out = out.replace(new RegExp(`${PLACEHOLDER_COLORS[i]}(?![0-9a-f])`, 'gi'), colors[i])
-    }
-    return out
+    const pattern = new RegExp(`(?:${PLACEHOLDER_COLORS.join('|')})(?![0-9a-f])`, 'gi')
+    return svg.replace(pattern, match => {
+        const i = PLACEHOLDER_COLORS.indexOf(match.toLowerCase())
+        return (i >= 0 && i < colors.length) ? colors[i] : match
+    })
 }
 
 /** Build a render() for a VectorBackgroundDef that recolors the given design's source SVG */
