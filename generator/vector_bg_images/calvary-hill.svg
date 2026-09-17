@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 1275 900"
+   version="1.1"
+   id="calvary-hill"
+   xml:space="preserve"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"><defs
+     id="defs-calvary-hill" /><ellipse
+     cx="1018.4955"
+     cy="835.97717"
+     fill="#be89b3"
+     id="circle1"
+     rx="391.65445"
+     ry="172"
+     style="stroke-width:1.50899;fill:#76538e;fill-opacity:1" /><path
+     fill="currentColor"
+     d="m 961.83905,488.66015 h 24.41679 v 61.04198 h 61.04196 v 24.41679 H 986.25584 V 732.82805 H 961.83905 V 574.11892 h -61.04198 v -24.41679 h 61.04198 z"
+     id="path2"
+     style="fill:#be89b3;fill-opacity:1;stroke-width:12.2084" /><path
+     fill="currentColor"
+     d="m 1082.0452,649.97475 h 12.08 v 30.20008 h 30.2001 v 12.08004 h -30.2001 v 78.52021 h -12.08 v -78.52021 h -30.2001 v -12.08004 h 30.2001 z"
+     id="path2-6"
+     style="fill:#be89b3;fill-opacity:1;stroke-width:6.04002" /><path
+     fill="currentColor"
+     d="m 854.68297,582.29749 h 13.13318 v 32.83293 h 32.83294 v 13.13317 h -32.83294 v 85.36561 h -13.13318 v -85.36561 h -32.83294 v -13.13317 h 32.83294 z"
+     id="path2-5"
+     style="fill:#be89b3;fill-opacity:1;stroke-width:6.56659" /><path
+     fill="currentColor"
+     d="m 130.69927,681.87205 h 13.13318 v 32.83293 h 32.83294 v 13.13317 h -32.83294 v 85.36561 H 130.69927 V 727.83815 H 97.866329 v -13.13317 h 32.832941 z"
+     id="path2-5-5"
+     style="fill:#be89b3;fill-opacity:1;stroke-width:6.56659" /><path
+     d="M -20,930 C 240,620 1060,610 1295,905 V 940 H -20 Z"
+     fill="#6e79ac"
+     id="path5" /></svg>
