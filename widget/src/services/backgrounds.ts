@@ -23,6 +23,7 @@
 // naming it — the 0.9.0 black_/white_ prefix rename already did this once.
 
 import {ref} from 'vue'
+import type {FormState} from 'bookcover-web'
 import {assets_prefix} from '../assets'
 
 /** Backgrounds offered in this app's picker */
@@ -160,3 +161,44 @@ export async function fetch_bg_file(filename:string):Promise<File> {
  *  shipped image — see generator-web's embed_types.ts. Not part of the form: the record holds
  *  no binaries and no image identity, which the host owns. */
 export const builtin_bg_filename = ref<string | null>(null)
+
+/** Id of the host-supplied background suggestion currently in the form's image slot, or null.
+ *  Purely so the picker can highlight the tile the user chose — it is never reported back to the
+ *  host (which already knows, having just resolved it) and never confused with
+ *  builtin_bg_filename: a suggestion is an upload, not a built-in. */
+export const adopted_bg_suggestion_id = ref<string | null>(null)
+
+/** Set when the user themselves added the current image (upload, paste, or a host suggestion),
+ *  as opposed to picking a known-good built-in. Read-and-cleared by BackgroundSection's
+ *  bg_image watcher, which uses it to pop the one-time low-resolution dialog just once per
+ *  user-added image. */
+export const bg_image_is_user_upload = ref(false)
+
+/** Identity of the image being adopted — which of the mutually exclusive origins it came from,
+ *  and whether the user added it themselves */
+interface BgImageIdentity {
+    // Published filename, when the image is one of the built-ins above
+    builtin?: string
+    // Host suggestion id, when it arrived over the embed protocol
+    suggestion?: string
+    // Arms the one-time low-resolution dialog
+    user_upload?: boolean
+}
+
+/** Put an image (or null) in the form's background slot, replacing whatever was there.
+ *
+ *  The single way the background image is ever set, so that every piece of identity hanging off
+ *  it is rewritten together and no caller can leave a stale one behind: the built-in filename,
+ *  the host suggestion id, the user-added flag, and the vector background (mutually exclusive
+ *  with a photo). Callers selecting a vector set form.bg_vector_id after calling this with null.
+ *
+ *  The File is stored exactly as given — see the byte-identity contract on FormState.bg_image
+ *  in bookcover-core. Never pass a re-encoded or downscaled copy. */
+export function adopt_bg_image(form:FormState, file:File | null,
+    identity:BgImageIdentity = {}):void {
+    form.bg_image = file
+    form.bg_vector_id = null
+    builtin_bg_filename.value = identity.builtin ?? null
+    adopted_bg_suggestion_id.value = identity.suggestion ?? null
+    bg_image_is_user_upload.value = !!file && !!identity.user_upload
+}

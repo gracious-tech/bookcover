@@ -50,6 +50,10 @@ const eng = {
     background: {
         image_label: 'Background image',
         choose_suggested_aria: 'Choose suggested background',
+        // heading for the embedding app's own suggested images, above the built-in photos
+        recent_label: 'Recent images',
+        // shown when the embedding app fails to hand over a suggested image
+        suggestion_failed: 'Could not load that image',
         // heading for the photos section inside the background image picker dialog
         photos_label: 'Photos',
         designs_label: 'Illustrations',

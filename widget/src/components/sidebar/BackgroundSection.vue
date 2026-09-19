@@ -66,11 +66,53 @@ div(class="flex flex-col gap-1")
         UIcon(:name="dpi_warning_icon" class="w-3.5 h-3.5 shrink-0")
         span {{ dpi_warning_short }}
 
-    //- Picker dialog — Photos and Vector illustrations, big enough to compare many at once
+    //- Picker dialog — Photos and Vector illustrations, big enough to compare many at once,
+    //- preceded by the embed host's own suggestions when it sent any
     SidebarPickerDialog(v-model:open="bg_picker_open" :title="t('background.image_dialog_title')")
         div(class="flex flex-col gap-4")
+            //- Host-supplied suggestions — images the embedding app offers (typically ones the
+            //- user already used on their other covers). The url is a thumbnail source only;
+            //- clicking asks the host for the real bytes. See BgSuggestion in embed_types.ts
+            div(v-if="bg_suggestions.length")
+                label(class="text-xs font-semibold tracking-[0.02em] mb-1.5 block") {{ t('background.recent_label') }}
+                div(class="grid gap-1.5" style="grid-template-columns: repeat(auto-fill, minmax(140px, 1fr))")
+                    button(
+                        v-for="s in bg_suggestions"
+                        :key="s.id"
+                        type="button"
+                        class="relative aspect-4/3 rounded border-2 overflow-hidden touch-manipulation transition-transform duration-100"
+                        :class="suggestion_tile_class(s.id)"
+                        :disabled="pending_suggestion_id === s.id"
+                        :title="s.label"
+                        @click="select_bg_suggestion(s.id)"
+                    )
+                        //- A url the host got wrong shouldn't leave an empty box — fall back to
+                        //- the label so the tile is still identifiable and still clickable
+                        img(
+                            v-if="!broken_suggestions.has(s.id)"
+                            :src="s.url"
+                            :alt="s.label ?? t('background.recent_label')"
+                            referrerpolicy="no-referrer"
+                            loading="lazy"
+                            class="w-full h-full object-cover block"
+                            @error="broken_suggestions.add(s.id)"
+                        )
+                        span(
+                            v-else
+                            class="w-full h-full flex items-center justify-center px-2 text-xs text-muted text-center bg-elevated"
+                        ) {{ s.label ?? t('background.recent_label') }}
+                        span(
+                            v-if="pending_suggestion_id === s.id"
+                            class="absolute inset-0 flex items-center justify-center bg-(--ui-bg)/60"
+                        )
+                            UIcon(name="material-symbols:progress-activity" class="w-5 h-5 animate-spin")
+                p(
+                    v-if="failed_suggestion_id"
+                    class="text-xs mt-1.5 text-red-600 dark:text-red-400"
+                ) {{ t('background.suggestion_failed') }}
+
             //- Photos
-            div
+            div(:class="bg_suggestions.length ? 'pt-3 border-t border-default' : ''")
                 label(class="text-xs font-semibold tracking-[0.02em] mb-1.5 block") {{ t('background.photos_label') }}
                 div(class="grid gap-1.5" style="grid-template-columns: repeat(auto-fill, minmax(140px, 1fr))")
                     button(
@@ -78,7 +120,7 @@ div(class="flex flex-col gap-1")
                         :key="bg"
                         type="button"
                         class="aspect-4/3 rounded border-2 overflow-hidden cursor-pointer touch-manipulation transition-transform duration-100 hover:scale-[1.05]"
-                        :class="form.bg_image?.name === bg ? 'border-(--ui-text)' : 'border-transparent'"
+                        :class="builtin_bg_filename === bg ? 'border-(--ui-text)' : 'border-transparent'"
                         @click="select_suggested_bg(bg)"
                     )
                         img(:src="bg_thumb_url(bg)" class="w-full h-full object-cover block")
@@ -568,8 +610,12 @@ import {suggested_icons, icon_categories} from '../../services/icons'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
 import {PATTERNS, PREVIEW_PATTERNS, get_preview_url, get_preview_size} from '../../services/patterns'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
-import {BACKGROUNDS, PREVIEW_BGS, bg_thumb_url, fetch_bg_file,
-    builtin_bg_filename} from '../../services/backgrounds'
+import {BACKGROUNDS, PREVIEW_BGS, bg_thumb_url, fetch_bg_file, adopt_bg_image,
+    bg_image_is_user_upload, builtin_bg_filename,
+    adopted_bg_suggestion_id} from '../../services/backgrounds'
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+import {bg_suggestions, pending_suggestion_id, failed_suggestion_id,
+    select_bg_suggestion} from '../../embed'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
 import {VECTOR_BACKGROUNDS, find_vector_background, get_preview_url as get_vector_preview_url} from '../../services/vector_backgrounds'
 import {check_bg_image_dpi} from '../../dpi'
@@ -691,9 +737,34 @@ const dpi_warning_icon = computed(() => (
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
 const low_res_dialog_open = ref(false)
 
-// Set right before a user-initiated upload/paste so the watcher below only pops the one-time
-// dialog for images the user actually chose — not suggested backgrounds or the demo default
-let bg_image_is_user_upload = false
+// Suggestion ids whose thumbnail url failed to load — the host's urls are opaque to us and can
+// go stale, so those tiles render their label instead of an empty box
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+const broken_suggestions = ref(new Set<string>())
+
+/** Border + cursor classes for a suggestion tile, by its selected/pending/failed state */
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+function suggestion_tile_class(id:string): string[] {
+    return [
+        border_class(id),
+        pending_suggestion_id.value === id ? 'cursor-wait' : 'cursor-pointer hover:scale-[1.05]',
+    ]
+}
+
+/** Which border a suggestion tile gets — selected wins over failed */
+function border_class(id:string): string {
+    if (adopted_bg_suggestion_id.value === id)
+        return 'border-(--ui-text)'
+    if (failed_suggestion_id.value === id)
+        return 'border-red-600 dark:border-red-400'
+    return 'border-transparent'
+}
+
+// A failed selection shouldn't leave its error sitting there next time the picker is opened
+watch(bg_picker_open, (open) => {
+    if (open)
+        failed_suggestion_id.value = null
+})
 
 /** Decode a File's intrinsic pixel dimensions */
 async function decode_image_size(file:File):Promise<{width:number, height:number}> {
@@ -704,10 +775,12 @@ async function decode_image_size(file:File):Promise<{width:number, height:number
 }
 
 // Re-decode pixel dimensions whenever the image changes, then show the one-time low-res
-// dialog if a newly user-added image doesn't meet the current print size
+// dialog if a newly user-added image doesn't meet the current print size. adopt_bg_image sets
+// the flag for images the user chose themselves (upload, paste, host suggestion) — not for
+// built-in backgrounds or the demo default, which are known good
 watch(() => form.bg_image, async (file) => {
-    const check_dialog = bg_image_is_user_upload
-    bg_image_is_user_upload = false
+    const check_dialog = bg_image_is_user_upload.value
+    bg_image_is_user_upload.value = false
     if (!file) {
         bg_image_px.value = null
         return
@@ -727,15 +800,12 @@ watch(() => form.bg_image, async (file) => {
 
 /** Fetch a suggested background by filename, convert to File, and apply it */
 async function select_suggested_bg(filename:string): Promise<void> {
-    form.bg_image = await fetch_bg_file(filename)
-    builtin_bg_filename.value = filename
-    form.bg_vector_id = null
+    adopt_bg_image(form, await fetch_bg_file(filename), {builtin: filename})
 }
 
 /** Select a built-in vector background — mutually exclusive with a photo image */
 function select_vector_bg(id:string): void {
-    form.bg_image = null
-    builtin_bg_filename.value = null
+    adopt_bg_image(form, null)
     form.bg_vector_id = id
     // Vector backgrounds are always rendered full-wrap (generator forces it, position UI is hidden)
     form.bg_image_coverage = 'full'
@@ -744,9 +814,7 @@ function select_vector_bg(id:string): void {
 /** Clear whichever background (photo or vector design) is currently active */
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
 function clear_background(): void {
-    form.bg_image = null
-    builtin_bg_filename.value = null
-    form.bg_vector_id = null
+    adopt_bg_image(form, null)
 }
 
 /** Look up a pattern by the form's pattern_id — returns undefined when none selected */
@@ -853,11 +921,7 @@ function on_bg_color_input(e:Event): void {
 /** Read the selected file from the file input and store it on the form */
 function on_image_change(event:Event): void {
     const input = event.target as HTMLInputElement
-    const file = input.files?.[0] ?? null
-    if (file) bg_image_is_user_upload = true
-    form.bg_image = file
-    builtin_bg_filename.value = null
-    form.bg_vector_id = null
+    adopt_bg_image(form, input.files?.[0] ?? null, {user_upload: true})
 }
 
 /** Extract an image file from a DataTransferItemList, if present */
@@ -878,10 +942,8 @@ async function on_paste_click(): Promise<void> {
         const image_type = item.types.find(t => t.startsWith('image/'))
         if (image_type) {
             const blob = await item.getType(image_type)
-            bg_image_is_user_upload = true
-            form.bg_image = new File([blob], 'pasted', {type: image_type})
-            builtin_bg_filename.value = null
-            form.bg_vector_id = null
+            adopt_bg_image(form, new File([blob], 'pasted', {type: image_type}),
+                {user_upload: true})
             return
         }
     }
@@ -895,10 +957,7 @@ function on_global_paste(event:ClipboardEvent): void {
     const file = image_from_clipboard(event.clipboardData.items)
     if (file) {
         event.preventDefault()
-        bg_image_is_user_upload = true
-        form.bg_image = file
-        builtin_bg_filename.value = null
-        form.bg_vector_id = null
+        adopt_bg_image(form, file, {user_upload: true})
     }
 }
 

@@ -22,7 +22,10 @@ export function read_image(form:FormState):Blob | undefined {
     return form.bg_image ?? undefined
 }
 
-/** Resize image to fit within max_w × max_h as JPEG Blob; returns original if already small enough */
+/** Resize image to fit within max_w × max_h as JPEG Blob; returns original if already small enough.
+ *  PREVIEW ONLY — the returned Blob must never be written back to form.bg_image. That slot is
+ *  contractually byte-identical to what went in, because embed hosts identify background images
+ *  by hashing the bytes they get back (see FormState.bg_image in bookcover-core) */
 async function resize_to_jpeg(blob:Blob, max_w:number, max_h:number):Promise<Blob> {
     const bitmap = await createImageBitmap(blob)
     const scale = Math.min(1.0, max_w / bitmap.width, max_h / bitmap.height)

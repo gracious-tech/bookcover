@@ -42,6 +42,8 @@ const vie:Messages = {
     background: {
         image_label: 'Ảnh nền',
         choose_suggested_aria: 'Chọn ảnh nền gợi ý',
+        recent_label: 'Ảnh gần đây',
+        suggestion_failed: 'Không thể tải ảnh đó',
         photos_label: 'Ảnh chụp',
         designs_label: 'Hình nền',
         vector_color_note: 'Hình nền vector sử dụng màu nền bạn đã chọn',

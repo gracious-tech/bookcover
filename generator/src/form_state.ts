@@ -160,6 +160,19 @@ export interface EmbedFormState {
 /** Live form values — adds the background image File, which is held only in the browser and
  *  never serialized with the rest of the form */
 export interface FormState extends EmbedFormState {
+    /** The background image, held byte-for-byte.
+     *
+     *  BYTES ROUND-TRIP UNMODIFIED. A File put in this slot — whether the user uploaded it, a
+     *  host handed it over the embed protocol, or it was fetched from the built-in backgrounds
+     *  — is the exact File handed back out again: never re-encoded, resized, recompressed or
+     *  stripped of metadata. So any host may use the bytes themselves as the image's identity
+     *  (hashing them to recognise an image it already stores), and that identity survives a
+     *  round trip through the editor.
+     *
+     *  Everything the editor derives FROM the pixels — crop/coverage choices, sampled colors,
+     *  region analysis — lives in the form values or is recomputed at render time, never by
+     *  rewriting this file. Downscaling for preview rendering is fine, but the result is a
+     *  separate Blob that must not be written back here. */
     bg_image: File | null
 }
 
