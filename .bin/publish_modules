@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Bumps generator, generator-node, generator-web, and 3d to the same version, builds them,
 # and publishes each to npm in dependency order (generator first, since generator-node and
-# generator-web depend on it).
+# generator-web depend on it). Also re-points the widget's dependency ranges at the new
+# version — it isn't published, but it consumes these packages.
 #
 # Usage:
 #   .bin/publish_modules                     # publish current versions as-is, no bump
@@ -50,6 +51,15 @@ if [ $# -gt 0 ]; then
         # generator-node/generator-web depend on generator (bookcover-core) — keep it in sync too
         sed -i -E "s/(\"bookcover-core\": *\"\^)[0-9]+\.[0-9]+\.[0-9]+(\")/\1$NEW_VERSION\2/" "$pkg"
     done
+
+    # The widget consumes these packages too, and npm workspaces symlink them locally — so a
+    # stale range here goes unnoticed until someone installs from the registry and silently
+    # gets an old copy. Matches any "bookcover-*": "^x.y.z" dependency (the widget's own
+    # "name": "bookcover-widget" has no ^ and can't match)
+    echo "Syncing widget's bookcover-* ranges to ^$NEW_VERSION"
+    sed -i -E "s/(\"bookcover-[a-z0-9-]+\": *\"\^)[0-9]+\.[0-9]+\.[0-9]+(\")/\1$NEW_VERSION\2/" \
+        "$ROOT/widget/package.json"
+
     echo "Refreshing lockfile..."
     (cd "$ROOT" && npm install --package-lock-only)
 fi
