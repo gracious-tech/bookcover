@@ -184,7 +184,11 @@ inspection (needs `assets/fonts/` populated — see Build). It asserts nothing.
   `bookcover-core/patterns-svg` (or `bookcover-web/patterns-svg`) subpath instead. Adding a
   pattern means an entry in both files — the `PatternId` union makes a mismatch a type error,
   and `generator/tests/patterns.test.ts` checks the baked `aspect_ratio` still matches its SVG
-- `barcode.ts` — ISBN-13 barcode generation via bwip-js
+- `barcode.ts` — ISBN-13 barcode generation via bwip-js. Imports the `isbn` encoder from
+  `bwip-js/generic` and calls it directly — do NOT "simplify" this back to `toSVG({bcid})`.
+  That dispatches through a lookup table referencing all ~110 symbologies, so none of them can
+  be tree-shaken and the bundle grows by ~780KB for one barcode. `tests/barcode.test.ts` pins
+  the rendered SVG so the swap can't silently change output
 - `frame.ts` — Composites background images into decorative frames (painted, torn edges)
 - `icon_cache.ts` — Fetches and caches Iconify SVGs with size/color stripping
 
@@ -324,6 +328,14 @@ pruning one breaks covers that can no longer be reproduced (the `black_`/`white_
 prefix drop in 0.9.0 already did this once). Unknown IDs now warn via `warn_unknown()` instead of
 vanishing silently. Finalize and prune all of these before 1.0, then treat them as append-only.
 
+UNRELEASED BREAKING CHANGE (not yet published — the last release was 0.14.0): `list_patterns()`
+and `find_pattern()` no longer return a pattern's `svg`, and `PatternDef` gained `aspect_ratio`.
+The SVG moved to the `bookcover-core/patterns-svg` / `bookcover-web/patterns-svg` subpath so the
+payload stops riding along with the metadata (see `patterns.ts`). Pattern IDs are unchanged, so
+no stored cover is affected — only code that read `pattern.svg`, which now calls
+`find_pattern_svg(id)`. Needs a minor/major bump and a release note when published; paper.bible
+is the known consumer.
+
 For backgrounds specifically, **the filename is the ID** — hosts path-join it to fetch bytes and
 slice its extension off for the MIME type, with no lookup table anywhere. So a re-encode is a new
 ID, not new bytes behind an old one, and `bg_image_builtin` must keep carrying a filename.
@@ -389,8 +401,15 @@ Full contract in that file's header.
 ## .bin/ scripts
 
 Every `build_*` package script clears its `dist/` before running `tsc` — tsc only ever writes
-files, so a renamed or deleted source otherwise leaves its old output behind, and `files:
-["dist/"]` means that stale output gets published to npm.
+files, so a renamed or deleted source otherwise leaves its old output behind, and the published
+package would carry that stale output to npm.
+
+Every package's `files` is `["dist/", "!dist/**/*.map"]`. The maps are still built and still on
+disk, so debugging and go-to-definition work normally inside this repo; they're just kept out of
+the tarball, because `src/` isn't published and the maps carry no `sourcesContent` — shipped,
+they resolve to files no consumer has. Set `inlineSources: true` if they ever need to work for
+consumers, but note that embeds every source into the maps (bookcover-core: 213 kB packed ->
+449 kB).
 
 | Script | Purpose |
 |--------|---------|

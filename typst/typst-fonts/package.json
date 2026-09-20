@@ -30,7 +30,8 @@
         "typst-fonts-download": "dist/download/cli.js"
     },
     "files": [
-        "dist/"
+        "dist/",
+        "!dist/**/*.map"
     ],
     "scripts": {
         "build": "tsc",
