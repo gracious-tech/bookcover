@@ -63,7 +63,29 @@ export interface InitMessage {
     // Seeds the widget's advisory tracking so a restored built-in isn't reported back as a
     // user upload on the first data message — see bg_image_builtin on WidgetMessage
     bg_image_builtin?: string | null
-    // Previously uploaded font families to restore into the editor
+    /** Font families to make available in the editor's font pickers.
+     *
+     *  AVAILABLE IS NOT APPLIED. These land in the widget's custom-font store, which is what
+     *  the pickers offer — putting a family here does not put it on the cover, and the store
+     *  is returned wholesale on every data/finished message (see WidgetMessage). So a host
+     *  that seeds families the user never picks gets them all back, indistinguishable from
+     *  ones the user chose.
+     *
+     *  Hosts normally send exactly the families they already hold for this cover, and then
+     *  there is nothing to think about. A HOST THAT SEEDS EXTRA FAMILIES — offering fonts from
+     *  the user's other work, say — MUST REMEMBER WHICH ONES IT SEEDED, and must not persist a
+     *  seeded family that comes back unused. Families the host already owned and families the
+     *  user uploaded inside the widget are always kept: a host's font library can legitimately
+     *  hold families this cover doesn't use, so pruning by cover usage alone would delete
+     *  them.
+     *
+     *  Which families the cover actually applies is font_families_in_form(form) from
+     *  bookcover-core — it reads the eight *_font fields straight off the returned form, with
+     *  no schema build.
+     *
+     *  Bytes are expensive to clone and a single CJK family can run to tens of megabytes, so
+     *  everything here is fetched and cloned before the editor can open. Seeding speculatively
+     *  is paid for on the critical path. */
     custom_fonts?: CustomFont[]
     // Swap the export button for a "Finished" signal, and show a Cancel button
     finished_mode?: boolean
@@ -96,6 +118,14 @@ export type HostMessage =
  *  `custom_fonts` byte arrays are expensive to clone, so on 'data' messages the field is only
  *  present when the font set changed since the last message (absent = unchanged), while
  *  'finished' always carries the complete array.
+ *
+ *  `custom_fonts` is the editor's whole custom-font store — every family the pickers were
+ *  OFFERING, not the families the cover APPLIES. It contains what the host seeded via
+ *  InitMessage plus anything the user uploaded during the session, whether or not any of it
+ *  ended up on the cover. A host that only ever seeds families it already holds can store the
+ *  array as-is; one that seeds extra families has to drop the unused seeded ones itself (see
+ *  InitMessage.custom_fonts for the rule, and font_families_in_form in bookcover-core for the
+ *  applied set).
  *
  *  `bg_image_builtin` is ADVISORY background identity, so a host doesn't have to recover it by
  *  hashing returned bytes: when the user picks one of the widget's built-in backgrounds it
