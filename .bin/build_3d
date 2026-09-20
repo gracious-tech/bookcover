@@ -3,4 +3,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../3d"
 
+# Clear stale output first — tsc only writes files, so outputs whose sources were since
+# renamed or deleted linger in dist/, and every package ships all of dist/ to npm
+rm -rf dist
+
 npx tsc

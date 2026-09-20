@@ -10,6 +10,12 @@ import serve_assets from './vite_plugin_assets'
 
 // Vite configuration for the book cover generator widget
 export default defineConfig({
+    // @tiptap/starter-kit nests its own copy of @tiptap/core, so without this the bundle
+    // ships two identical copies of it (and of the prosemirror packages underneath)
+    resolve: {
+        dedupe: ['@tiptap/core', '@tiptap/pm', 'prosemirror-model', 'prosemirror-state',
+            'prosemirror-transform', 'prosemirror-view', 'vue'],
+    },
     plugins: [
         // Serve the repo's top-level assets/ tree (docs templates, backgrounds, frames,
         // fonts, typst wasm) under /generator_assets/ in dev, mirroring the public assets

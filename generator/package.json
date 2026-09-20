@@ -12,6 +12,17 @@
     "type": "module",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        },
+        "./patterns-svg": {
+            "types": "./dist/patterns_svg.d.ts",
+            "default": "./dist/patterns_svg.js"
+        },
+        "./package.json": "./package.json"
+    },
     "files": [
         "dist/"
     ],
@@ -35,5 +46,6 @@
         "@types/big.js": "^6.2.2",
         "fast-check": "^4.10.2",
         "vitest": "^5.0.1"
-    }
+    },
+    "sideEffects": false
 }

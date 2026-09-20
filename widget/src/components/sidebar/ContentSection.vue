@@ -131,15 +131,17 @@ BlurbEditorModal(v-model:open="is_blurb_open")
 <script setup lang="ts">
 // Content section — title fields, subtitle, author, ISBN, blurb
 
-import {ref, computed, inject} from 'vue'
+import {ref, computed, inject, watch, defineAsyncComponent} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {FORM_KEY} from '../../form_state'
 import type {FormState} from '../../form_state'
-import {generateHTML, generateText} from '@tiptap/vue-3'
-import {blurb_extensions} from '../../blurb_extensions'
+import {blurb_to_text} from '../../blurb_text'
+import {render_blurb_html} from '../../blurb_html'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
 import {coloris_popover_content} from '../../coloris'
-import BlurbEditorModal from './BlurbEditorModal.vue'
+// Loaded on demand — the editor pulls in the whole Tiptap stack, which nothing needs until
+// the modal is actually opened
+const BlurbEditorModal = defineAsyncComponent(() => import('./BlurbEditorModal.vue'))
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
 import FontStyleOptions from './FontStyleOptions.vue'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
@@ -163,7 +165,7 @@ function color_key(key:TitleKey):keyof FormState { return `${key}_color` }
 
 // Flatten the blurb to plain text for preview contexts (font sample, etc.)
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
-const blurb_plain = computed(() => generateText(form.blurb, blurb_extensions))
+const blurb_plain = computed(() => blurb_to_text(form.blurb))
 
 // Line 2 hides when all lines are empty; line 3 hides when lines 2 and 3 are both empty
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
@@ -202,6 +204,19 @@ const author_style_open = ref(false)
 const blurb_style_open = ref(false)
 
 
-// Rendered HTML for the 4-line readonly preview
-const blurb_preview_html = computed(() => generateHTML(form.blurb, blurb_extensions))
+// Rendered HTML for the 4-line readonly preview. Async because the renderer is a lazy chunk
+// (see blurb_html.ts) — stays empty while it loads, and is never requested at all for a blurb
+// with no text in it
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+const blurb_preview_html = ref('')
+watch(() => form.blurb, async (doc) => {
+    if (!blurb_plain.value.trim()) {
+        blurb_preview_html.value = ''
+        return
+    }
+    const html = await render_blurb_html(doc)
+    // Ignore a render that lost a race to a newer edit
+    if (html !== null && doc === form.blurb)
+        blurb_preview_html.value = html
+}, {immediate: true})
 </script>

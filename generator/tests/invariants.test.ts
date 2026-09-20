@@ -25,6 +25,23 @@ const HSL_PATTERN = /^hsl\(\d+deg, \d+%, \d+%\)$/
 const hsl_color = fc.tuple(fc.integer({min: 0, max: 359}), fc.integer({min: 0, max: 100}),
     fc.integer({min: 0, max: 100})).map(([h, s, l]) => `hsl(${h}deg, ${s}%, ${l}%)`)
 
+/** Parse an hsl(Hdeg, S%, L%) string the way design.ts does, into an unrounded color.
+ *  Letting chroma parse the CSS string instead would quantise it to 8-bit RGB first, and the
+ *  contrast curve is steep enough around the white/near-black crossover (~L 0.2) that half a
+ *  channel step moves the ratio by ~0.07 — enough to flip which text color looks better and
+ *  make these assertions disagree with a pipeline that never rounded in the first place */
+function as_color(hsl_str:string):chroma.Color {
+    const m = hsl_str.match(/hsl\((\d+(?:\.\d+)?)deg,\s*(\d+(?:\.\d+)?)%,\s*(\d+(?:\.\d+)?)%\)/)
+    if (!m)
+        throw new Error(`Invalid HSL color: ${hsl_str}`)
+    return chroma.hsl(parseFloat(m[1]), parseFloat(m[2]) / 100, parseFloat(m[3]) / 100)
+}
+
+/** WCAG contrast between two hsl(Hdeg, S%, L%) strings, measured without rounding either */
+function contrast_between(a:string, b:string):number {
+    return chroma.contrast(as_color(a), as_color(b))
+}
+
 /** A hex color, as the form stores its overrides */
 const hex_color = fc.tuple(fc.integer({min: 0, max: 255}), fc.integer({min: 0, max: 255}),
     fc.integer({min: 0, max: 255})).map(([r, g, b]) => chroma(r, g, b).hex())
@@ -178,12 +195,11 @@ describe('resolve_colors always returns renderable colors', () => {
         // Not every background can clear 4.5:1 — a mid-gray caps out below it against either
         // option — so the invariant is that the better of the two always wins
         fc.assert(fc.property(hsl_color, bg => {
-            const plain_bg = bg.replace('deg', '')
             const title = resolve_colors(make_schema({bg_color: bg})).front_title1
-            const chosen = chroma.contrast(title.replace('deg', ''), plain_bg)
+            const chosen = contrast_between(title, bg)
             const other = title.includes('100%')
-                ? chroma.contrast('hsl(0, 0%, 10%)', plain_bg)
-                : chroma.contrast('hsl(0, 0%, 100%)', plain_bg)
+                ? contrast_between('hsl(0deg, 0%, 10%)', bg)
+                : contrast_between('hsl(0deg, 0%, 100%)', bg)
             expect(chosen).toBeGreaterThanOrEqual(other)
         }))
     })
@@ -203,8 +219,7 @@ describe('resolve_colors always returns renderable colors', () => {
         fc.assert(fc.property(hsl_color, bg => {
             const colors = resolve_colors(make_schema({bg_color: bg}))
             const backdrop = colors.blurb_background ?? colors.front_background
-            expect(chroma.contrast(colors.blurb.replace('deg', ''), backdrop.replace('deg', '')))
-                .toBeGreaterThan(4.5)
+            expect(contrast_between(colors.blurb, backdrop)).toBeGreaterThan(4.5)
         }))
     })
 })

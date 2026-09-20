@@ -31,8 +31,13 @@ schema. The shared Tiptap schema lives in `widget/src/blurb_extensions.ts` (`blu
 (`BlurbEditorModal.vue`) and the sidebar previews (`ContentSection.vue`) build from that one
 list so what they parse never diverges. Tiptap stores the blurb as ProseMirror document JSON
 (`form.blurb`); the cover is rendered via `pm_to_typst()` (with curly-quote + escaping injected
-through the renderer's `text` extension point in `widget/src/schema.ts`), while the sidebar
-previews use Tiptap's own `generateHTML` / `generateText`. The Typst renderer is a per-node/
+through the renderer's `text` extension point in `widget/src/schema.ts`), while the sidebar's
+HTML preview uses Tiptap's own `generateHTML`. Importing Tiptap costs ~370KB, so nothing on the
+critical path may import it directly: `blurb_html.ts` wraps `generateHTML` behind a dynamic
+import (and `BlurbEditorModal` is a `defineAsyncComponent`), so the editor stack loads only once
+a blurb has text or the modal opens. Plain-text flattening runs far too early for that, so
+`blurb_text.ts` reimplements `generateText` with no dependencies — `tests/blurb_text.test.ts`
+pins it against the real one. The Typst renderer is a per-node/
 per-mark handler registry — `pm_to_typst(doc, custom)` merges a partial `{text, nodes, marks,
 fallback}` over the built-in renderer (`extend_renderer`), so extra node/mark types (color,
 alignment, etc.) can be registered; when adding one, register the matching Tiptap extension in
@@ -170,7 +175,15 @@ inspection (needs `assets/fonts/` populated — see Build). It asserts nothing.
   family per detected region in their chain. Every function in `fonts.ts` assumes `typst-fonts`
   has already been initialised by the calling platform wrapper (`generator-node`/`generator-web`)
   — `generator` itself does no I/O and never calls the loaders
-- `patterns.ts` — 60+ SVG pattern definitions from heropatterns.com (large data file)
+- `patterns.ts` — pattern METADATA only (id, name, tile_mm, aspect_ratio) for 87 patterns from
+  heropatterns.com. Small on purpose: `build_schema()` needs a pattern's `tile_mm`, so this
+  module is reachable from the widget's main thread and must not carry the SVG payload
+- `patterns_svg.ts` — the SVG strings themselves (~220KB), keyed by pattern id (large data
+  file). Only `build()` and the widget's pattern picker reach it, and both do so in isolation:
+  the barrel deliberately does NOT re-export it, and consumers import the
+  `bookcover-core/patterns-svg` (or `bookcover-web/patterns-svg`) subpath instead. Adding a
+  pattern means an entry in both files — the `PatternId` union makes a mismatch a type error,
+  and `generator/tests/patterns.test.ts` checks the baked `aspect_ratio` still matches its SVG
 - `barcode.ts` — ISBN-13 barcode generation via bwip-js
 - `frame.ts` — Composites background images into decorative frames (painted, torn edges)
 - `icon_cache.ts` — Fetches and caches Iconify SVGs with size/color stripping
@@ -329,6 +342,17 @@ Full contract in that file's header.
 
 ## Key patterns
 
+- **Keeping the widget's initial bundle lean**: the main thread imports the `bookcover-web`
+  barrel for small things (`build_schema`, `resolve_dimensions`, `generate_palette`), so
+  anything reachable from that barrel lands in the blocking chunk unless it can be tree-shaken.
+  Two things make that work and are easy to undo by accident: every package here declares
+  `"sideEffects": false` (without it, worker-only code like `build()`/`CoverGenerator` and its
+  `bwip-js` dependency can't be dropped), and large payloads live off the barrel behind their
+  own subpath export (see `patterns_svg.ts`). The generator worker, the pattern SVGs and the
+  Tiptap editor stack are all separate chunks — check `npx vite build`'s chunk list before and
+  after if you touch a barrel import, a dynamic `import()`, or a package's `exports`/
+  `sideEffects`. `widget/vite.config.ts` also sets `resolve.dedupe` because
+  `@tiptap/starter-kit` nests its own `@tiptap/core`, which otherwise ships twice.
 - **Font loading (web)**: the compiler is created lazily on the first `generate()` (never in
   `init()`, which only warms the base-font byte cache). Font bytes are fetched once per session
   into an in-memory cache keyed by URL and handed to typst.ts `loadFonts()` as blob URLs
@@ -363,6 +387,10 @@ Full contract in that file's header.
   release; swap back to a semver range when it ships.
 
 ## .bin/ scripts
+
+Every `build_*` package script clears its `dist/` before running `tsc` — tsc only ever writes
+files, so a renamed or deleted source otherwise leaves its old output behind, and `files:
+["dist/"]` means that stale output gets published to npm.
 
 | Script | Purpose |
 |--------|---------|
@@ -407,5 +435,6 @@ Full contract in that file's header.
   holds the Typst *templates* (`cover.typ`, `_helpers.typ` — codegen source, baked into the
   build, NOT under `assets/`, see Build), and the `typst` CLI binary itself (`.bin/setup_typst`).
 - **No semicolons**: All TypeScript uses no semicolons, snake_case for variables/functions.
-- **Patterns file**: `generator/src/patterns.ts` is ~810 lines / 167K tokens — almost
-  entirely inline SVG data strings. Don't try to read the whole file.
+- **Patterns file**: `generator/src/patterns_svg.ts` is ~160K tokens — almost entirely inline
+  SVG data strings. Don't try to read the whole file. Its sibling `patterns.ts` holds only the
+  metadata and is safe to read in full.

@@ -14,7 +14,7 @@ import {build_cover_files} from './build_files.js'
 import type {Templates, ImageInput} from './build_files.js'
 import {DEFAULT_TEMPLATES} from './generated/templates_data.js'
 import {resolve_icon} from './icon_cache.js'
-import {find_pattern} from './patterns.js'
+import {find_pattern_svg} from './patterns_svg.js'
 import {find_vector_background} from './vector_backgrounds.js'
 import type {FrameImageFn} from './frame.js'
 import {resolve_fallback_chain, cjk_segments, cjk_family, font_style} from 'typst-fonts'
@@ -29,8 +29,11 @@ export {collect_fonts, collect_all_fonts, collect_fallback_fonts, all_fonts_bund
     resolve_cjk_variant, resolve_field_cjk_variant} from './fonts.js'
 export {asset_path, FRAMES_DIR, BACKGROUNDS_DIR} from './assets.js'
 export {DEFAULT_TEMPLATES} from './generated/templates_data.js'
+// Pattern metadata only — the SVG payload is deliberately NOT re-exported here, so importing
+// this barrel (as the widget's main thread does) never pulls it in. Reach it via the
+// 'bookcover-core/patterns-svg' subpath instead
 export {list_patterns, find_pattern} from './patterns.js'
-export type {PatternDef} from './patterns.js'
+export type {PatternDef, PatternId} from './patterns.js'
 export {list_vector_backgrounds, find_vector_background} from './vector_backgrounds.js'
 export {list_builtin_icons, find_builtin_icon} from './builtin_icons.js'
 export type {VectorBackgroundDef} from './vector_backgrounds.js'
@@ -219,8 +222,8 @@ export async function build(
             ?? (schema_resolved.bg_color_gradient
                 ? colors.front_background
                 : darken_hsl(colors.front_background, 0.05))
-        const pat = find_pattern(schema_resolved.pattern)
-        const svg = await resolve_icon(pat ? pat.svg : schema_resolved.pattern, color_pattern)
+        const pat_svg = find_pattern_svg(schema_resolved.pattern)
+        const svg = await resolve_icon(pat_svg ?? schema_resolved.pattern, color_pattern)
         // Parse natural SVG dimensions to preserve aspect ratio when tiling
         const svg_w = parseFloat(svg.match(/\bwidth="([0-9.]+)"/)?.[1] ?? '1')
         const svg_h = parseFloat(svg.match(/\bheight="([0-9.]+)"/)?.[1] ?? '1')

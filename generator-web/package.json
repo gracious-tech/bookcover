@@ -12,6 +12,17 @@
     "type": "module",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        },
+        "./patterns-svg": {
+            "types": "./dist/patterns_svg.d.ts",
+            "default": "./dist/patterns_svg.js"
+        },
+        "./package.json": "./package.json"
+    },
     "files": [
         "dist/"
     ],
@@ -25,5 +36,6 @@
         "@myriaddreamin/typst.ts": "0.7.0",
         "bookcover-core": "^0.14.0",
         "typst-fonts": "^0.1.0"
-    }
+    },
+    "sideEffects": false
 }

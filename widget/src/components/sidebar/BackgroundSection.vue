@@ -608,7 +608,8 @@ import {FORM_KEY, IS_MOBILE_KEY} from '../../form_state'
 import type {FormState} from '../../form_state'
 import {suggested_icons, icon_categories} from '../../services/icons'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
-import {PATTERNS, PREVIEW_PATTERNS, get_preview_url, get_preview_size} from '../../services/patterns'
+import {PATTERNS, PREVIEW_PATTERNS, get_preview_url, get_preview_size,
+    load_pattern_svgs} from '../../services/patterns'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
 import {BACKGROUNDS, PREVIEW_BGS, bg_thumb_url, fetch_bg_file, adopt_bg_image,
     bg_image_is_user_upload, builtin_bg_filename,
@@ -963,4 +964,8 @@ function on_global_paste(event:ClipboardEvent): void {
 
 onMounted(() => window.addEventListener('paste', on_global_paste))
 onUnmounted(() => window.removeEventListener('paste', on_global_paste))
+
+// Pull in the pattern SVG payload once the sidebar is up. Deliberately not awaited — it's a
+// separate chunk kept off the initial bundle, and the swatches fill in when it lands
+onMounted(() => void load_pattern_svgs())
 </script>

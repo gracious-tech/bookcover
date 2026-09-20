@@ -12,22 +12,21 @@
 // color for something that isn't currently part of the cover.
 
 import {ref, watch} from 'vue'
-import {generateText} from '@tiptap/vue-3'
 import {resolve_colors, cover_schema, hex_override_to_hsl, darken_hsl,
     synthesize_fill, all_image_regions, generate_palette} from 'bookcover-web'
 import type {ResolvedColors} from 'bookcover-web'
 import type {FormState} from './form_state'
 import {build_schema} from './schema'
-import {blurb_extensions} from './blurb_extensions'
+import {blurb_has_text} from './blurb_text'
 import {image_regions} from './image_regions_cache'
 import {compute_cover_dims} from './dimensions'
 import {debounce} from './svg_utils'
 import {find_vector_background} from './services/vector_backgrounds'
 
 /** True once the blurb's ProseMirror doc actually contains text (the blank-form doc is a
- *  single empty paragraph, which generates to an empty string) */
+ *  single empty paragraph, which flattens to an empty string) */
 function has_blurb_text(form:FormState):boolean {
-    return generateText(form.blurb, blurb_extensions).trim() !== ''
+    return blurb_has_text(form.blurb)
 }
 
 /** True while the spine is wide enough for printing-services to place spine text on it —
