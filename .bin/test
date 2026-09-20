@@ -1,69 +1,29 @@
 #!/usr/bin/env bash
+# Run every package's automated test suite, in dependency order.
+# For the manual visual check (generates real PDF/SVG/PNG covers), see .bin/test_covers
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-# Build generator and generator-node
-cd "$ROOT/generator" && npm run build --silent
-cd "$ROOT/generator-node" && npm run build --silent
+# generator's suite builds the schema from its baked-in codegen, so make sure it exists
+"$ROOT/.bin/gen_vector_bg_images"
+"$ROOT/.bin/gen_icon_svgs"
+"$ROOT/.bin/gen_typst_templates"
 
-# Shared schema used by all test cases (flat top-level format, see generator/src/schema.ts)
-SCHEMA='{
-    title1: "The",
-    title2: "Art of Code",
-    title_position: "top",
-    subtitle: "A journey through software craft",
-    subtitle_position: "middle",
-    author: "Alice Chen",
-    author_position: "bottom",
-    blurb: `*The Art of Code* is a deep dive into the timeless \
-principles behind great software.
+# Every package with a suite, in dependency order. generator-node renders with the real typst
+# binary and fonts tree and skips itself when either is missing (see its tests/render.test.ts)
+PACKAGES=(
+    typst/typst-utils
+    typst/typst-fonts
+    typst/pm-to-typst
+    generator
+    generator-node
+    3d
+    widget
+)
 
-Whether you are a seasoned engineer or just starting out, this book will \
-challenge the way you think about your craft.`,
-    bg_color: "hsl(237deg, 28%, 14%)",
-    spine_color: "hsl(234deg, 88%, 73%)",
-    service_id: "kdp",
-    binding_type: "paperback",
-    ink_type: "bw",
-    paper_type: "white",
-    size_id: "us_trade",
-    page_count: 300,
-    isbn: "978-3-16-148410-0",
-}'
-
-# Run test generation — PDF, SVG, and PNG (with splitting)
-node --input-type=module <<EOF
-import {generate} from '$ROOT/generator-node/dist/index.js'
-
-const schema = $SCHEMA
-
-// PDF (default format, no splitting)
-await generate({
-    schema,
-    input_path: '$ROOT',
-    output_path: '$ROOT/test_cover.pdf',
-})
-console.log('Generated: test_cover.pdf')
-
-// SVG with splitting
-await generate({
-    schema,
-    input_path: '$ROOT',
-    output_path: '$ROOT/test_cover.svg',
-    format: 'svg',
-    split: true,
-})
-console.log('Generated: test_cover.svg + split panels')
-
-// PNG with splitting at 150 PPI
-await generate({
-    schema,
-    input_path: '$ROOT',
-    output_path: '$ROOT/test_cover.png',
-    format: 'png',
-    ppi: 150,
-    split: true,
-})
-console.log('Generated: test_cover.png + split panels')
-EOF
+for package in "${PACKAGES[@]}"; do
+    echo
+    echo "==> $package"
+    cd "$ROOT/$package" && npx vitest run "$@"
+done

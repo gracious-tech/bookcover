@@ -60,7 +60,8 @@ manifest data to resolve against: the widget loads `/generator_assets/fonts/mani
 dev (served by its own vite server — see `widget/vite_plugin_assets.ts`, which also sets the
 CORS headers consumer apps like paper_bible need to fetch these cross-origin in dev) and
 `https://assets.paper.bible/fonts` in production (see `widget/src/fonts.ts`), while
-`generator-node` reads `assets/fonts/` directly — run `.bin/download_fonts` before `.bin/test`.
+`generator-node` reads `assets/fonts/` directly — run `.bin/download_fonts` before
+`.bin/test_covers` (and before `.bin/test`, whose render suite skips itself without it).
 
 The typst.ts WASM binaries (compiler ~28MB + renderer ~1MB) are likewise NOT bundled or
 committed — `.bin/add_typst_version` vendors a published npm version into
@@ -116,11 +117,27 @@ Type-check a package: `cd <package> && npx tsc --noEmit`
 
 ### Tests
 
-The `typst/` helper packages have vitest suites (`cd typst/<pkg> && npx vitest run`). The
-cover packages have no test suite: `.bin/test` generates PDF/SVG/PNG files in the project root
-for manual visual inspection. It builds `generator` and `generator-node` first, then runs a
-Node script that calls `generate()` with a sample schema (needs `assets/fonts/` populated —
-see Build).
+Every package has a vitest suite, in `<pkg>/tests/`. `.bin/test` runs them all in dependency
+order; a single package is `cd <pkg> && npx vitest run` (each has a `test` script too). The
+suites are pure and need no build, network, or assets — except `generator-node`'s, which
+renders with the real `typst` binary and fonts tree and skips itself when either is missing.
+
+- `generator/tests/build.test.ts` holds GOLDEN SNAPSHOTS of the generated `_data.typ`
+  (`tests/__snapshots__/`, committed). They are the regression net for render determinism: a
+  diff there means rendered output changed. If the change is deliberate, update the snapshot
+  and bump `RENDER_VERSION` in the same commit (see Stored records below).
+- `generator/tests/invariants.test.ts` is property-based (fast-check): a random valid form
+  always builds a valid schema, dimensions always compose, auto colors are always readable.
+- `generator/tests/helpers.ts` loads a stand-in font manifest via `init_fonts()` — anything
+  touching `fonts.ts` or `build()` needs it, since `typst-fonts` throws until a loader runs
+  and `generator` itself never loads one.
+- Three tests are named `BUG:` — they pin current behaviour that is wrong but load-bearing
+  (a mid-gray auto-contrast pick, a stale `size_id` in custom size mode, a 1px split seam).
+  Each comment says what the fix is; delete the test when it's fixed.
+
+`.bin/test_covers` is the separate manual check: it builds `generator` and `generator-node`,
+then generates PDF/SVG/PNG files in the project root from a sample schema for visual
+inspection (needs `assets/fonts/` populated — see Build). It asserts nothing.
 
 ## Architecture
 
@@ -362,7 +379,8 @@ Full contract in that file's header.
 | `publish_modules` | Version-bump + build + npm publish the four cover packages |
 | `serve_widget` | `vite` dev server in widget/ |
 | `serve_site` | `vite` dev server in site/ |
-| `test` | Generate test covers (PDF/SVG/PNG) for visual inspection |
+| `test` | Run every package's vitest suite in dependency order |
+| `test_covers` | Generate test covers (PDF/SVG/PNG) for visual inspection |
 | `setup_typst` | Download latest typst binary to .bin/ |
 | `download_fonts` | Populate assets/fonts/ from font_config.json (typst-fonts-download) |
 | `add_typst_version` | Vendor a typst.ts npm version's wasm into assets/typst/<version>/ |

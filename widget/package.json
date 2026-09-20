@@ -7,7 +7,8 @@
     "scripts": {
         "dev": "vite",
         "build": "vite build",
-        "preview": "vite preview"
+        "preview": "vite preview",
+        "test": "vitest run"
     },
     "dependencies": {
         "@iconify-json/material-symbols": "^1.2.73",
@@ -29,6 +30,7 @@
         "@vue/language-plugin-pug": "^3.3.0",
         "pug": "^3.0.4",
         "sugarss": "^5.0.1",
-        "vite": "^8.0.3"
+        "vite": "^8.0.3",
+        "vitest": "^5.0.1"
     }
 }

@@ -11,9 +11,13 @@
     ],
     "scripts": {
         "build": "tsc",
-        "dev": "tsc --watch"
+        "dev": "tsc --watch",
+        "test": "vitest run"
     },
     "dependencies": {
         "typst-utils": "*"
+    },
+    "devDependencies": {
+        "vitest": "^5.0.1"
     }
 }
