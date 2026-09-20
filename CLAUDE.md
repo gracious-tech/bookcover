@@ -61,7 +61,7 @@ dev (served by its own vite server — see `widget/vite_plugin_assets.ts`, which
 CORS headers consumer apps like paper_bible need to fetch these cross-origin in dev) and
 `https://assets.paper.bible/fonts` in production (see `widget/src/fonts.ts`), while
 `generator-node` reads `assets/fonts/` directly — run `.bin/download_fonts` before
-`.bin/test_covers` (and before `.bin/test`, whose render suite skips itself without it).
+`.bin/test_examples` (and before `.bin/test`, whose render suite skips itself without it).
 
 The typst.ts WASM binaries (compiler ~28MB + renderer ~1MB) are likewise NOT bundled or
 committed — `.bin/add_typst_version` vendors a published npm version into
@@ -131,11 +131,11 @@ renders with the real `typst` binary and fonts tree and skips itself when either
 - `generator/tests/helpers.ts` loads a stand-in font manifest via `init_fonts()` — anything
   touching `fonts.ts` or `build()` needs it, since `typst-fonts` throws until a loader runs
   and `generator` itself never loads one.
-- Three tests are named `BUG:` — they pin current behaviour that is wrong but load-bearing
-  (a mid-gray auto-contrast pick, a stale `size_id` in custom size mode, a 1px split seam).
-  Each comment says what the fix is; delete the test when it's fixed.
+- Note for anyone adding a suite to `widget/`: it has its own `vitest.config.ts` so the tests
+  don't load the app's Nuxt UI/assets plugins, and it uses the `node` environment — the tests
+  cover the plain TS modules, not the Vue components.
 
-`.bin/test_covers` is the separate manual check: it builds `generator` and `generator-node`,
+`.bin/test_examples` is the separate manual check: it builds `generator` and `generator-node`,
 then generates PDF/SVG/PNG files in the project root from a sample schema for visual
 inspection (needs `assets/fonts/` populated — see Build). It asserts nothing.
 
@@ -380,7 +380,7 @@ Full contract in that file's header.
 | `serve_widget` | `vite` dev server in widget/ |
 | `serve_site` | `vite` dev server in site/ |
 | `test` | Run every package's vitest suite in dependency order |
-| `test_covers` | Generate test covers (PDF/SVG/PNG) for visual inspection |
+| `test_examples` | Generate test covers (PDF/SVG/PNG) for visual inspection |
 | `setup_typst` | Download latest typst binary to .bin/ |
 | `download_fonts` | Populate assets/fonts/ from font_config.json (typst-fonts-download) |
 | `add_typst_version` | Vendor a typst.ts npm version's wasm into assets/typst/<version>/ |

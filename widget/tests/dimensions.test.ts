@@ -41,16 +41,15 @@ describe('compute_cover_dims', () => {
         expect(dims.cover_face_height.toNumber()).toBeCloseTo(216, 4)
     })
 
-    it('BUG: a stale size_id beats the custom trim, since resolve_dimensions has no size_mode', () => {
-        // EmbedFormState requires size_id to be written as '' in custom mode, but
-        // SizeSection.vue's select_custom() only sets size_mode, leaving the previous preset id
-        // in place. resolve_dimensions keys off size_id alone, so it returns the PRESET size
-        // here — while build_schema() drops size_id in custom mode and renders the custom trim.
-        // Preview sizing, DPI checks and image-region sampling therefore disagree with the
-        // rendered cover. Fix in select_custom() (clear size_id) and delete this test
+    it('ignores a stale size_id in custom mode, as build_schema does', () => {
+        // A record may still carry the previous preset id (hosts hold records the editor wrote
+        // before select_custom() started clearing it), and resolve_dimensions keys off size_id
+        // alone — so custom mode must drop it here, or the preview resolves the preset size
+        // while generate() renders the custom trim
         const dims = compute_cover_dims(make_form({size_mode: 'custom', size_id: 'us_trade',
             custom_unit: 'mm', custom_trim_width: 140, custom_trim_height: 216}))
-        expect(dims.cover_face_width.toNumber()).toBeCloseTo(152.4, 4)
+        expect(dims.cover_face_width.toNumber()).toBeCloseTo(140, 4)
+        expect(dims.cover_face_height.toNumber()).toBeCloseTo(216, 4)
     })
 
     it('throws on an incomplete form, which callers catch while the user is mid-edit', () => {

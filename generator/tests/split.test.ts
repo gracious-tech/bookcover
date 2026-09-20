@@ -91,18 +91,18 @@ describe('calculate_pixel_crop_regions', () => {
         }
     })
 
-    it('BUG: a float-inexact panel edge can open a one-pixel seam', () => {
-        // The spine's right edge (x + width, in floating point) comes out an ulp past the
-        // front panel's x, so at some PPIs the two round to different pixels and the split
-        // PNGs have a 1px gap or overlap. Deriving the edges from the Big values (or taking
-        // each panel's right edge from the next panel's left) would remove it
+    it('tiles even when a panel edge is not float-exact', () => {
+        // Here the spine's right edge (x + width, in floating point) lands an ulp past the
+        // front panel's x, which used to round the two apart into a 1px seam at some PPIs
         const dims = make_dims({service_id: 'lulu', size_id: 'pocket_book',
             binding_type: 'hardcover_jacket', page_count: 800})
         const mm = calculate_crop_regions(dims)
         const spine = mm.findIndex(r => r.label === 'spine')
         expect(mm[spine].x + mm[spine].width).not.toBe(mm[spine + 1].x)
-        const pixels = calculate_pixel_crop_regions(dims, 44)
-        expect(pixels[spine + 1].x).not.toBe(pixels[spine].x + pixels[spine].width)
+        for (const ppi of [44, 52, 76, 116, 140, 150, 300]) {
+            const pixels = calculate_pixel_crop_regions(dims, ppi)
+            expect(pixels[spine + 1].x, `${ppi}`).toBe(pixels[spine].x + pixels[spine].width)
+        }
     })
 
     it('returns whole pixels only', () => {

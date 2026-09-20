@@ -226,6 +226,11 @@ function select_size(id:string):void {
 /** Switch to custom size mode */
 function select_custom():void {
     form.size_mode = 'custom'
+    // The record requires size_id to be written as '' in custom mode rather than left holding
+    // the previous preset (see EmbedFormState) — resolve_dimensions keys off size_id alone, so
+    // a stale id there resolves the preset size for the preview, DPI checks and image-region
+    // sampling while build_schema drops it and renders the custom trim
+    form.size_id = ''
 }
 
 /** Convert a value between mm and inch, rounded to 3 decimal places */

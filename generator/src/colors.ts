@@ -31,13 +31,19 @@ function relative_luminance(hex:string): number {
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
 }
 
-/** Return true when white text has better contrast than black text against this color (WCAG) */
+// Luminance of the near-black (#1a1a1a = hsl(0deg, 0%, 10%)) that pairs with white as this
+// module's auto text color — a printable K90 gray rather than pure black. The choice below is
+// made against THIS, not pure black: near-black has less contrast than black does, so
+// comparing against black picks it on mid-gray backgrounds where white actually reads better
+const DARK_TEXT_LUMINANCE = relative_luminance('#1a1a1a')
+
+/** Return true when white text has better contrast against this color than the near-black
+ *  text it pairs with (see DARK_TEXT_LUMINANCE) */
 export function is_dark_color(hex:string): boolean {
     const L = relative_luminance(hex)
-    // Contrast ratio with white (L=1) vs black (L=0)
     const contrast_white = 1.05 / (L + 0.05)
-    const contrast_black = (L + 0.05) / 0.05
-    return contrast_white > contrast_black
+    const contrast_dark = (L + 0.05) / (DARK_TEXT_LUMINANCE + 0.05)
+    return contrast_white > contrast_dark
 }
 
 /** Format HSL components as hsl(Hdeg, S%, L%) — compatible with CSS4 and Typst's color.hsl() */

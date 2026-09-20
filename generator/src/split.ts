@@ -70,6 +70,10 @@ export function calculate_crop_regions(dims:GetDimensionsResult):CropRegion[] {
     return regions
 }
 
+// Two panel edges this far apart (in mm) are the same edge — a shared boundary reached from
+// either side differs only by floating-point noise (see calculate_pixel_crop_regions)
+const SHARED_EDGE_MM = 1e-6
+
 /** Convert crop regions from mm to pixel coordinates at a given PPI.
  *  Widths and heights are derived from edge positions to avoid rounding gaps/overlaps. */
 export function calculate_pixel_crop_regions(
@@ -78,14 +82,25 @@ export function calculate_pixel_crop_regions(
 ):PixelCropRegion[] {
     // ppi is pixels per inch; convert to pixels per mm
     const px_per_mm = ppi / 25.4
-    return calculate_crop_regions(dims).map(r => {
+    const regions = calculate_crop_regions(dims)
+    const out:PixelCropRegion[] = []
+    for (const [i, r] of regions.entries()) {
         // Round edges, then derive size from the difference
-        const left = Math.round(r.x * px_per_mm)
         const top = Math.round(r.y * px_per_mm)
-        const right = Math.round((r.x + r.width) * px_per_mm)
         const bottom = Math.round((r.y + r.height) * px_per_mm)
-        return {x: left, y: top, width: right - left, height: bottom - top, label: r.label}
-    })
+        const right = Math.round((r.x + r.width) * px_per_mm)
+        // A panel starts exactly where the previous one ended, so that shared boundary is
+        // rounded ONCE and reused. Rounding it again from this panel's own x can land a pixel
+        // away: the previous panel's x + width is the same millimetre value in principle, but
+        // in floating point it can come out an ulp off and the two then round apart, leaving a
+        // 1px gap or overlap between the split panels
+        const previous = out[i - 1]
+        const shares_edge = previous !== undefined
+            && Math.abs(r.x - (regions[i - 1]!.x + regions[i - 1]!.width)) < SHARED_EDGE_MM
+        const left = shares_edge ? previous.x + previous.width : Math.round(r.x * px_per_mm)
+        out.push({x: left, y: top, width: right - left, height: bottom - top, label: r.label})
+    }
+    return out
 }
 
 // -- SVG splitting --

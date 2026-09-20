@@ -34,6 +34,14 @@ describe('is_dark_color', () => {
         expect(is_dark_color('#f5f5dc')).toBe(false)
     })
 
+    it('compares against the near-black it pairs with, not pure black', () => {
+        // On a mid-gray, near-black manages 3.94:1 where white gives 4.42:1 — comparing
+        // against pure black instead reported this background as light and picked the worse of
+        // the two (mirrors the same fix in design.ts's resolve_colors)
+        expect(is_dark_color('#787878')).toBe(true)
+        expect(derive_colors('#787878', null).front_title).toBe('hsl(0deg, 0%, 100%)')
+    })
+
     it('weights green far above blue, as WCAG luminance does', () => {
         // Pure blue is dark enough to need white text; pure green is not
         expect(is_dark_color('#0000ff')).toBe(true)

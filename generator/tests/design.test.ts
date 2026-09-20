@@ -50,16 +50,14 @@ describe('resolve_colors without an image', () => {
         expect(light.front_author).toBe(NEAR_BLACK)
     })
 
-    it('takes near-black on a mid-gray background, though white would read better', () => {
-        // Pins current behaviour: the white/black choice is made by comparing against PURE
-        // black, but near-black (10%) is what gets emitted. In the narrow band where the two
-        // disagree (background luminance ~0.18-0.20) the emitted color is the weaker of the
-        // two — 3.94:1 here against white's 4.42:1. Changing this shifts rendered output, so
-        // it needs a RENDER_VERSION bump
+    it('takes white on a mid-gray background, where near-black reads worse', () => {
+        // The choice is made against the near-black actually emitted, not against pure black —
+        // in this band (background luminance ~0.18-0.20) those disagree, and comparing against
+        // black picked the weaker option: 3.94:1 where white gives 4.42:1
         const colors = resolve_colors(make_schema({bg_color: 'hsl(0deg, 0%, 47%)'}))
-        expect(colors.front_title1).toBe(NEAR_BLACK)
-        expect(contrast(colors.front_title1, 'hsl(0, 0%, 47%)')).toBeLessThan(
-            contrast(WHITE, 'hsl(0, 0%, 47%)'))
+        expect(colors.front_title1).toBe(WHITE)
+        expect(contrast(colors.front_title1, 'hsl(0, 0%, 47%)')).toBeGreaterThan(
+            contrast(NEAR_BLACK, 'hsl(0, 0%, 47%)'))
     })
 
     it('lets an explicit color win over the derived one', () => {

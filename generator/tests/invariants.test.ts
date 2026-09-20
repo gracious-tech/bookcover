@@ -135,20 +135,9 @@ describe('dimensions always add up', () => {
     it('tiles the crop regions with no gap, at any PPI', () => {
         fc.assert(fc.property(print_config, fc.integer({min: 36, max: 1200}), (print, ppi) => {
             const dims = resolve_dimensions(print)
-            const mm_regions = calculate_crop_regions(dims)
             const regions = calculate_pixel_crop_regions(dims, ppi)
-            for (let i = 1; i < regions.length; i++) {
-                const gap = regions[i].x - (regions[i - 1].x + regions[i - 1].width)
-                // A panel's right edge is rounded from x+width and the next panel's left edge
-                // from its own x. Those are the same millimetre value in principle, but in
-                // floating point x+width can land an ulp off, and the two then round apart —
-                // see the pinned case in split.test.ts. The seam is never worse than a pixel
-                const mm_seam = mm_regions[i].x - (mm_regions[i - 1].x + mm_regions[i - 1].width)
-                if (mm_seam === 0)
-                    expect(gap).toBe(0)
-                else
-                    expect(Math.abs(gap)).toBeLessThanOrEqual(1)
-            }
+            for (let i = 1; i < regions.length; i++)
+                expect(regions[i].x).toBe(regions[i - 1].x + regions[i - 1].width)
             for (const region of regions) {
                 expect(region.width).toBeGreaterThan(0)
                 expect(region.height).toBeGreaterThan(0)
@@ -187,15 +176,9 @@ describe('resolve_colors always returns renderable colors', () => {
 
     it('picks whichever of white and near-black reads better on the background', () => {
         // Not every background can clear 4.5:1 — a mid-gray caps out below it against either
-        // extreme — so the invariant is that the better of the two wins.
-        // Backgrounds of luminance 0.179-0.202 are excluded: the choice is made by comparing
-        // against PURE black while near-black (10%) is what actually gets emitted, so inside
-        // that band the losing option is picked (see the mid-gray case in design.test.ts)
+        // option — so the invariant is that the better of the two always wins
         fc.assert(fc.property(hsl_color, bg => {
             const plain_bg = bg.replace('deg', '')
-            const luminance = chroma(plain_bg).luminance()
-            if (luminance > 0.179 && luminance < 0.202)
-                return
             const title = resolve_colors(make_schema({bg_color: bg})).front_title1
             const chosen = chroma.contrast(title.replace('deg', ''), plain_bg)
             const other = title.includes('100%')

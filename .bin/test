@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Run every package's automated test suite, in dependency order.
-# For the manual visual check (generates real PDF/SVG/PNG covers), see .bin/test_covers
+# For the manual visual check (generates real PDF/SVG/PNG covers), see .bin/test_examples
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

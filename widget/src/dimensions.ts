@@ -12,5 +12,10 @@ import type {FormState} from './form_state'
  *  spine width, so image-region sampling/DPI checks/preview sizing could disagree with what
  *  generate() itself computes for those services). */
 export function compute_cover_dims(form:FormState) {
-    return resolve_dimensions(form)
+    // size_mode is the form's own field — DimensionInputs has no notion of it and keys off
+    // size_id alone, so custom mode must drop size_id here exactly as build_schema() does.
+    // Otherwise a record carrying a stale preset id (which a host may still hold, and which
+    // the editor itself used to write) resolves the preset size here while generate() renders
+    // the custom trim
+    return resolve_dimensions(form.size_mode === 'custom' ? {...form, size_id: undefined} : form)
 }

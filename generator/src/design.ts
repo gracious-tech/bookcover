@@ -143,19 +143,25 @@ export function generate_palette(base:string, count:number, scheme:PaletteScheme
     return colors
 }
 
-/** True when white text has more WCAG contrast than black against this color */
+// The two colors auto text falls back to. The dark one is a near-black (K90% for print, see
+// COLOR_DEFAULTS) rather than pure black, and its luminance is what the choice below is made
+// against — comparing against PURE black instead picks it on mid-gray backgrounds where white
+// actually reads better, since near-black's own contrast is lower than black's
+const AUTO_TEXT_LIGHT = 'hsl(0deg, 0%, 100%)'
+const AUTO_TEXT_DARK = 'hsl(0deg, 0%, 10%)'
+const AUTO_TEXT_DARK_LUMINANCE = chroma.hsl(0, 0, 0.1).luminance()
+
+/** True when the light auto text reads better than the dark one against this color */
 function is_dark(c:chroma.Color):boolean {
     const L = c.luminance()
-    const contrast_white = 1.05 / (L + 0.05)
-    const contrast_black = (L + 0.05) / 0.05
-    return contrast_white >= contrast_black
+    const contrast_light = 1.05 / (L + 0.05)
+    const contrast_dark = (L + 0.05) / (AUTO_TEXT_DARK_LUMINANCE + 0.05)
+    return contrast_light >= contrast_dark
 }
 
 /** Return white or near-black, whichever has more WCAG contrast against the given background */
 function auto_contrast_text(bg:string):string {
-    return is_dark(from_hsl(bg))
-        ? 'hsl(0deg, 0%, 100%)'  // white — better on dark backgrounds
-        : 'hsl(0deg, 0%, 10%)'   // near-black (K90% for print)
+    return is_dark(from_hsl(bg)) ? AUTO_TEXT_LIGHT : AUTO_TEXT_DARK
 }
 
 /** Same contrast choice as auto_contrast_text, but hex-in/hex-out — for callers (pick_vivid_tint)
