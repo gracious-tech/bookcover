@@ -20,22 +20,23 @@ AWSTemplateFormatVersion: '2010-09-09'
 # read certificates from us-east-1 alone. CloudFront itself is global either way — the region
 # only decides where the buckets sit and which origin fetches are shortest.
 
+# No parameter here carries a Default — .bin/setup_aws is the only supported entry point and
+# it always passes every one of these explicitly, so a template-level default would just be a
+# second copy of the script's to drift out of sync with (see setup_aws's own defaults, which
+# are the single source of truth).
 Parameters:
     SiteDomain:
         Type: String
-        Default: cover.paper.bible
         Description: Hostname for the public site, which embeds the widget in an iframe
 
     WidgetDomain:
         Type: String
-        Default: cover-widget.paper.bible
         Description: >
             Hostname for the widget UI. Deliberately not the site's own hostname — the widget
             is embedded cross-origin by other apps too, so it stands on its own.
 
     AssetsDomain:
         Type: String
-        Default: assets.paper.bible
         Description: Hostname for the public assets tree
 
     CertificateArn:
@@ -48,14 +49,12 @@ Parameters:
 
     GithubRepo:
         Type: String
-        Default: 'gracious-tech/bookcover'
         Description: >
             owner/repo that CI deploys from. Leave blank to skip
             creating the GitHub Actions OIDC deploy role.
 
     CreateOidcProvider:
         Type: String
-        Default: 'yes'
         AllowedValues: ['yes', 'no']
         Description: >
             Set to no if this AWS account already has a GitHub Actions OIDC provider — only
@@ -63,7 +62,6 @@ Parameters:
 
     PriceClass:
         Type: String
-        Default: PriceClass_All
         AllowedValues: [PriceClass_All, PriceClass_200, PriceClass_100]
         Description: >
             CloudFront edge coverage. PriceClass_100 (US/EU only) is cheapest; the default

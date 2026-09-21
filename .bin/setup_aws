@@ -26,8 +26,11 @@ REGION="${REGION:-${AWS_REGION:-us-west-2}}"
 SITE_DOMAIN="${SITE_DOMAIN:-cover.paper.bible}"
 WIDGET_DOMAIN="${WIDGET_DOMAIN:-cover-widget.paper.bible}"
 ASSETS_DOMAIN="${ASSETS_DOMAIN:-assets.paper.bible}"
-GITHUB_REPO="${GITHUB_REPO:-}"
+# Set GITHUB_REPO='' explicitly to skip creating the CI role — the template has no default
+# of its own to fall back to, so this is the only place that value lives
+GITHUB_REPO="${GITHUB_REPO:-gracious-tech/bookcover}"
 CREATE_OIDC_PROVIDER="${CREATE_OIDC_PROVIDER:-yes}"
+PRICE_CLASS="${PRICE_CLASS:-PriceClass_All}"
 
 # CloudFront reads certificates from us-east-1 only, whatever region the stack itself uses
 CERT_REGION="us-east-1"
@@ -91,6 +94,17 @@ fi
 
 echo "Using certificate $CERT_ARN"
 
+# The template has no Default on any of these, so every one has to be passed explicitly
+PARAM_OVERRIDES=(
+    "SiteDomain=$SITE_DOMAIN"
+    "WidgetDomain=$WIDGET_DOMAIN"
+    "AssetsDomain=$ASSETS_DOMAIN"
+    "CertificateArn=$CERT_ARN"
+    "GithubRepo=$GITHUB_REPO"
+    "CreateOidcProvider=$CREATE_OIDC_PROVIDER"
+    "PriceClass=$PRICE_CLASS"
+)
+
 # CAPABILITY_NAMED_IAM because the template creates a named role for CI to assume
 aws cloudformation deploy \
     --region "$REGION" \
@@ -98,13 +112,7 @@ aws cloudformation deploy \
     --template-file infra/cloudformation.yml \
     --capabilities CAPABILITY_NAMED_IAM \
     --no-fail-on-empty-changeset \
-    --parameter-overrides \
-        "SiteDomain=$SITE_DOMAIN" \
-        "WidgetDomain=$WIDGET_DOMAIN" \
-        "AssetsDomain=$ASSETS_DOMAIN" \
-        "CertificateArn=$CERT_ARN" \
-        "GithubRepo=$GITHUB_REPO" \
-        "CreateOidcProvider=$CREATE_OIDC_PROVIDER"
+    --parameter-overrides "${PARAM_OVERRIDES[@]}"
 
 echo
 echo "Stack $STACK deployed. Outputs:"
