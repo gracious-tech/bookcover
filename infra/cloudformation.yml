@@ -412,6 +412,13 @@ Resources:
                   PolicyDocument:
                       Version: '2012-10-17'
                       Statement:
+                          # The deploy scripts resolve bucket/distribution names via
+                          # stack_output() before syncing, so read-only stack access is needed
+                          # too — scoped to this stack alone
+                          - Effect: Allow
+                            Action: cloudformation:DescribeStacks
+                            Resource:
+                                !Sub 'arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}/*'
                           # Enough to sync content into the three buckets, and nothing else
                           - Effect: Allow
                             Action:
