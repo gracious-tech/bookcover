@@ -1,6 +1,6 @@
 {
     "name": "pm-to-typst",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "license": "MIT-0",
     "description": "A ProseMirror JSON to Typst renderer",
     "type": "module",
