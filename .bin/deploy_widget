@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+
+# Publish the built widget (widget/dist/) to the UI bucket served at
+# https://cover-widget.paper.bible/
+# (an S3 bucket behind CloudFront — see infra/cloudformation.yml). Build first with
+# .bin/build_widget; this script only uploads.
+#
+# Usage:
+#   .bin/deploy_widget
+#   STACK=paper-cover-staging .bin/deploy_widget
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+STACK="${STACK:-paper-cover}"
+# us-west-2 unless told otherwise; AWS_REGION is what the CI workflows set
+REGION="${REGION:-${AWS_REGION:-us-west-2}}"
+
+if [ ! -f widget/dist/index.html ]; then
+    echo "widget/dist/ is not built — run .bin/build_widget first" >&2
+    exit 1
+fi
+
+# Read a value out of the CloudFormation stack rather than hardcoding names setup_aws owns
+stack_output(){
+    aws cloudformation describe-stacks --region "$REGION" --stack-name "$STACK" \
+        --query "Stacks[0].Outputs[?OutputKey=='$1'].OutputValue | [0]" --output text
+}
+
+BUCKET="${BUCKET:-$(stack_output WidgetBucketName)}"
+DISTRIBUTION="${DISTRIBUTION:-$(stack_output WidgetDistributionId)}"
+
+if [ -z "$BUCKET" ] || [ "$BUCKET" = "None" ]; then
+    echo "Could not resolve the widget bucket from stack $STACK (run .bin/setup_aws)" >&2
+    exit 1
+fi
+
+# Everything vite emits beside index.html carries a content hash in its name, so it can be
+# cached forever. Uploaded BEFORE index.html so there's never a moment where the live entry
+# point references bundles that aren't there yet.
+#
+# Deliberately no --delete: the widget lazy-loads chunks (the generator worker, the pattern
+# SVGs, the Tiptap editor stack), so removing the previous build's files would break anyone
+# mid-session who hasn't fetched them yet. Superseded bundles are small and simply accumulate.
+aws s3 sync widget/dist "s3://$BUCKET" \
+    --exclude 'index.html' \
+    --cache-control 'public, max-age=31536000, immutable'
+
+# The entry point is the one mutable file, so it must not be cached anywhere
+aws s3 cp widget/dist/index.html "s3://$BUCKET/index.html" \
+    --cache-control 'no-cache' \
+    --content-type 'text/html; charset=utf-8'
+
+# CloudFront holds index.html under its own no-cache behaviour, but the SPA error-response
+# mapping can still have a copy, so purge the one path explicitly
+if [ -n "$DISTRIBUTION" ] && [ "$DISTRIBUTION" != "None" ]; then
+    echo -n 'Invalidation: '
+    aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION" \
+        --paths '/index.html' '/' \
+        --query 'Invalidation.Id' --output text
+fi
+
+echo "Deployed widget/dist to s3://$BUCKET"

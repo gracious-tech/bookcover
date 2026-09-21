@@ -1,0 +1,494 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+# Hosting for paper_cover: the public site (cover.paper.bible), the widget UI it embeds
+# (cover-widget.paper.bible) and the public assets tree (assets.paper.bible), each an S3
+# bucket behind its own CloudFront distribution.
+#
+# The site and the widget are separate origins on purpose — the widget is also embedded by
+# other apps, so it has to stand alone anyway, and keeping it off the site's origin means the
+# site can't accidentally grow a same-origin dependency on it that those other hosts don't get.
+#
+# This template provisions infrastructure ONLY — it never carries content. The buckets are
+# filled by .bin/deploy_widget and .bin/deploy_assets, which is the split that matters: this
+# stack changes a couple of times a year, the content changes constantly and needs per-file
+# metadata (brotli-encoded wasm, immutable vs short cache lifetimes) that IaC models badly.
+#
+# Both buckets are private and reachable only through CloudFront via Origin Access Control.
+# Deploy with .bin/setup_aws, which also handles the certificate prerequisite.
+#
+# The stack lives in us-west-2; only the ACM certificate is elsewhere, because CloudFront can
+# read certificates from us-east-1 alone. CloudFront itself is global either way — the region
+# only decides where the buckets sit and which origin fetches are shortest.
+
+Parameters:
+    SiteDomain:
+        Type: String
+        Default: cover.paper.bible
+        Description: Hostname for the public site, which embeds the widget in an iframe
+
+    WidgetDomain:
+        Type: String
+        Default: cover-widget.paper.bible
+        Description: >
+            Hostname for the widget UI. Deliberately not the site's own hostname — the widget
+            is embedded cross-origin by other apps too, so it stands on its own.
+
+    AssetsDomain:
+        Type: String
+        Default: assets.paper.bible
+        Description: Hostname for the public assets tree
+
+    CertificateArn:
+        Type: String
+        Description: >
+            ACM certificate covering all three domains. MUST live in us-east-1
+            regardless of the region this stack is in — CloudFront reads certificates from
+            there only.
+            .bin/setup_aws will request one for you if you don't pass an existing ARN.
+
+    GithubRepo:
+        Type: String
+        Default: 'gracious-tech/bookcover'
+        Description: >
+            owner/repo that CI deploys from. Leave blank to skip
+            creating the GitHub Actions OIDC deploy role.
+
+    CreateOidcProvider:
+        Type: String
+        Default: 'yes'
+        AllowedValues: ['yes', 'no']
+        Description: >
+            Set to no if this AWS account already has a GitHub Actions OIDC provider — only
+            one per account is permitted, and a second will fail the stack.
+
+    PriceClass:
+        Type: String
+        Default: PriceClass_All
+        AllowedValues: [PriceClass_All, PriceClass_200, PriceClass_100]
+        Description: >
+            CloudFront edge coverage. PriceClass_100 (US/EU only) is cheapest; the default
+            covers Asia too, which matters for the CJK font downloads.
+
+Conditions:
+    WantsCiRole: !Not [!Equals [!Ref GithubRepo, '']]
+    WantsOidcProvider: !And
+        - !Condition WantsCiRole
+        - !Equals [!Ref CreateOidcProvider, 'yes']
+
+Resources:
+    # --- Buckets -------------------------------------------------------------------------
+    # Both are private with all public access blocked; CloudFront reaches them through OAC,
+    # so nothing is ever served straight off S3.
+
+    SiteBucket:
+        Type: AWS::S3::Bucket
+        Properties:
+            BucketName: !Sub '${AWS::StackName}-site-${AWS::AccountId}'
+            PublicAccessBlockConfiguration:
+                BlockPublicAcls: true
+                BlockPublicPolicy: true
+                IgnorePublicAcls: true
+                RestrictPublicBuckets: true
+            OwnershipControls:
+                Rules:
+                    - ObjectOwnership: BucketOwnerEnforced
+
+    WidgetBucket:
+        Type: AWS::S3::Bucket
+        Properties:
+            BucketName: !Sub '${AWS::StackName}-widget-${AWS::AccountId}'
+            PublicAccessBlockConfiguration:
+                BlockPublicAcls: true
+                BlockPublicPolicy: true
+                IgnorePublicAcls: true
+                RestrictPublicBuckets: true
+            OwnershipControls:
+                Rules:
+                    - ObjectOwnership: BucketOwnerEnforced
+
+    AssetsBucket:
+        Type: AWS::S3::Bucket
+        Properties:
+            BucketName: !Sub '${AWS::StackName}-assets-${AWS::AccountId}'
+            PublicAccessBlockConfiguration:
+                BlockPublicAcls: true
+                BlockPublicPolicy: true
+                IgnorePublicAcls: true
+                RestrictPublicBuckets: true
+            OwnershipControls:
+                Rules:
+                    - ObjectOwnership: BucketOwnerEnforced
+
+    # --- Origin access -------------------------------------------------------------------
+
+    SiteOac:
+        Type: AWS::CloudFront::OriginAccessControl
+        Properties:
+            OriginAccessControlConfig:
+                Name: !Sub '${AWS::StackName}-site'
+                OriginAccessControlOriginType: s3
+                SigningBehavior: always
+                SigningProtocol: sigv4
+
+    WidgetOac:
+        Type: AWS::CloudFront::OriginAccessControl
+        Properties:
+            OriginAccessControlConfig:
+                Name: !Sub '${AWS::StackName}-widget'
+                OriginAccessControlOriginType: s3
+                SigningBehavior: always
+                SigningProtocol: sigv4
+
+    AssetsOac:
+        Type: AWS::CloudFront::OriginAccessControl
+        Properties:
+            OriginAccessControlConfig:
+                Name: !Sub '${AWS::StackName}-assets'
+                OriginAccessControlOriginType: s3
+                SigningBehavior: always
+                SigningProtocol: sigv4
+
+    # --- Response headers ------------------------------------------------------------------
+    # CORS lives here rather than on the bucket so it applies uniformly and is one declarative
+    # place. Access-Control-Allow-Origin stays '*' deliberately: a single fixed value is what
+    # makes these responses cacheable at the edge. If it ever becomes a list, CloudFront must
+    # vary on Origin or it will hand one consumer app another's CORS header.
+    #
+    # Cross-Origin-Resource-Policy is the header S3 (like GCS) cannot attach itself — consumer
+    # apps embedding the generator cross-origin need it.
+
+    AssetsHeadersPolicy:
+        Type: AWS::CloudFront::ResponseHeadersPolicy
+        Properties:
+            ResponseHeadersPolicyConfig:
+                Name: !Sub '${AWS::StackName}-assets-headers'
+                CorsConfig:
+                    AccessControlAllowCredentials: false
+                    AccessControlAllowHeaders:
+                        Items: ['*']
+                    AccessControlAllowMethods:
+                        Items: [GET, HEAD]
+                    AccessControlAllowOrigins:
+                        Items: ['*']
+                    AccessControlMaxAgeSec: 3600
+                    OriginOverride: true
+                CustomHeadersConfig:
+                    Items:
+                        - Header: Cross-Origin-Resource-Policy
+                          Value: cross-origin
+                          Override: true
+                SecurityHeadersConfig:
+                    ContentTypeOptions:
+                        Override: true
+
+    # --- Distributions ---------------------------------------------------------------------
+    # Managed cache policy IDs are AWS-owned constants:
+    #   CachingOptimized 658327ea-f89d-4fab-a63d-7e88639e58f6 — honours origin Cache-Control
+    #   CachingDisabled  4135ea2d-6df8-44a3-9df3-4b5a84be39ad — never caches at the edge
+    #
+    # CachingOptimized is the right default here because every object we upload carries an
+    # explicit Cache-Control (see .bin/deploy_assets), so the edge follows the origin rather
+    # than applying a heuristic of its own.
+
+    SiteDistribution:
+        Type: AWS::CloudFront::Distribution
+        Properties:
+            DistributionConfig:
+                Enabled: true
+                Comment: !Sub '${AWS::StackName} public site'
+                Aliases: [!Ref SiteDomain]
+                DefaultRootObject: index.html
+                HttpVersion: http2and3
+                IPV6Enabled: true
+                PriceClass: !Ref PriceClass
+                ViewerCertificate:
+                    AcmCertificateArn: !Ref CertificateArn
+                    MinimumProtocolVersion: TLSv1.2_2021
+                    SslSupportMethod: sni-only
+                Origins:
+                    - Id: site-bucket
+                      DomainName: !GetAtt SiteBucket.RegionalDomainName
+                      OriginAccessControlId: !GetAtt SiteOac.Id
+                      S3OriginConfig:
+                          OriginAccessIdentity: ''
+                DefaultCacheBehavior:
+                    TargetOriginId: site-bucket
+                    ViewerProtocolPolicy: redirect-to-https
+                    AllowedMethods: [GET, HEAD, OPTIONS]
+                    CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+                    Compress: true
+                CacheBehaviors:
+                    - PathPattern: /index.html
+                      TargetOriginId: site-bucket
+                      ViewerProtocolPolicy: redirect-to-https
+                      AllowedMethods: [GET, HEAD, OPTIONS]
+                      CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+                      Compress: true
+                CustomErrorResponses:
+                    # The site has no router yet, but it will; these are here so adding one
+                    # isn't also an infrastructure change
+                    - ErrorCode: 403
+                      ResponseCode: 200
+                      ResponsePagePath: /index.html
+                      ErrorCachingMinTTL: 0
+                    - ErrorCode: 404
+                      ResponseCode: 200
+                      ResponsePagePath: /index.html
+                      ErrorCachingMinTTL: 0
+
+    # Note there is no X-Frame-Options / frame-ancestors header on this one, deliberately: the
+    # site embeds it in an iframe, and so do consumer apps on their own origins.
+    WidgetDistribution:
+        Type: AWS::CloudFront::Distribution
+        Properties:
+            DistributionConfig:
+                Enabled: true
+                Comment: !Sub '${AWS::StackName} widget UI'
+                Aliases: [!Ref WidgetDomain]
+                DefaultRootObject: index.html
+                HttpVersion: http2and3
+                IPV6Enabled: true
+                PriceClass: !Ref PriceClass
+                ViewerCertificate:
+                    AcmCertificateArn: !Ref CertificateArn
+                    MinimumProtocolVersion: TLSv1.2_2021
+                    SslSupportMethod: sni-only
+                Origins:
+                    - Id: widget-bucket
+                      DomainName: !GetAtt WidgetBucket.RegionalDomainName
+                      OriginAccessControlId: !GetAtt WidgetOac.Id
+                      S3OriginConfig:
+                          OriginAccessIdentity: ''
+                DefaultCacheBehavior:
+                    TargetOriginId: widget-bucket
+                    ViewerProtocolPolicy: redirect-to-https
+                    AllowedMethods: [GET, HEAD, OPTIONS]
+                    CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+                    Compress: true
+                CacheBehaviors:
+                    # The entry point must never be held at the edge, or a deploy takes an
+                    # hour to reach anyone. The hashed bundles beside it are immutable and
+                    # fall through to the default behaviour above.
+                    - PathPattern: /index.html
+                      TargetOriginId: widget-bucket
+                      ViewerProtocolPolicy: redirect-to-https
+                      AllowedMethods: [GET, HEAD, OPTIONS]
+                      CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+                      Compress: true
+                CustomErrorResponses:
+                    # Replicates the SPA rewrite the widget had on Firebase Hosting. A private
+                    # bucket answers a missing key with 403 rather than 404, so both map.
+                    - ErrorCode: 403
+                      ResponseCode: 200
+                      ResponsePagePath: /index.html
+                      ErrorCachingMinTTL: 0
+                    - ErrorCode: 404
+                      ResponseCode: 200
+                      ResponsePagePath: /index.html
+                      ErrorCachingMinTTL: 0
+
+    AssetsDistribution:
+        Type: AWS::CloudFront::Distribution
+        Properties:
+            DistributionConfig:
+                Enabled: true
+                Comment: !Sub '${AWS::StackName} public assets tree'
+                Aliases: [!Ref AssetsDomain]
+                HttpVersion: http2and3
+                IPV6Enabled: true
+                PriceClass: !Ref PriceClass
+                ViewerCertificate:
+                    AcmCertificateArn: !Ref CertificateArn
+                    MinimumProtocolVersion: TLSv1.2_2021
+                    SslSupportMethod: sni-only
+                Origins:
+                    - Id: assets-bucket
+                      DomainName: !GetAtt AssetsBucket.RegionalDomainName
+                      OriginAccessControlId: !GetAtt AssetsOac.Id
+                      S3OriginConfig:
+                          OriginAccessIdentity: ''
+                DefaultCacheBehavior:
+                    TargetOriginId: assets-bucket
+                    ViewerProtocolPolicy: redirect-to-https
+                    AllowedMethods: [GET, HEAD, OPTIONS]
+                    CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+                    ResponseHeadersPolicyId: !Ref AssetsHeadersPolicy
+                    # Compresses manifest.json in passing. The wasm arrives already
+                    # brotli-encoded and CloudFront leaves encoded responses alone; the fonts
+                    # and JPEGs are incompressible.
+                    Compress: true
+
+    # --- Bucket policies -------------------------------------------------------------------
+    # Written after the distributions exist so each grant can be pinned to one distribution
+    # ARN — without the SourceArn condition any CloudFront distribution in any account could
+    # read the bucket.
+
+    SiteBucketPolicy:
+        Type: AWS::S3::BucketPolicy
+        Properties:
+            Bucket: !Ref SiteBucket
+            PolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                    - Effect: Allow
+                      Principal:
+                          Service: cloudfront.amazonaws.com
+                      Action: s3:GetObject
+                      Resource: !Sub '${SiteBucket.Arn}/*'
+                      Condition:
+                          StringEquals:
+                              AWS:SourceArn: !Sub
+                                  - 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${Id}'
+                                  - Id: !GetAtt SiteDistribution.Id
+
+    WidgetBucketPolicy:
+        Type: AWS::S3::BucketPolicy
+        Properties:
+            Bucket: !Ref WidgetBucket
+            PolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                    - Effect: Allow
+                      Principal:
+                          Service: cloudfront.amazonaws.com
+                      Action: s3:GetObject
+                      Resource: !Sub '${WidgetBucket.Arn}/*'
+                      Condition:
+                          StringEquals:
+                              AWS:SourceArn: !Sub
+                                  - 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${Id}'
+                                  - Id: !GetAtt WidgetDistribution.Id
+
+    AssetsBucketPolicy:
+        Type: AWS::S3::BucketPolicy
+        Properties:
+            Bucket: !Ref AssetsBucket
+            PolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                    - Effect: Allow
+                      Principal:
+                          Service: cloudfront.amazonaws.com
+                      Action: s3:GetObject
+                      Resource: !Sub '${AssetsBucket.Arn}/*'
+                      Condition:
+                          StringEquals:
+                              AWS:SourceArn: !Sub
+                                  - 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${Id}'
+                                  - Id: !GetAtt AssetsDistribution.Id
+
+    # --- CI deploy role ----------------------------------------------------------------------
+    # GitHub Actions authenticates by OIDC, so there are no long-lived access keys anywhere in
+    # the repo or its secrets. The trust policy pins the role to this repo's main branch.
+
+    GithubOidcProvider:
+        Type: AWS::IAM::OIDCProvider
+        Condition: WantsOidcProvider
+        Properties:
+            Url: https://token.actions.githubusercontent.com
+            ClientIdList: [sts.amazonaws.com]
+            ThumbprintList: ['6938fd4d98bab03faadb97b34396831e3780aea1']
+
+    GithubDeployRole:
+        Type: AWS::IAM::Role
+        Condition: WantsCiRole
+        Properties:
+            RoleName: !Sub '${AWS::StackName}-github-deploy'
+            AssumeRolePolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                    - Effect: Allow
+                      Principal:
+                          Federated: !Sub
+                              - 'arn:aws:iam::${AWS::AccountId}:oidc-provider/${Host}'
+                              - Host: token.actions.githubusercontent.com
+                      Action: sts:AssumeRoleWithWebIdentity
+                      Condition:
+                          StringEquals:
+                              token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                          StringLike:
+                              token.actions.githubusercontent.com:sub:
+                                  !Sub 'repo:${GithubRepo}:ref:refs/heads/main'
+            Policies:
+                - PolicyName: deploy
+                  PolicyDocument:
+                      Version: '2012-10-17'
+                      Statement:
+                          # Enough to sync content into the three buckets, and nothing else
+                          - Effect: Allow
+                            Action:
+                                - s3:ListBucket
+                                - s3:GetBucketLocation
+                            Resource:
+                                - !GetAtt SiteBucket.Arn
+                                - !GetAtt WidgetBucket.Arn
+                                - !GetAtt AssetsBucket.Arn
+                          - Effect: Allow
+                            Action:
+                                - s3:GetObject
+                                - s3:PutObject
+                                - s3:DeleteObject
+                            Resource:
+                                - !Sub '${SiteBucket.Arn}/*'
+                                - !Sub '${WidgetBucket.Arn}/*'
+                                - !Sub '${AssetsBucket.Arn}/*'
+                          - Effect: Allow
+                            Action: cloudfront:CreateInvalidation
+                            Resource:
+                                - !Sub
+                                    - 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${Id}'
+                                    - Id: !GetAtt SiteDistribution.Id
+                                - !Sub
+                                    - 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${Id}'
+                                    - Id: !GetAtt WidgetDistribution.Id
+                                - !Sub
+                                    - 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${Id}'
+                                    - Id: !GetAtt AssetsDistribution.Id
+
+Outputs:
+    SiteBucketName:
+        Value: !Ref SiteBucket
+        Export:
+            Name: !Sub '${AWS::StackName}-site-bucket'
+
+    WidgetBucketName:
+        Value: !Ref WidgetBucket
+        Export:
+            Name: !Sub '${AWS::StackName}-widget-bucket'
+
+    AssetsBucketName:
+        Value: !Ref AssetsBucket
+        Export:
+            Name: !Sub '${AWS::StackName}-assets-bucket'
+
+    SiteDistributionId:
+        Value: !GetAtt SiteDistribution.Id
+        Export:
+            Name: !Sub '${AWS::StackName}-site-distribution'
+
+    WidgetDistributionId:
+        Value: !GetAtt WidgetDistribution.Id
+        Export:
+            Name: !Sub '${AWS::StackName}-widget-distribution'
+
+    AssetsDistributionId:
+        Value: !GetAtt AssetsDistribution.Id
+        Export:
+            Name: !Sub '${AWS::StackName}-assets-distribution'
+
+    SiteDnsTarget:
+        Description: Point the site hostname here with a CNAME (or a Route53 alias)
+        Value: !GetAtt SiteDistribution.DomainName
+
+    WidgetDnsTarget:
+        Description: Point the widget hostname here with a CNAME (or a Route53 alias)
+        Value: !GetAtt WidgetDistribution.DomainName
+
+    AssetsDnsTarget:
+        Description: Point the assets hostname here with a CNAME (or a Route53 alias)
+        Value: !GetAtt AssetsDistribution.DomainName
+
+    GithubDeployRoleArn:
+        Condition: WantsCiRole
+        Description: Set as the AWS_DEPLOY_ROLE repository variable in GitHub
+        Value: !GetAtt GithubDeployRole.Arn

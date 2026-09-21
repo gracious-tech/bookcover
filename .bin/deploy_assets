@@ -1,17 +1,24 @@
 #!/usr/bin/env bash
 
 # Sync the local assets/ tree to the public assets bucket served at https://assets.paper.bible/
-# (replaces the old deploy_fonts/deploy_typst pair). Each subdir is synced under a matching
-# object prefix, so URLs keep the same `${assets_prefix}<subdir>/<path>` shape the app uses in
-# dev (see widget/vite_plugin_assets.ts). Deletion flags are scoped per-prefix, so deploying
-# one section never touches the others.
+# (an S3 bucket behind CloudFront — see infra/cloudformation.yml). Each subdir is synced under
+# a matching object prefix, so URLs keep the same `${assets_prefix}<subdir>/<path>` shape the
+# app uses in dev (see widget/vite_plugin_assets.ts). Deletion flags are scoped per-prefix, so
+# deploying one section never touches the others.
 #
 # Sections:
-#   static — backgrounds/ frames/ 3d/ (committed; mirrored with deletion, 1h cache).
-#   fonts  — assets/fonts/ (gitignored, see download_fonts; mirrored with deletion,
-#            immutable cache except manifest.json which updates in place)
+#   static — backgrounds/ frames/ 3d/ (committed; mirrored with deletion, immutable cache —
+#            the filename is the ID for these, see widget/src/services/backgrounds.ts)
+#   fonts  — assets/fonts/ (gitignored, see download_fonts; mirrored with deletion, day cache
+#            because font filenames carry no version, and a short cache on manifest.json)
 #   typst  — assets/typst/ (gitignored, see add_typst_version; version dirs are write-once so
-#            nothing is ever deleted, immutable cache + explicit application/wasm content-type)
+#            nothing is ever deleted; stored brotli-compressed and served that way to every
+#            client with no negotiation, immutable cache, application/wasm)
+#
+# Object metadata is set at upload time, so unchanged objects are never rewritten and don't
+# churn CloudFront cache entries. The flip side is that `aws s3 sync` skips in-sync objects,
+# so a change to the policies below only reaches objects whose bytes also changed —
+# re-applying one retroactively needs an explicit re-upload.
 #
 # Usage:
 #   .bin/deploy_assets                 # deploy all sections present locally
@@ -21,9 +28,24 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-BUCKET="${BUCKET:-assets.paper.bible}"
-PROJECT="paper-bible"
-GCLOUD=(gcloud --project="$PROJECT" storage)
+STACK="${STACK:-paper-cover}"
+# us-west-2 unless told otherwise; AWS_REGION is what the CI workflows set
+REGION="${REGION:-${AWS_REGION:-us-west-2}}"
+
+# Read a value out of the CloudFormation stack so the scripts stay in step with the infra
+# rather than hardcoding names that only setup_aws knows
+stack_output(){
+    aws cloudformation describe-stacks --region "$REGION" --stack-name "$STACK" \
+        --query "Stacks[0].Outputs[?OutputKey=='$1'].OutputValue | [0]" --output text
+}
+
+BUCKET="${BUCKET:-$(stack_output AssetsBucketName)}"
+DISTRIBUTION="${DISTRIBUTION:-$(stack_output AssetsDistributionId)}"
+
+if [ -z "$BUCKET" ] || [ "$BUCKET" = "None" ]; then
+    echo "Could not resolve the assets bucket from stack $STACK (run .bin/setup_aws)" >&2
+    exit 1
+fi
 
 # Sections to deploy: args if given, otherwise everything
 if [ $# -gt 0 ]; then
@@ -32,14 +54,14 @@ else
     SECTIONS=(static fonts typst)
 fi
 
-# Deploy the committed static assets (mirrored with deletion; they change in place so use a
-# short-ish cache rather than immutable)
+# Deploy the committed static assets (mirrored with deletion). These are immutable per
+# filename: a background's filename IS its ID, so a re-encode ships under a new name rather
+# than new bytes behind an old one — see the contract in widget/src/services/backgrounds.ts.
 deploy_static(){
     for subdir in backgrounds frames 3d; do
-        "${GCLOUD[@]}" rsync "assets/$subdir" "gs://$BUCKET/$subdir" \
-            --recursive --delete-unmatched-destination-objects
-        "${GCLOUD[@]}" objects update "gs://$BUCKET/$subdir/**" \
-            --cache-control='public, max-age=3600'
+        aws s3 sync "assets/$subdir" "s3://$BUCKET/$subdir" \
+            --delete \
+            --cache-control 'public, max-age=31536000, immutable'
     done
 }
 
@@ -49,42 +71,92 @@ deploy_fonts(){
         echo "Skipping fonts: assets/fonts/ not populated (run .bin/download_fonts)" >&2
         return
     fi
-    "${GCLOUD[@]}" rsync assets/fonts "gs://$BUCKET/fonts" \
-        --recursive --delete-unmatched-destination-objects
 
-    # Font binaries are immutable per filename, so cache aggressively (manifest.json changes
-    # in place though, so give it a short TTL)
-    "${GCLOUD[@]}" objects update "gs://$BUCKET/fonts/**" \
-        --cache-control='public, max-age=31536000, immutable'
-    "${GCLOUD[@]}" objects update "gs://$BUCKET/fonts/manifest.json" \
-        --cache-control='public, max-age=300'
+    # Font filenames carry no version or hash (NotoSerifSC-Bold.otf), and download_fonts
+    # re-fetches from upstream, so bytes CAN change under a name — hence a day rather than
+    # immutable. Content-addressing the filenames is the clean fix and would let this go to a
+    # year. No compression here: these are already-compressed sfnt (the largest,
+    # NotoSerifSC-Bold at 11.5MB, only reaches 86% under gzip and 75% under brotli).
+    aws s3 sync assets/fonts "s3://$BUCKET/fonts" \
+        --delete --exclude 'manifest.json' \
+        --cache-control 'public, max-age=86400'
+
+    # The manifest points at every other file here, so it needs to turn over faster than they
+    # do — uploaded separately rather than synced so it keeps its own lifetime
+    aws s3 cp assets/fonts/manifest.json "s3://$BUCKET/fonts/manifest.json" \
+        --cache-control 'public, max-age=300'
+
+    # Short-lived but widely fetched, so drop the edge copy rather than waiting it out
+    invalidate '/fonts/manifest.json'
 }
 
-# Deploy the typst.ts WASM version dirs (write-once — no deletion flag; files already in the
-# bucket are skipped/unchanged)
+# Deploy the typst.ts WASM version dirs, one new version at a time — nothing is ever deleted
+# or overwritten
 deploy_typst(){
     if [ ! -d assets/typst ]; then
         echo "Skipping typst: assets/typst/ not populated (run .bin/add_typst_version)" >&2
         return
     fi
-    "${GCLOUD[@]}" rsync assets/typst "gs://$BUCKET/typst" --recursive
 
-    # WebAssembly.instantiateStreaming() requires an exact application/wasm content-type
-    # (gcloud won't infer it for .wasm), and version dirs are immutable so cache as hard as
-    # possible. Access-Control-Allow-Origin is bucket-wide CORS — see setup_firebase.
-    "${GCLOUD[@]}" objects update "gs://$BUCKET/typst/**" \
-        --content-type='application/wasm' \
-        --cache-control='public, max-age=31536000, immutable'
+    local dir version wasm tmp
+    tmp="$(mktemp -d)"
+    trap 'rm -rf "$tmp"' EXIT
 
-    # GCS can't attach arbitrary response headers, so Cross-Origin-Resource-Policy:
-    # cross-origin must be added by whatever fronts the bucket (Cloudflare/LB — see
-    # setup_firebase notes). Also verify the CDN actually compresses these (application/wasm
-    # is missing from some CDNs' default compressible-types lists, and the compiler is
-    # ~28 MB → ~9 MB under brotli):
-    echo 'Typst deployed. Verify CDN compression + CORP header, e.g.:'
-    echo "  curl -sI -H 'Accept-Encoding: br, gzip' \\"
-    echo "      https://assets.paper.bible/typst/0.7.0-rc2/typst_ts_web_compiler_bg.wasm \\"
-    echo "      | grep -iE 'content-encoding|cross-origin-resource-policy'"
+    for dir in assets/typst/*/; do
+        version="$(basename "$dir")"
+
+        # Version dirs are write-once (see add_typst_version), so anything already published
+        # is left exactly as it is rather than re-uploaded
+        if aws s3 ls "s3://$BUCKET/typst/$version/" >/dev/null 2>&1 \
+            && [ -n "$(aws s3 ls "s3://$BUCKET/typst/$version/")" ]; then
+            echo "Skipping typst/$version — already published"
+            continue
+        fi
+
+        # The compiler is 27MB and is the single biggest download in a consumer's cover path,
+        # so it's stored pre-compressed rather than compressed per-request: CloudFront's
+        # automatic compression tops out around 10MB, well under what this needs. Brotli over
+        # gzip because there's no content negotiation either way, so the only cost is client
+        # breadth — and these are fetched by browsers, which have all supported br over HTTPS
+        # since 2017. q11 is worth its ~45s here since a version dir is written exactly once:
+        # 27MB raw -> 10.4MB gzip -> 6.9MB brotli.
+        #
+        # The AWS CLI has no built-in compression, so compress locally first. Node's zlib has
+        # brotli built in, so this needs no extra tooling.
+        for wasm in "$dir"*.wasm; do
+            echo "Compressing $version/$(basename "$wasm")..."
+            node -e '
+                const {readFileSync, writeFileSync} = require("node:fs")
+                const zlib = require("node:zlib")
+                const buf = readFileSync(process.argv[1])
+                writeFileSync(process.argv[2], zlib.brotliCompressSync(buf, {params: {
+                    [zlib.constants.BROTLI_PARAM_QUALITY]: 11,
+                    [zlib.constants.BROTLI_PARAM_SIZE_HINT]: buf.length,
+                }}))
+            ' "$wasm" "$tmp/$(basename "$wasm")"
+        done
+
+        # no-transform tells anything in front not to re-encode what we just compressed.
+        # WebAssembly.instantiateStreaming() also requires an exact application/wasm
+        # content-type, which the CLI won't infer for .wasm.
+        aws s3 cp "$tmp" "s3://$BUCKET/typst/$version/" \
+            --recursive --exclude '*' --include '*.wasm' \
+            --content-encoding 'br' \
+            --content-type 'application/wasm' \
+            --cache-control 'public, max-age=31536000, immutable, no-transform'
+
+        rm -f "$tmp"/*.wasm
+    done
+}
+
+# Drop a path from the CloudFront edge cache. Skipped when the distribution isn't resolvable,
+# so the script still works against a bare bucket.
+invalidate(){
+    if [ -z "$DISTRIBUTION" ] || [ "$DISTRIBUTION" = "None" ]; then
+        return
+    fi
+    aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION" --paths "$1" \
+        --query 'Invalidation.Id' --output text
 }
 
 # Run each requested section

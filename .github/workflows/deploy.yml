@@ -1,0 +1,62 @@
+name: Deploy site and widget
+
+# Deploys everything that lives in git: the built site, the built widget UI and the committed
+# part of the assets tree (backgrounds/, frames/, 3d/). The fonts and typst-wasm trees are
+# gitignored, so CI has no copy of them — those go up through deploy_assets.yml on a manual
+# trigger.
+
+on:
+    push:
+        branches: [main]
+
+concurrency:
+    group: deploy-push
+    cancel-in-progress: true
+
+# id-token lets the job exchange a GitHub OIDC token for the deploy role, so there are no
+# long-lived AWS keys in repository secrets
+permissions:
+    id-token: write
+    contents: read
+
+env:
+    AWS_REGION: us-west-2
+    STACK: paper-cover
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '25'
+                  cache: npm
+
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: ${{ vars.AWS_DEPLOY_ROLE }}
+                  aws-region: ${{ env.AWS_REGION }}
+
+            # Fails fast if the wasm the widget will request isn't in the bucket, rather than
+            # shipping a build that 404s at generate time
+            - name: Check the typst wasm is published
+              run: .bin/check_typst_published
+
+            - name: Build
+              run: .bin/build_deploy
+
+            - name: Deploy widget
+              run: .bin/deploy_widget
+
+            # After the widget, so the site never points an iframe at a build that isn't live
+            - name: Deploy site
+              run: .bin/deploy_site
+
+            # Only the committed sections; fonts and typst are not in the checkout
+            - name: Deploy static assets
+              run: .bin/deploy_assets static

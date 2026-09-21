@@ -1,0 +1,35 @@
+
+// Global styles for the site shell. The widget inside the iframe brings its own everything,
+// so this only has to dress the thin frame around it.
+
+// Light palette, with the dark one swapped in below — the widget follows the OS preference
+// too, so the header shouldn't be the one thing that doesn't
+:root
+    --color-text: #1a1a1a
+    --color-dim: #5c5c5c
+    --color-surface: #ffffff
+    --color-border: #e2e2e2
+
+@media (prefers-color-scheme: dark)
+    :root
+        --color-text: #ededed
+        --color-dim: #a1a1a1
+        --color-surface: #1c1c1c
+        --color-border: #333333
+
+*,
+*::before,
+*::after
+    box-sizing: border-box
+
+html,
+body,
+#app
+    height: 100%
+
+body
+    margin: 0
+    color: var(--color-text)
+    background: var(--color-surface)
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif
+    -webkit-font-smoothing: antialiased

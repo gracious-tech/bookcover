@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Netlify build script — installs all workspaces from the root lockfile, then builds
-# Output: widget/dist/
+# CI build script — installs all workspaces from the root lockfile, then builds
+# Output: widget/dist/ and site/dist/
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -27,4 +27,7 @@ echo "🔨 Building 3d module..."
 echo "🔨 Building widget..."
 "$BIN/build_widget"
 
-echo "✅ Build complete! Output: widget/dist/"
+echo "🔨 Building site..."
+"$BIN/build_site"
+
+echo "✅ Build complete! Output: widget/dist/ and site/dist/"

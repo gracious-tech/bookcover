@@ -38,6 +38,12 @@ version — no setup needed). Generating still fetches three kinds of assets at 
 which ship inside the npm packages: the WASM binaries, frame images (`frames/`), and the fonts
 tree. The easiest setup is the hosted tree at `https://assets.paper.bible/` (CORS enabled):
 
+> The `typst/` WASM binaries are stored Brotli-compressed and served with
+> `Content-Encoding: br` to every client, with no content negotiation — the compiler is 27 MB
+> raw and 6.9 MB compressed, so this is not optional. Browsers handle it transparently. If you
+> fetch these from a non-browser client, make sure it decodes `br` (`curl` needs `--compressed`,
+> or it will write the compressed bytes to disk).
+
 ```ts
 // Match the wasm version to your installed @myriaddreamin/typst-ts-web-compiler version
 const typst_version = '0.7.0'

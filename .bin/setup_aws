@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+
+# One-time (and safe to re-run) provisioning of this app's AWS hosting: a bucket +
+# distribution each for the public site, the widget UI and the public assets tree, all
+# defined in infra/cloudformation.yml. Everything here is infrastructure — content goes up
+# separately via .bin/deploy_site, .bin/deploy_widget and .bin/deploy_assets.
+#
+# The stack goes to us-west-2. The certificate is handled first and separately, because
+# CloudFront can only read certificates from us-east-1 whatever region its origin buckets are
+# in, and issuing one needs DNS validation records that a human has to add. On a first run this
+# script requests the certificate, prints those records and stops; add them, then run it again
+# to deploy the stack.
+#
+# Requires: aws CLI authenticated against the target account.
+#
+# Usage:
+#   .bin/setup_aws
+#   STACK=paper-cover-staging SITE_DOMAIN=... WIDGET_DOMAIN=... ASSETS_DOMAIN=... .bin/setup_aws
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+STACK="${STACK:-paper-cover}"
+# us-west-2 unless told otherwise; AWS_REGION is what the CI workflows set
+REGION="${REGION:-${AWS_REGION:-us-west-2}}"
+SITE_DOMAIN="${SITE_DOMAIN:-cover.paper.bible}"
+WIDGET_DOMAIN="${WIDGET_DOMAIN:-cover-widget.paper.bible}"
+ASSETS_DOMAIN="${ASSETS_DOMAIN:-assets.paper.bible}"
+GITHUB_REPO="${GITHUB_REPO:-}"
+CREATE_OIDC_PROVIDER="${CREATE_OIDC_PROVIDER:-yes}"
+
+# CloudFront reads certificates from us-east-1 only, whatever region the stack itself uses
+CERT_REGION="us-east-1"
+
+# Find a certificate already requested for these hostnames, matched on the primary domain
+find_cert(){
+    aws acm list-certificates --region "$CERT_REGION" \
+        --certificate-statuses ISSUED PENDING_VALIDATION \
+        --query "CertificateSummaryList[?DomainName=='$SITE_DOMAIN'].CertificateArn | [0]" \
+        --output text 2>/dev/null
+}
+
+# Request one certificate covering all three hostnames and print the DNS records that
+# validate it. ACM can't amend a certificate's domain list after issuance, so adding a
+# hostname later means a new certificate and swapping the ARN under every distribution.
+request_cert(){
+    local arn
+    arn="$(aws acm request-certificate --region "$CERT_REGION" \
+        --domain-name "$SITE_DOMAIN" \
+        --subject-alternative-names "$WIDGET_DOMAIN" "$ASSETS_DOMAIN" \
+        --validation-method DNS \
+        --query CertificateArn --output text)"
+
+    # ACM populates the validation records asynchronously, so give it a moment to appear
+    echo "Requested $arn — waiting for validation records..."
+    sleep 10
+
+    echo
+    echo "Add these CNAME records at your DNS provider, then re-run this script:"
+    aws acm describe-certificate --region "$CERT_REGION" --certificate-arn "$arn" \
+        --query 'Certificate.DomainValidationOptions[].ResourceRecord.[Name,Value]' \
+        --output text
+    echo
+}
+
+# Report whether a certificate has finished validating
+cert_status(){
+    aws acm describe-certificate --region "$CERT_REGION" --certificate-arn "$1" \
+        --query Certificate.Status --output text
+}
+
+CERT_ARN="${CERT_ARN:-$(find_cert)}"
+
+# No certificate yet: request one and stop, since the stack can't be built without it
+if [ -z "$CERT_ARN" ] || [ "$CERT_ARN" = "None" ]; then
+    echo "No certificate found for $SITE_DOMAIN in $CERT_REGION."
+    request_cert
+    exit 0
+fi
+
+# Certificate exists but DNS validation hasn't completed, so CloudFront would reject it
+STATUS="$(cert_status "$CERT_ARN")"
+if [ "$STATUS" != "ISSUED" ]; then
+    echo "Certificate $CERT_ARN is $STATUS, not ISSUED." >&2
+    echo "Add the validation records below and re-run once ACM reports ISSUED:" >&2
+    aws acm describe-certificate --region "$CERT_REGION" --certificate-arn "$CERT_ARN" \
+        --query 'Certificate.DomainValidationOptions[].ResourceRecord.[Name,Value]' \
+        --output text >&2
+    exit 1
+fi
+
+echo "Using certificate $CERT_ARN"
+
+# CAPABILITY_NAMED_IAM because the template creates a named role for CI to assume
+aws cloudformation deploy \
+    --region "$REGION" \
+    --stack-name "$STACK" \
+    --template-file infra/cloudformation.yml \
+    --capabilities CAPABILITY_NAMED_IAM \
+    --no-fail-on-empty-changeset \
+    --parameter-overrides \
+        "SiteDomain=$SITE_DOMAIN" \
+        "WidgetDomain=$WIDGET_DOMAIN" \
+        "AssetsDomain=$ASSETS_DOMAIN" \
+        "CertificateArn=$CERT_ARN" \
+        "GithubRepo=$GITHUB_REPO" \
+        "CreateOidcProvider=$CREATE_OIDC_PROVIDER"
+
+echo
+echo "Stack $STACK deployed. Outputs:"
+aws cloudformation describe-stacks --region "$REGION" --stack-name "$STACK" \
+    --query 'Stacks[0].Outputs[].[OutputKey,OutputValue]' --output table
+
+echo
+echo "Next:"
+echo "  1. Point $SITE_DOMAIN, $WIDGET_DOMAIN and $ASSETS_DOMAIN at the DnsTarget values above"
+echo "  2. Set the GithubDeployRoleArn as the AWS_DEPLOY_ROLE repository variable"
+echo "  3. .bin/deploy_site && .bin/deploy_widget && .bin/deploy_assets"

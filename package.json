@@ -9,7 +9,8 @@
         "generator-node",
         "generator-web",
         "3d",
-        "widget"
+        "widget",
+        "site"
     ],
     "dependencies": {
         "@types/node": "^25.5.0",

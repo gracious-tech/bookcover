@@ -10,6 +10,9 @@ import serve_assets from './vite_plugin_assets'
 
 // Vite configuration for the book cover generator widget
 export default defineConfig({
+    server: {
+        port: 5301,
+    },
     // @tiptap/starter-kit nests its own copy of @tiptap/core, so without this the bundle
     // ships two identical copies of it (and of the prosemirror packages underneath)
     resolve: {

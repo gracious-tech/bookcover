@@ -11,13 +11,15 @@ platform wrappers compile it to PDF/SVG/PNG. The widget provides a live 3D previ
 | `generator-node/` | Node wrapper — spawns `typst` binary, uses `sharp` for PNG cropping |
 | `generator-web/` | Browser wrapper — compiles via WASM (`typst.ts`) |
 | `widget/` | Vue 3 web UI — sidebar form, preview pane, 3D book view |
+| `site/` | Vue 3 public site — a header and an iframe of the widget, nothing more yet |
 | `3d/` | WebGL 3D book renderer — custom shaders, no external graphics libs |
 | `typst/typst-utils/` | Zero-dep Typst string escaping (`escape_typst_str`, `escape_typst`) |
 | `typst/typst-fonts/` | Generic font manifest/fallback/sfnt logic for any Typst app |
 | `typst/pm-to-typst/` | Pure ProseMirror/Tiptap doc JSON → Typst renderer |
 
 Dependency graph: `generator` < `generator-node`, `generator-web` < `widget`; `3d` < `widget`.
-`generator` and `3d` have no local deps on each other.
+`generator` and `3d` have no local deps on each other. `site` depends on nothing here — it
+reaches the widget over HTTP, in an iframe, exactly as any other host would.
 
 The three `typst/` helpers are generic (nothing cover-specific) and published to npm — they're
 maintained here as workspaces (adopted from paper_bible, which now depends on this repo, not
@@ -51,7 +53,7 @@ repo root. Build in dependency order using the `.bin/` scripts:
 ```bash
 .bin/build_modules       # typst helpers -> generator -> generator-node -> generator-web -> 3d
 .bin/build_widget        # vite build (widget/dist/)
-.bin/build_site          # build_modules + build_widget
+.bin/build_site          # vite build (site/dist/) — independent of the modules
 .bin/build_deploy        # npm ci all packages + build everything (for CI)
 ```
 
@@ -111,8 +113,13 @@ network for templates. Edit the source `.typ` files, then rebuild (`.bin/build_g
 For development:
 
 ```bash
-cd widget && npm run dev  # starts vite dev server with HMR
+cd widget && npm run dev  # starts vite dev server with HMR (port 5301)
+cd site && npm run dev    # the site, on 5302 so both can run at once
 ```
+
+The site's iframe points at `http://localhost:5301` in dev and `cover-widget.paper.bible` in
+production, so running the site alone shows an empty frame until the widget's server is up.
+`VITE_WIDGET_URL` overrides both (see `site/src/widget_url.ts`).
 
 Individual package builds: `.bin/build_generator`, `.bin/build_generator-node`,
 `.bin/build_generator-web`, `.bin/build_3d`, `.bin/build_typst-utils`,
@@ -143,6 +150,72 @@ renders with the real `typst` binary and fonts tree and skips itself when either
 `.bin/test_examples` is the separate manual check: it builds `generator` and `generator-node`,
 then generates PDF/SVG/PNG files in the project root from a sample schema for visual
 inspection (needs `assets/fonts/` populated — see Build). It asserts nothing.
+
+## Deployment
+
+Everything is hosted on AWS in `us-west-2`: the site at `cover.paper.bible`, the widget UI it
+embeds at `cover-widget.paper.bible`, and the public assets tree at `assets.paper.bible` —
+each an S3 bucket behind its own CloudFront distribution. All three buckets are private and
+reachable only through CloudFront via Origin Access Control. Google is used for Firebase
+alone, which this repo no longer touches. Cross-origin consumers (paper.bible et al) depend
+on the CORS and `Cross-Origin-Resource-Policy` headers, which are attached by CloudFront's
+response-headers policy because S3 can't set them itself.
+
+The site and the widget are separate origins deliberately. The widget is embedded
+cross-origin by other apps regardless, so it has to work that way; giving the site its own
+origin means the site can't quietly acquire a same-origin dependency that those other hosts
+wouldn't have. Nothing sets `X-Frame-Options` or a `frame-ancestors` policy on the widget
+distribution for the same reason.
+
+Provisioning and content deployment are deliberately separate, because they change at wildly
+different rates and the content needs per-file metadata that IaC models badly:
+
+- **Infrastructure** — `infra/cloudformation.yml`, applied by `.bin/setup_aws`. Buckets,
+  distributions, cache behaviours, the response-headers policy and the GitHub OIDC deploy
+  role. Changes a couple of times a year. `setup_aws` also handles the certificate — the one
+  thing that can't be in `us-west-2`, because CloudFront reads certificates from `us-east-1`
+  alone — so the first run requests it there and prints the DNS validation records, and a
+  second run (once ACM says ISSUED) builds the stack. One certificate covers all three
+  hostnames, because ACM can't amend a domain list after issuance — adding a hostname later
+  means a new certificate and swapping the ARN under every distribution.
+- **Content** — `.bin/deploy_site`, `.bin/deploy_widget` and `.bin/deploy_assets`, which read
+  bucket names and distribution IDs out of the stack's outputs rather than hardcoding them.
+
+CI authenticates by GitHub OIDC assuming the stack's deploy role, so there are no long-lived
+AWS keys in repository secrets. The role ARN goes in the `AWS_DEPLOY_ROLE` repository variable.
+
+What deploys when follows straight from what's in git:
+
+- `.github/workflows/deploy.yml` runs on push to main and deploys the widget, the site and
+  `deploy_assets static` — the committed part of the tree. This is what keeps a newly added
+  background from shipping in the widget before it exists in the bucket. The widget goes
+  first so the site never points its iframe at a build that isn't live.
+- `.github/workflows/deploy_assets.yml` is `workflow_dispatch` only, for the `fonts` and
+  `typst` sections. CI has no copy of those trees (both gitignored), so it rebuilds them —
+  `download_fonts` or `add_typst_version` — before uploading. They change rarely and are
+  large, so they're a deliberate trigger rather than part of the push path.
+
+`.bin/check_typst_published` runs before every deploy. The typst.ts version is named in three
+places held together by nothing but a comment — the exact pin in `generator-web/package.json`,
+`TYPST_VERSION` in `widget/src/generator_worker.ts`, and a directory in the bucket — and
+drift 404s at generate time for real users, so it's a build failure instead.
+
+Cache lifetimes are set at upload and honoured end to end (the distributions use the managed
+CachingOptimized policy, which follows origin `Cache-Control` rather than applying a heuristic
+of its own): immutable for `backgrounds/`/`frames/`/`3d/` and the typst version dirs, one day
+for fonts (their filenames carry no version, so bytes can change under a name — content-
+addressing them is the clean fix), 300s for `fonts/manifest.json`, and `no-cache` on the
+site's and widget's `index.html` with immutable on the hashed bundles beside them. Neither
+`deploy_widget` nor `deploy_site` passes `--delete`: both apps lazy-load chunks, so removing
+the previous build's files would break anyone mid-session.
+
+The typst WASM is stored brotli-compressed and served that way to every client with no content
+negotiation — 27MB raw, 10.4MB gzip, 6.9MB brotli, and it's the biggest download in a
+consumer's cover path. CloudFront's automatic compression tops out around 10MB so it can't
+help here, and the AWS CLI can't compress, so `deploy_assets` pre-compresses with Node's
+built-in zlib. Fonts are left alone: already-compressed sfnt only reaches 75% under brotli.
+This is documented in `generator-web/README.md` because that file publishes these URLs for
+third parties, and a non-browser client has to decode `br` (`curl` needs `--compressed`).
 
 ## Architecture
 
@@ -421,8 +494,8 @@ consumers, but note that embeds every source into the maps (bookcover-core: 213 
 | `build_modules` | All package builds above in dependency order |
 | `build_widget` | `vite build` in widget/ |
 | `build_web` | typst helpers + generator + generator-web + 3d (no node) |
-| `build_site` | build_modules + build_widget |
-| `build_deploy` | npm ci all + full build (for CI/Netlify) |
+| `build_site` | `vite build` in site/ |
+| `build_deploy` | npm ci all + full build incl. widget and site (for CI) |
 | `publish_modules` | Version-bump + build + npm publish the four cover packages |
 | `serve_widget` | `vite` dev server in widget/ |
 | `serve_site` | `vite` dev server in site/ |
@@ -431,7 +504,11 @@ consumers, but note that embeds every source into the maps (bookcover-core: 213 
 | `setup_typst` | Download latest typst binary to .bin/ |
 | `download_fonts` | Populate assets/fonts/ from font_config.json (typst-fonts-download) |
 | `add_typst_version` | Vendor a typst.ts npm version's wasm into assets/typst/<version>/ |
-| `deploy_assets` | Sync assets/ to the public bucket (gcloud); sections: static/fonts/typst |
+| `setup_aws` | Provision/update the CloudFormation stack in infra/ (buckets, CDN, CI role) |
+| `deploy_widget` | Upload widget/dist/ to the UI bucket + invalidate the entry point |
+| `deploy_site` | Upload site/dist/ to the site bucket + invalidate the entry point |
+| `deploy_assets` | Sync assets/ to the public bucket; sections: static/fonts/typst |
+| `check_typst_published` | Assert the wasm version the widget requests exists in the bucket |
 | `gen_bg_thumbnails` | Generate 160x120 thumbnails for background images via sharp |
 | `gen_vector_bg_images` | Bundle generator/vector_bg_images/*.svg into generator/src/generated/vector_bg_images_data.ts |
 | `gen_typst_templates` | Bundle generator/typst/*.typ into generator/src/generated/templates_data.ts |

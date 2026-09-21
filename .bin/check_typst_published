@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+
+# Assert that the typst.ts WASM version the widget will actually request exists in the assets
+# bucket. That version is named in three places with nothing but a comment holding them in
+# step: the exact pin in generator-web/package.json, the TYPST_VERSION constant in
+# widget/src/generator_worker.ts, and a directory in the bucket. When they drift the widget
+# 404s at generate time for real users, so CI runs this before deploying (see
+# .github/workflows/deploy.yml).
+#
+# Usage:
+#   .bin/check_typst_published
+#   BUCKET=some-bucket .bin/check_typst_published
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+STACK="${STACK:-paper-cover}"
+# us-west-2 unless told otherwise; AWS_REGION is what the CI workflows set
+REGION="${REGION:-${AWS_REGION:-us-west-2}}"
+
+# Emit a GitHub Actions error annotation when running in CI, a plain message otherwise
+fail(){
+    if [ -n "${GITHUB_ACTIONS:-}" ]; then
+        echo "::error::$1"
+    else
+        echo "Error: $1" >&2
+    fi
+    exit 1
+}
+
+# The pin is deliberately exact (see the render-determinism notes in CLAUDE.md), so the
+# dependency string is the version
+pinned="$(node -p "require('./generator-web/package.json').dependencies['@myriaddreamin/typst-ts-web-compiler']")"
+
+# The worker hardcodes the same version to build its wasm URLs
+if ! grep -q "TYPST_VERSION = '$pinned'" widget/src/generator_worker.ts; then
+    fail "widget/src/generator_worker.ts TYPST_VERSION does not match the pinned typst-ts-web-compiler ($pinned)"
+fi
+
+BUCKET="${BUCKET:-$(aws cloudformation describe-stacks --region "$REGION" --stack-name "$STACK" \
+    --query "Stacks[0].Outputs[?OutputKey=='AssetsBucketName'].OutputValue | [0]" --output text)}"
+
+if [ -z "$BUCKET" ] || [ "$BUCKET" = "None" ]; then
+    fail "could not resolve the assets bucket from stack $STACK (run .bin/setup_aws)"
+fi
+
+# Both the compiler and the renderer have to be there
+count="$(aws s3 ls "s3://$BUCKET/typst/$pinned/" 2>/dev/null | grep -c '\.wasm$' || true)"
+if [ "$count" -lt 2 ]; then
+    fail "typst $pinned is not published — run .bin/add_typst_version $pinned then .bin/deploy_assets typst"
+fi
+
+echo "typst $pinned is published ($count wasm files in s3://$BUCKET/typst/$pinned/)"

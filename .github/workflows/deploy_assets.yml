@@ -1,0 +1,67 @@
+name: Deploy assets
+
+# Manual counterpart to deploy.yml for the two asset sections that aren't in git: the fonts
+# tree (rebuilt from font_config.json) and the typst.ts WASM version dirs (vendored from npm).
+# Both change rarely and are large, so they're a deliberate trigger rather than part of the
+# push path — but they run here rather than from a laptop so the result is reproducible.
+
+on:
+    workflow_dispatch:
+        inputs:
+            section:
+                description: Which asset section to deploy
+                type: choice
+                required: true
+                default: fonts
+                options: [fonts, typst, static]
+            typst_version:
+                description: >
+                    For the typst section: an npm version to vendor first, e.g. 0.7.0. Leave
+                    blank to deploy only what add_typst_version has already produced.
+                type: string
+                required: false
+
+concurrency:
+    group: deploy-assets
+
+permissions:
+    id-token: write
+    contents: read
+
+env:
+    AWS_REGION: us-west-2
+    STACK: paper-cover
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '25'
+                  cache: npm
+
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: ${{ vars.AWS_DEPLOY_ROLE }}
+                  aws-region: ${{ env.AWS_REGION }}
+
+            # Repopulates assets/fonts/ from font_config.json — a ~173MB download, which is
+            # exactly why this isn't on the push path
+            - name: Download fonts
+              if: inputs.section == 'fonts'
+              run: .bin/download_fonts
+
+            # Version dirs are write-once, so this refuses to overwrite one that already
+            # exists locally and deploy_assets skips any already in the bucket
+            - name: Vendor typst version
+              if: inputs.section == 'typst' && inputs.typst_version != ''
+              run: .bin/add_typst_version '${{ inputs.typst_version }}'
+
+            - name: Deploy
+              run: .bin/deploy_assets '${{ inputs.section }}'
