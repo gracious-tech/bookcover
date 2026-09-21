@@ -100,7 +100,7 @@ deploy_typst(){
 
     local dir version wasm tmp
     tmp="$(mktemp -d)"
-    trap 'rm -rf "$tmp"' EXIT
+    trap 'rm -rf "$tmp"' RETURN
 
     for dir in assets/typst/*/; do
         version="$(basename "$dir")"
