@@ -402,6 +402,13 @@ export class CoverGenerator {
         }
     }
 
+    /** Run the compiler (and, for svg/png, the renderer) for the requested output format */
+    private async compile_format(format:OutputFormat, ppi:number):Promise<Uint8Array | string> {
+        if (format === 'pdf') return this.compile_pdf()
+        if (format === 'svg') return this.compile_svg()
+        return this.compile_png(ppi)
+    }
+
     /** Generate a book cover using this instance's compiler and renderer */
     async generate(options:GenerateOptions):Promise<GenerateResult> {
         const format = options.format ?? 'pdf'
@@ -469,17 +476,23 @@ export class CoverGenerator {
             parsed, image_input, frame_image, frame_blob, undefined, image_regions)
         this.load_files(files)
 
-        // Compile to the requested format
+        // Compile to the requested format. iOS Safari/WebKit's WASM call stack inside a Worker
+        // is shallow enough that the Typst compiler (or, for svg/png, the renderer) can throw a
+        // RangeError stack overflow on a compile that succeeds on a freshly created WASM
+        // instance — some internal state survives compiler.reset()/the periodic renderer
+        // rebuild (see reset_memory_if_needed) as more generate() calls accumulate, regardless
+        // of the schema's own complexity. A hard reinit plus a single retry recovers
+        // transparently instead of hard-failing the whole session.
         let data:Uint8Array | string
-
-        if (format === 'pdf') {
-            data = await this.compile_pdf()
+        try {
+            data = await this.compile_format(format, ppi)
         }
-        else if (format === 'svg') {
-            data = await this.compile_svg()
-        }
-        else {
-            data = await this.compile_png(ppi)
+        catch (error) {
+            if (!(error instanceof RangeError)) throw error
+            await this.reinit_compiler(this.font_urls_for(needed_fonts), options.custom_fonts)
+            if (format !== 'pdf') await this.reinit_renderer()
+            this.load_files(files)
+            data = await this.compile_format(format, ppi)
         }
 
         const result:GenerateResult = {data}
