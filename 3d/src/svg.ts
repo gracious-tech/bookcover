@@ -44,7 +44,11 @@ export async function svg_to_bitmap(svg:string, w_pt:number, h_pt:number):Promis
         // decode() is spec-guaranteed to wait until the image is fully paintable.
         await img.decode()
 
-        return createImageBitmap(img)
+        // Must be awaited here (not returned directly) — the blob URL is revoked in
+        // `finally` right after this call returns, and on Safari that can race ahead of
+        // createImageBitmap still reading from the img element, capturing a blank bitmap.
+        const bitmap = await createImageBitmap(img)
+        return bitmap
     }
     finally {
         URL.revokeObjectURL(url)
