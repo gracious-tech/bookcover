@@ -170,9 +170,9 @@ distribution for the same reason.
 Provisioning and content deployment are deliberately separate, because they change at wildly
 different rates and the content needs per-file metadata that IaC models badly:
 
-- **Infrastructure** — `infra/cloudformation.yml`, applied by `.bin/setup_aws`. Buckets,
+- **Infrastructure** — `infra/cloudformation.yml`, applied by `.bin/deploy_aws`. Buckets,
   distributions, cache behaviours, the response-headers policy and the GitHub OIDC deploy
-  role. Changes a couple of times a year. `setup_aws` also handles the certificate — the one
+  role. Changes a couple of times a year. `deploy_aws` also handles the certificate — the one
   thing that can't be in `us-west-2`, because CloudFront reads certificates from `us-east-1`
   alone — so the first run requests it there and prints the DNS validation records, and a
   second run (once ACM says ISSUED) builds the stack. One certificate covers all three
@@ -519,9 +519,9 @@ consumers, but note that embeds every source into the maps (bookcover-core: 213 
 | `setup_typst` | Download latest typst binary to .bin/ |
 | `download_fonts` | Populate assets/fonts/ from font_config.json (typst-fonts-download) |
 | `add_typst_version` | Vendor a typst.ts npm version's wasm into assets/typst/<version>/ |
-| `setup_aws` | Provision/update the CloudFormation stack in infra/ (buckets, CDN, CI role) |
-| `deploy_widget` | Upload widget/dist/ to the UI bucket + invalidate the entry point |
-| `deploy_site` | Upload site/dist/ to the site bucket + invalidate the entry point |
+| `deploy_aws` | Provision/update the CloudFormation stack in infra/ (buckets, CDN, CI role) |
+| `deploy_widget` | Build (via build_web + build_widget), then upload widget/dist/ to the UI bucket + invalidate the entry point |
+| `deploy_site` | Build (via build_site), then upload site/dist/ to the site bucket + invalidate the entry point |
 | `deploy_assets` | Sync assets/ to the public bucket; sections: static/fonts/typst |
 | `check_typst_published` | Assert the wasm version the widget requests exists in the bucket |
 | `gen_bg_thumbnails` | Generate 160x120 thumbnails for background images via sharp |

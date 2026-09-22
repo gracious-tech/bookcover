@@ -41,7 +41,7 @@ BUCKET="${BUCKET:-$(aws cloudformation describe-stacks --region "$REGION" --stac
     --query "Stacks[0].Outputs[?OutputKey=='AssetsBucketName'].OutputValue | [0]" --output text)}"
 
 if [ -z "$BUCKET" ] || [ "$BUCKET" = "None" ]; then
-    fail "could not resolve the assets bucket from stack $STACK (run .bin/setup_aws)"
+    fail "could not resolve the assets bucket from stack $STACK (run .bin/deploy_aws)"
 fi
 
 # Both the compiler and the renderer have to be there

@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
+# Build everything the widget needs, minus generator-node (which needs the typst binary and
+# is never imported by the widget) — typst helpers -> generator -> generator-web -> 3d
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-.bin/build_3d
+.bin/build_typst-utils
+.bin/build_typst-fonts
+.bin/build_pm-to-typst
 .bin/build_generator
 .bin/build_generator-web
+.bin/build_3d

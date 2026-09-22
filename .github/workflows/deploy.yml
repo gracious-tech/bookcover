@@ -47,8 +47,10 @@ jobs:
             - name: Check the typst wasm is published
               run: .bin/check_typst_published
 
-            - name: Build
-              run: .bin/build_deploy
+            # deploy_widget and deploy_site each build their own dist/ before uploading, so all
+            # this needs is the installed dependencies
+            - name: Install dependencies
+              run: npm ci
 
             - name: Deploy widget
               run: .bin/deploy_widget

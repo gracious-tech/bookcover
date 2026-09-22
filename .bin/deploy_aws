@@ -14,8 +14,8 @@
 # Requires: aws CLI authenticated against the target account.
 #
 # Usage:
-#   .bin/setup_aws
-#   STACK=paper-cover-staging SITE_DOMAIN=... WIDGET_DOMAIN=... ASSETS_DOMAIN=... .bin/setup_aws
+#   .bin/deploy_aws
+#   STACK=paper-cover-staging SITE_DOMAIN=... WIDGET_DOMAIN=... ASSETS_DOMAIN=... .bin/deploy_aws
 
 set -euo pipefail
 cd "$(dirname "$0")/.."

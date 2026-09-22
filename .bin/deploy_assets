@@ -33,7 +33,7 @@ STACK="${STACK:-paper-cover}"
 REGION="${REGION:-${AWS_REGION:-us-west-2}}"
 
 # Read a value out of the CloudFormation stack so the scripts stay in step with the infra
-# rather than hardcoding names that only setup_aws knows
+# rather than hardcoding names that only deploy_aws knows
 stack_output(){
     aws cloudformation describe-stacks --region "$REGION" --stack-name "$STACK" \
         --query "Stacks[0].Outputs[?OutputKey=='$1'].OutputValue | [0]" --output text
@@ -43,7 +43,7 @@ BUCKET="${BUCKET:-$(stack_output AssetsBucketName)}"
 DISTRIBUTION="${DISTRIBUTION:-$(stack_output AssetsDistributionId)}"
 
 if [ -z "$BUCKET" ] || [ "$BUCKET" = "None" ]; then
-    echo "Could not resolve the assets bucket from stack $STACK (run .bin/setup_aws)" >&2
+    echo "Could not resolve the assets bucket from stack $STACK (run .bin/deploy_aws)" >&2
     exit 1
 fi
 

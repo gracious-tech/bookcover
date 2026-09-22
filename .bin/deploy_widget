@@ -2,26 +2,26 @@
 
 # Publish the built widget (widget/dist/) to the UI bucket served at
 # https://cover-widget.paper.bible/
-# (an S3 bucket behind CloudFront — see infra/cloudformation.yml). Build first with
-# .bin/build_widget; this script only uploads.
+# (an S3 bucket behind CloudFront — see infra/cloudformation.yml). Builds its full dependency
+# chain (typst helpers -> generator -> generator-web -> 3d -> widget) itself, so it never ships
+# a stale dist/ from an earlier build.
 #
 # Usage:
 #   .bin/deploy_widget
 #   STACK=paper-cover-staging .bin/deploy_widget
 
 set -euo pipefail
-cd "$(dirname "$0")/.."
+BIN="$(cd "$(dirname "$0")" && pwd)"
+cd "$BIN/.."
 
 STACK="${STACK:-paper-cover}"
 # us-west-2 unless told otherwise; AWS_REGION is what the CI workflows set
 REGION="${REGION:-${AWS_REGION:-us-west-2}}"
 
-if [ ! -f widget/dist/index.html ]; then
-    echo "widget/dist/ is not built — run .bin/build_widget first" >&2
-    exit 1
-fi
+"$BIN/build_web"
+"$BIN/build_widget"
 
-# Read a value out of the CloudFormation stack rather than hardcoding names setup_aws owns
+# Read a value out of the CloudFormation stack rather than hardcoding names deploy_aws owns
 stack_output(){
     aws cloudformation describe-stacks --region "$REGION" --stack-name "$STACK" \
         --query "Stacks[0].Outputs[?OutputKey=='$1'].OutputValue | [0]" --output text
@@ -31,7 +31,7 @@ BUCKET="${BUCKET:-$(stack_output WidgetBucketName)}"
 DISTRIBUTION="${DISTRIBUTION:-$(stack_output WidgetDistributionId)}"
 
 if [ -z "$BUCKET" ] || [ "$BUCKET" = "None" ]; then
-    echo "Could not resolve the widget bucket from stack $STACK (run .bin/setup_aws)" >&2
+    echo "Could not resolve the widget bucket from stack $STACK (run .bin/deploy_aws)" >&2
     exit 1
 fi
 
