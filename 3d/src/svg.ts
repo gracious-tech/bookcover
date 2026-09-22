@@ -38,6 +38,12 @@ export async function svg_to_bitmap(svg:string, w_pt:number, h_pt:number):Promis
             img.src = url
         })
 
+        // onload alone doesn't guarantee nested embedded rasters (e.g. a user's
+        // background photo embedded in the panel SVG) have finished decoding —
+        // notably on Safari, this can race and snapshot a blank background.
+        // decode() is spec-guaranteed to wait until the image is fully paintable.
+        await img.decode()
+
         return createImageBitmap(img)
     }
     finally {
