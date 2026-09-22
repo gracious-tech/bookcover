@@ -54,10 +54,10 @@ aws s3 cp widget/dist/index.html "s3://$BUCKET/index.html" \
 # CloudFront holds index.html under its own no-cache behaviour, but the SPA error-response
 # mapping can still have a copy, so purge the one path explicitly
 if [ -n "$DISTRIBUTION" ] && [ "$DISTRIBUTION" != "None" ]; then
-    echo -n 'Invalidation: '
-    aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION" \
+    INVALIDATION_ID=$(aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION" \
         --paths '/index.html' '/' \
-        --query 'Invalidation.Id' --output text
+        --query 'Invalidation.Id' --output text)
+    echo "Invalidation: $INVALIDATION_ID"
 fi
 
 echo "Deployed widget/dist to s3://$BUCKET"
