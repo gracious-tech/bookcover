@@ -1,6 +1,26 @@
 
 // SVG parsing and rasterisation utilities
 
+// Grace period before snapshotting an SVG that embeds other documents — a pragmatic
+// workaround for a Safari rasterisation quirk (see svg_to_bitmap), not a guarantee. Raise it
+// if a cover ever renders in the 3D view without its background again.
+const NESTED_RASTER_SETTLE_MS = 250
+
+// Feature detection is no help here (decode()/createImageBitmap exist everywhere) — this is
+// a behavioural quirk specific to WebKit's renderer, so UA/platform sniffing is the only
+// option. WebKit means desktop Safari, or ANY browser on iOS/iPadOS — Apple requires every
+// iOS browser (Chrome, Firefox, Edge included) to run on WebKit under the hood, so those UAs
+// need the same workaround despite naming another browser. Android and desktop Chrome/
+// Firefox/Edge are the real Blink/Gecko engines this doesn't apply to.
+const is_ios = typeof navigator !== 'undefined' && (
+    /iPad|iPhone|iPod/.test(navigator.userAgent)
+    // iPadOS reports as "Macintosh" in its UA but is touch-capable, unlike a real Mac
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+)
+const is_safari_desktop = typeof navigator !== 'undefined'
+    && /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+const is_webkit = is_ios || is_safari_desktop
+
 /** Parse dimensions from the root SVG element's width/height attributes.
  *  Values are in pt (Typst's SVG renderer uses pt as its coordinate system).
  *  Accepts both "Xpt" (node backend) and bare "X" (web backend) forms. */
@@ -38,11 +58,18 @@ export async function svg_to_bitmap(svg:string, w_pt:number, h_pt:number):Promis
             img.src = url
         })
 
-        // onload alone doesn't guarantee nested embedded rasters (e.g. a user's
-        // background photo embedded in the panel SVG) have finished decoding —
-        // notably on Safari, this can race and snapshot a blank background.
-        // decode() is spec-guaranteed to wait until the image is fully paintable.
+        // onload alone doesn't guarantee the image is actually paintable yet; decode() is
+        // spec-guaranteed to wait until it is.
         await img.decode()
+
+        // WebKit can resolve decode() before it has finished rasterising documents nested
+        // inside this one, snapshotting a cover whose background is missing while its text
+        // (native to the outer document) is fine. Everything is inline, so this is decode
+        // time only, with nothing to wait on over the network. Only covers with something
+        // embedded are affected, so plain ones skip the wait entirely, and only WebKit needs
+        // the wait at all.
+        if (is_webkit && cleaned_svg.includes('data:image/'))
+            await new Promise<void>(resolve => setTimeout(resolve, NESTED_RASTER_SETTLE_MS))
 
         // Must be awaited here (not returned directly) — the blob URL is revoked in
         // `finally` right after this call returns, and on Safari that can race ahead of
