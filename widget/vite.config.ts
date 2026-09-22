@@ -1,5 +1,6 @@
 
 import path from 'node:path'
+import {execSync} from 'node:child_process'
 
 import {defineConfig} from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -7,9 +8,19 @@ import ui from '@nuxt/ui/vite'
 import {nuxt_ui_icons} from './ui_icons'
 import serve_assets from './vite_plugin_assets'
 
+// Short commit hash baked in at build time, shown in the sidebar to confirm which build
+// is deployed — falls back to 'unknown' outside a git checkout (e.g. a tarball install)
+let git_hash = 'unknown'
+try {
+    git_hash = execSync('git rev-parse --short HEAD').toString().trim()
+}
+catch { /* not a git checkout */ }
 
 // Vite configuration for the book cover generator widget
 export default defineConfig({
+    define: {
+        __GIT_HASH__: JSON.stringify(git_hash),
+    },
     server: {
         port: 5301,
     },

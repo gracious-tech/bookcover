@@ -55,6 +55,8 @@ aside.sidebar-panel(class="relative flex flex-col w-100 shrink-0 bg-(--ui-bg-ele
                     :aria-label="t('sidebar.switch_language_aria')"
                 )
 
+        div(v-if="show_advanced" class="text-center text-[10px] text-dimmed pb-2") Version {{ git_hash }}
+
     //- Mobile-only print SVG thumbnail pinned at bottom of sidebar
     template(v-if="is_mobile")
         img.mobile-print-thumb(
@@ -84,6 +86,10 @@ import SizeSectionHelpModal from './SizeSectionHelpModal.vue'
 // Injected state for mobile print thumbnail
 const is_mobile = inject(IS_MOBILE_KEY)!
 const full_svg = inject(FULL_SVG_KEY)!
+
+// Build's short git commit hash — see vite.config.ts — shown in the sidebar so a deployed
+// build can be confirmed against a commit
+const git_hash = __GIT_HASH__
 
 // Whether to show the advanced options section
 const show_advanced = ref(false)
