@@ -472,7 +472,7 @@ div(class="flex flex-col gap-1")
                             :title="ic.id"
                             @click="select_icon(ic.id)"
                         )
-                            img(:src="ic.url" class="w-full h-full" :alt="ic.id" :style="is_dark ? 'filter: brightness(0) invert(1)' : ''")
+                            img(:src="ic.url" loading="lazy" class="w-full h-full" :alt="ic.id" :style="is_dark ? 'filter: brightness(0) invert(1)' : ''")
 
             div(class="mt-4 pt-4 border-t border-default flex flex-col gap-3 text-sm")
                 //- Inlined Iconify help (formerly a separate "More" button + modal)
@@ -606,7 +606,8 @@ import {useDark} from '@vueuse/core'
 import {useI18n} from 'vue-i18n'
 import {FORM_KEY, IS_MOBILE_KEY} from '../../form_state'
 import type {FormState} from '../../form_state'
-import {suggested_icons, icon_categories} from '../../services/icons'
+import {suggested_icons, icon_categories, preset_icon_svgs,
+    load_preset_icon_svgs} from '../../services/icons'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
 import {PATTERNS, PREVIEW_PATTERNS, get_preview_url, get_preview_size,
     load_pattern_svgs} from '../../services/patterns'
@@ -636,15 +637,24 @@ const is_mobile = inject(IS_MOBILE_KEY)!
 const is_dark = useDark()
 const {t} = useI18n()
 
-// Resolve an icon id to a displayable image URL — a "builtin:<id>" id renders from an inline
-// data URI (bundled into the app, see bookcover-core's builtin_icons.ts), everything else
-// fetches from the Iconify API
+// Kick off the preset icon SVG payload load as soon as this section mounts, so the trigger
+// preview and picker grid resolve locally rather than hitting the Iconify API — see
+// services/icons.ts. Safe to call from multiple component instances; the import is shared
+load_preset_icon_svgs()
+
+// Resolve an icon id to a displayable image URL. A "builtin:<id>" id renders from an inline
+// data URI (bundled into the app, see bookcover-core's builtin_icons.ts); a curated preset id
+// (see preset_icons.ts) renders from the bundled preset SVG payload once it's loaded; anything
+// else (a custom Iconify id the user typed) fetches from the Iconify API directly
 function icon_url(id:string): string {
     const [collection, name] = id.split(':')
     if (collection === 'builtin') {
         const svg = find_builtin_icon(name)
         return svg ? `data:image/svg+xml,${encodeURIComponent(svg)}` : ''
     }
+    const preset_svg = preset_icon_svgs.value[id]
+    if (preset_svg)
+        return `data:image/svg+xml,${encodeURIComponent(preset_svg)}`
     return `https://api.iconify.design/${collection}/${name}.svg`
 }
 
@@ -653,12 +663,14 @@ function to_icon_swatches(ids:string[]): {id:string, url:string}[] {
     return ids.map(id => ({id, url: icon_url(id)}))
 }
 
-// Suggested icons grouped by theme, for the picker dialog's subheadings
+// Suggested icons grouped by theme, for the picker dialog's subheadings — computed so the
+// swatches switch from the Iconify network fallback to the bundled data URI once
+// preset_icon_svgs finishes loading
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
-const ICON_GROUPS = icon_categories.map(c => ({id: c.id, icons: to_icon_swatches(c.icons)}))
+const ICON_GROUPS = computed(() => icon_categories.map(c => ({id: c.id, icons: to_icon_swatches(c.icons)})))
 
 // First 4 icons used as preview thumbnails in the trigger area
-const PREVIEW_ICONS = to_icon_swatches(suggested_icons.slice(0, 4))
+const PREVIEW_ICONS = computed(() => to_icon_swatches(suggested_icons.slice(0, 4)))
 
 // Controls each picker dialog's open state
 const icon_picker_open = ref(false)
@@ -867,6 +879,10 @@ function check_icon_id(id:string): void {
     const [collection, name] = id.split(':')
     if (collection === 'builtin') {
         icon_id_status.value = find_builtin_icon(name) ? 'valid' : 'invalid'
+        return
+    }
+    if (preset_icon_svgs.value[id]) {
+        icon_id_status.value = 'valid'
         return
     }
     const img = new Image()

@@ -263,7 +263,22 @@ third parties, and a non-browser client has to decode `br` (`curl` needs `--comp
   be tree-shaken and the bundle grows by ~780KB for one barcode. `tests/barcode.test.ts` pins
   the rendered SVG so the swap can't silently change output
 - `frame.ts` — Composites background images into decorative frames (painted, torn edges)
-- `icon_cache.ts` — Fetches and caches Iconify SVGs with size/color stripping
+- `preset_icons.ts` — curated icon-id METADATA only (categories of Iconify ids, e.g.
+  `game-icons:dead-wood`), same METADATA/payload split as patterns above and for the same
+  reason: the widget's picker needs the id list on the main thread without the SVG payload
+- `preset_icons_svg.ts` — the SVG strings for every id in `preset_icons.ts`, baked in from
+  `generator/preset_icon_svgs/<collection>/<name>.svg` (committed source, one file per icon) by
+  `.bin/gen_preset_icons` at build time. The source files themselves come from the Iconify API
+  via the MAINTAINER-ONLY `.bin/fetch_preset_icons` (run after editing `preset_icons.ts`, then
+  commit the new `.svg` files and rerun `gen_preset_icons`/`build_generator`) — this is what
+  keeps `icon_cache.ts` and the widget's icon picker from ever hitting `api.iconify.design` for
+  a curated icon. Not re-exported from the main barrel; reach it via the
+  `bookcover-core/preset-icons-svg` (or `bookcover-web/preset-icons-svg`) subpath.
+  `generator/tests/preset_icons.test.ts` checks the two files agree
+- `icon_cache.ts` — Resolves an icon id to SVG with size/color stripping: `builtin:<id>` from
+  `builtin_icons.ts`, a curated id from `preset_icons_svg.ts`, and anything else (a custom
+  Iconify id a user typed) from a live `api.iconify.design` fetch — the ONLY runtime path in
+  this app that still calls that API
 
 ### Typst templates (`generator/typst/`, baked in via `generator/src/generated/templates_data.ts`)
 
@@ -486,7 +501,7 @@ consumers, but note that embeds every source into the maps (bookcover-core: 213 
 
 | Script | Purpose |
 |--------|---------|
-| `build_generator` | `gen_vector_bg_images` + `gen_typst_templates` then `tsc` in generator/ |
+| `build_generator` | `gen_vector_bg_images` + `gen_icon_svgs` + `gen_preset_icons` + `gen_typst_templates` then `tsc` in generator/ |
 | `build_generator-node` | `tsc` in generator-node/ |
 | `build_generator-web` | `tsc` in generator-web/ |
 | `build_3d` | `tsc` in 3d/ |
@@ -512,6 +527,8 @@ consumers, but note that embeds every source into the maps (bookcover-core: 213 
 | `gen_bg_thumbnails` | Generate 160x120 thumbnails for background images via sharp |
 | `gen_vector_bg_images` | Bundle generator/vector_bg_images/*.svg into generator/src/generated/vector_bg_images_data.ts |
 | `gen_typst_templates` | Bundle generator/typst/*.typ into generator/src/generated/templates_data.ts |
+| `fetch_preset_icons` | MAINTAINER-ONLY. Downloads preset_icons.ts's icon ids from Iconify into generator/preset_icon_svgs/ |
+| `gen_preset_icons` | Bundle generator/preset_icon_svgs/**/*.svg into generator/src/generated/preset_icons_svg_data.ts |
 
 ## Gotchas
 

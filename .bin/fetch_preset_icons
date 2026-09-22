@@ -1,0 +1,81 @@
+#!/usr/bin/env node
+
+// MAINTAINER-ONLY. Downloads the SVG for every id in generator/src/preset_icons.ts from the
+// Iconify API and writes it under generator/preset_icon_svgs/<collection>/<name>.svg (committed
+// source — like generator/icon_svgs/, these are hand-inspectable and require no network access
+// during a normal build). Run this after adding/removing an icon in preset_icons.ts, then run
+// .bin/gen_preset_icons (or a full build_generator) to rebake the bundled data file.
+//
+// "builtin:<id>" entries are skipped — those already resolve from generator/icon_svgs/.
+// A small delay between requests keeps this polite to Iconify's free API (the whole point of
+// baking these in is to stop hitting that API from every client at runtime).
+
+import {mkdir, readFile, writeFile, stat} from 'fs/promises'
+import {join, dirname} from 'path'
+import {fileURLToPath} from 'url'
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+const out_dir = join(root, 'generator/preset_icon_svgs')
+const src_file = join(root, 'generator/src/preset_icons.ts')
+
+// Parse icon ids straight out of the .ts source (a plain string literal in quotes, always
+// "collection:name" so it's the only quoted content here containing a colon) rather than
+// importing the module, since these .bin scripts run under plain Node with no TS toolchain
+const src = await readFile(src_file, 'utf8')
+const ids = [...new Set([...src.matchAll(/'([\w-]+:[\w-]+)'/g)].map(m => m[1]))]
+    .filter(id => !id.startsWith('builtin:'))
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
+
+let count = 0
+let skipped = 0
+const failed = []
+for (const id of ids) {
+    const colon = id.indexOf(':')
+    const collection = id.slice(0, colon)
+    const name = id.slice(colon + 1)
+    const dir = join(out_dir, collection)
+    const out_path = join(dir, `${name}.svg`)
+
+    // Idempotent/resumable — a prior run may have stopped partway through (e.g. rate limited)
+    if (await stat(out_path).then(() => true, () => false)) {
+        skipped++
+        continue
+    }
+
+    const url = `https://api.iconify.design/${collection}/${name}.svg`
+    let response = await fetch(url)
+    // Iconify's free API rate-limits bursts; back off and retry rather than aborting the run.
+    // Respect the server's own Retry-After (seconds) when given — guessing too short just
+    // re-triggers the limit and resets its window instead of letting it clear
+    for (let attempt = 0; response.status === 429 && attempt < 20; attempt++) {
+        const retry_after = Number(response.headers.get('retry-after'))
+        const wait = (retry_after > 0 ? retry_after * 1000 : 20000) + 2000
+        console.log(`  ${id}: 429, retrying in ${wait}ms`)
+        await sleep(wait)
+        response = await fetch(url)
+    }
+    if (!response.ok) {
+        // Don't let one stuck icon abort the whole (slow, rate-limited) run — log it and move
+        // on; the id list is printed at the end so a follow-up run can retry just those
+        console.error(`  FAILED ${id}: ${response.status} ${response.statusText}`)
+        failed.push(id)
+        continue
+    }
+
+    // Strip width/height so the icon scales via its container, matching icon_cache.ts
+    const svg = (await response.text()).replace(/<svg\b[^>]*>/, tag => tag.replace(/\s(?:width|height)="[^"]*"/g, ''))
+
+    await mkdir(dir, {recursive: true})
+    await writeFile(out_path, svg)
+    count++
+    console.log(`  ${id}`)
+
+    await sleep(3000)
+}
+
+console.log('Fetched', count, 'preset icons (skipped', skipped, 'already present) ->', out_dir)
+if (failed.length) {
+    console.log('Failed:', failed.length, '-', failed.join(', '))
+    process.exitCode = 1
+}

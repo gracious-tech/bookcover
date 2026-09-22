@@ -1,362 +1,39 @@
 
-// Suggested icons, grouped by theme — group `id` keys translate via the `icon_categories`
-// i18n namespace (see locales/eng.ts) for subheadings in the icon picker dialog
+// Widget-side icon helpers — built on top of the generator's icon_categories/suggested_icons
+//
+// Icon id METADATA is tiny and loads with the app. The preset SVG payload lives behind a
+// dynamic import and is fetched off the critical path (see load_preset_icon_svgs below),
+// mirroring services/patterns.ts. Icons outside the curated preset list (a custom typed id)
+// still resolve from the Iconify API directly — see icon_url() in BackgroundSection.vue.
 
-export interface IconCategory {
-    id: string
-    icons: string[]
+import {ref} from 'vue'
+import {icon_categories, suggested_icons} from 'bookcover-web'
+import type {IconCategory} from 'bookcover-web'
+
+export type {IconCategory}
+export {icon_categories, suggested_icons}
+
+// The preset SVG payload once loaded, keyed by full icon id — empty until
+// load_preset_icon_svgs() resolves. Reactive so swatches (which render blank meanwhile using
+// the Iconify network fallback) fill in with the local copy when it arrives
+export const preset_icon_svgs = ref<Record<string, string>>({})
+
+// Kept so concurrent callers share one import rather than racing
+let svgs_promise:Promise<void> | null = null
+
+/**
+ * Load the preset icon SVG payload on demand. Safe to call repeatedly — the chunk is fetched
+ * once. Callers don't need to await it: swatches fall back to the Iconify network URL until it
+ * resolves and then switch to the bundled copy.
+ */
+export function load_preset_icon_svgs():Promise<void> {
+    if (!svgs_promise) {
+        svgs_promise = import('bookcover-web/preset-icons-svg').then(mod => {
+            preset_icon_svgs.value = mod.PRESET_ICON_SVGS
+        }).catch((error:unknown) => {
+            console.error('Failed to load preset icon SVGs:', error)
+            svgs_promise = null
+        })
+    }
+    return svgs_promise
 }
-
-export const icon_categories: IconCategory[] = [
-    {
-        id: 'nature_landscape',
-        icons: [
-            'game-icons:big-wave',
-            'game-icons:cave-entrance',
-            'game-icons:dead-wood',
-            'game-icons:desert',
-            'game-icons:earth-africa-europe',
-            'game-icons:earth-america',
-            'game-icons:earth-asia-oceania',
-            'game-icons:earth-crack',
-            'game-icons:earth-spit',
-            'game-icons:falling-rocks',
-            'game-icons:flood',
-            'game-icons:heavy-rain',
-            'game-icons:island',
-            'game-icons:italia',
-            'game-icons:lightning-storm',
-            'game-icons:mountain-cave',
-            'game-icons:mountain-road',
-            'game-icons:mountaintop',
-            'game-icons:mountains',
-            'game-icons:oasis',
-            'game-icons:peaks',
-            'game-icons:rock',
-            'game-icons:solar-system',
-            'game-icons:stone-pile',
-            'game-icons:summits',
-            'game-icons:sunrise',
-            'game-icons:tornado',
-            'game-icons:valley',
-            'game-icons:wave-crest',
-            'game-icons:wildfires',
-            'game-icons:world',
-        ],
-    },
-    {
-        id: 'animals_creatures',
-        icons: [
-            'game-icons:camel',
-            'game-icons:charging-bull',
-            'game-icons:cricket',
-            'game-icons:double-dragon',
-            'game-icons:dove',
-            'game-icons:dragon-head',
-            'game-icons:hydra',
-            'game-icons:lion',
-            'game-icons:peace-dove',
-            'game-icons:sand-snake',
-            'game-icons:school-of-fish',
-            'game-icons:sheep',
-            'game-icons:snake',
-            'game-icons:snake-tongue',
-            'game-icons:sperm-whale',
-            'game-icons:whale-tail',
-        ],
-    },
-    {
-        id: 'plants_agriculture',
-        icons: [
-            'game-icons:beech',
-            'game-icons:cool-spices',
-            'game-icons:ecology',
-            'game-icons:elderberry',
-            'game-icons:fruit-tree',
-            'game-icons:fruiting',
-            'game-icons:grain-bundle',
-            'game-icons:granary',
-            'game-icons:grapes',
-            'game-icons:ground-sprout',
-            'game-icons:new-shoot',
-            'game-icons:oak',
-            'game-icons:oat',
-            'game-icons:olive',
-            'game-icons:pine-tree',
-            'game-icons:plant-roots',
-            'game-icons:plant-watering',
-            'game-icons:rose',
-            'game-icons:shepherds-crook',
-            'game-icons:shiny-apple',
-            'game-icons:stump-regrowth',
-            'game-icons:wheat',
-        ],
-    },
-    {
-        id: 'fire_light',
-        icons: [
-            'game-icons:burning-blobs',
-            'game-icons:burning-tree',
-            'game-icons:campfire',
-            'game-icons:candle-flame',
-            'game-icons:candle-light',
-            'game-icons:candlebright',
-            'game-icons:celebration-fire',
-            'game-icons:dungeon-light',
-            'game-icons:electric',
-            'game-icons:fire',
-            'game-icons:fire-silhouette',
-            'game-icons:flame',
-            'game-icons:flamer',
-            'game-icons:match-head',
-            'game-icons:small-fire',
-        ],
-    },
-    {
-        id: 'combat_weapons',
-        icons: [
-            'game-icons:all-for-one',
-            'game-icons:ancient-sword',
-            'game-icons:anvil-impact',
-            'game-icons:archery-target',
-            'game-icons:arrow-dunk',
-            'game-icons:arrow-flights',
-            'game-icons:assassin-pocket',
-            'game-icons:axe-sword',
-            'game-icons:barbed-wire',
-            'game-icons:battle-gear',
-            'game-icons:broad-dagger',
-            'game-icons:broadsword',
-            'game-icons:bullseye',
-            'game-icons:cavalry',
-            'game-icons:centurion-helmet',
-            'game-icons:chariot',
-            'game-icons:cracked-shield',
-            'game-icons:crested-helmet',
-            'game-icons:crossed-chains',
-            'game-icons:crossed-swords',
-            'game-icons:deadly-strike',
-            'game-icons:defensive-wall',
-            'game-icons:dodging',
-            'game-icons:dodge',
-            'game-icons:manacles',
-            'game-icons:shattered-sword',
-            'game-icons:shield-reflect',
-            'game-icons:spartan-helmet',
-            'game-icons:spears',
-            'game-icons:whip',
-        ],
-    },
-    {
-        id: 'architecture_structures',
-        icons: [
-            'game-icons:3d-stairs',
-            'game-icons:ancient-columns',
-            'game-icons:ancient-ruins',
-            'game-icons:aqueduct',
-            'game-icons:arabic-door',
-            'game-icons:arc-triomphe',
-            'game-icons:broken-wall',
-            'game-icons:byzantin-temple',
-            'boxicons:church-filled',
-            'game-icons:church',
-            'game-icons:coliseum',
-            'game-icons:concrete-bag',
-            'game-icons:doorway',
-            'game-icons:egyptian-pyramids',
-            'game-icons:egyptian-temple',
-            'game-icons:great-pyramid',
-            'game-icons:greek-temple',
-            'game-icons:open-gate',
-            'game-icons:samara-mosque',
-            'game-icons:stone-block',
-            'game-icons:tower-fall',
-            'game-icons:watchtower',
-            'game-icons:window-bars',
-        ],
-    },
-    {
-        id: 'royalty_power',
-        icons: [
-            'game-icons:caesar',
-            'game-icons:card-queen-hearts',
-            'game-icons:coronation',
-            'game-icons:crenel-crown',
-            'game-icons:crown',
-            'game-icons:crown-coin',
-            'game-icons:jewel-crown',
-            'game-icons:king',
-            'game-icons:kneeling',
-            'game-icons:queen-crown',
-            'game-icons:throne-king',
-        ],
-    },
-    {
-        id: 'religion_spirituality',
-        icons: [
-            'game-icons:angel-outfit',
-            'game-icons:angel-wings',
-            'game-icons:aura',
-            'game-icons:beams-aura',
-            'game-icons:chalice-drops',
-            'game-icons:crown-of-thorns',
-            'game-icons:crucifix',
-            'builtin:cross',
-            'mdi:cross',
-            'mdi:cross-outline',
-            'mdi:shield-cross-outline',
-            'game-icons:enlightenment',
-            'game-icons:feathered-wing',
-            'game-icons:fluffy-trefoil',
-            'game-icons:heavy-thorny-triskelion',
-            'game-icons:omega',
-            'game-icons:pouring-chalice',
-            'game-icons:prayer',
-            'game-icons:rod-of-asclepius',
-            'game-icons:temple-door',
-            'game-icons:charm',
-            'game-icons:comet-spark',
-            'game-icons:inspiration',
-            'game-icons:sparkles',
-            'game-icons:spell-book',
-            'game-icons:star-swirl',
-            'game-icons:temptation',
-        ],
-    },
-    {
-        id: 'books_knowledge',
-        icons: [
-            'game-icons:archive-register',
-            'game-icons:archive-research',
-            'game-icons:book-pile',
-            'game-icons:bookmarklet',
-            'game-icons:bookshelf',
-            'game-icons:burning-book',
-            'game-icons:open-book',
-            'game-icons:scroll-quill',
-            'game-icons:scroll-unfurled',
-            'game-icons:tied-scroll',
-            'game-icons:wax-tablet',
-            'game-icons:white-book',
-            'icon-park-outline:doc-fail',
-        ],
-    },
-    {
-        id: 'love_romance',
-        icons: [
-            'game-icons:big-diamond-ring',
-            'game-icons:burning-passion',
-            'game-icons:cherish',
-            'game-icons:crowned-heart',
-            'game-icons:diamond-ring',
-            'game-icons:locked-heart',
-            'game-icons:love-letter',
-            'game-icons:nested-hearts',
-            'game-icons:shattered-heart',
-            'game-icons:wrapped-heart',
-        ],
-    },
-    {
-        id: 'money_trade',
-        icons: [
-            'game-icons:cash',
-            'game-icons:coins',
-            'game-icons:coins-pile',
-            'game-icons:cut-diamond',
-            'game-icons:pay-money',
-            'game-icons:receive-money',
-            'game-icons:rupee',
-        ],
-    },
-    {
-        id: 'music_art',
-        icons: [
-            'game-icons:harp',
-            'game-icons:lyre',
-            'game-icons:musical-notes',
-            'game-icons:musical-score',
-            'game-icons:sound-waves',
-        ],
-    },
-    {
-        id: 'travel_exploration',
-        icons: [
-            'game-icons:anchor',
-            'game-icons:at-sea',
-            'game-icons:camping-tent',
-            'game-icons:compass',
-            'game-icons:direction-sign',
-            'game-icons:direction-signs',
-            'game-icons:fishing-net',
-            'game-icons:horizon-road',
-            'game-icons:journey',
-            'game-icons:locked-chest',
-            'game-icons:path-distance',
-            'game-icons:sailboat',
-            'game-icons:trail',
-            'game-icons:treasure-map',
-            'game-icons:wood-canoe',
-            'game-icons:wooden-sign',
-        ],
-    },
-    {
-        id: 'people_body',
-        icons: [
-            'game-icons:bandaged',
-            'game-icons:biceps',
-            'game-icons:blindfold',
-            'game-icons:cloaked-figure-on-horseback',
-            'game-icons:family-tree',
-            'game-icons:finger-print',
-            'game-icons:prisoner',
-            'game-icons:sandal',
-        ],
-    },
-    {
-        id: 'social_communication',
-        icons: [
-            'game-icons:chat-bubble',
-            'game-icons:contract',
-            'game-icons:conversation',
-            'game-icons:envelope',
-            'game-icons:face-to-face',
-            'game-icons:present',
-            'game-icons:shaking-hands',
-            'game-icons:wine-glass',
-            'mdi:broadcast',
-            'streamline-freehand:business-management-teamwork-clap',
-        ],
-    },
-    {
-        id: 'symbols_abstract',
-        icons: [
-            'game-icons:annexation',
-            'game-icons:anticlockwise-rotation',
-            'game-icons:back-forth',
-            'game-icons:breaking-chain',
-            'game-icons:broken-pottery',
-            'game-icons:chess-rook',
-            'game-icons:choice',
-            'game-icons:cycle',
-            'material-symbols:cycle',
-            'game-icons:expand',
-            'game-icons:hasty-grave',
-            'game-icons:hourglass',
-            'game-icons:infinity',
-            'game-icons:injustice',
-            'game-icons:key',
-            'game-icons:magnifying-glass',
-            'game-icons:misdirection',
-            'game-icons:mirror-mirror',
-            'game-icons:organigram',
-            'game-icons:padlock',
-            'game-icons:padlock-open',
-            'game-icons:plain-padlock',
-            'game-icons:sands-of-time',
-            'game-icons:scales',
-        ],
-    },
-]
-
-// Flat list of all suggested icon ids, derived from icon_categories
-export const suggested_icons: string[] = icon_categories.flatMap(c => c.icons)

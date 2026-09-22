@@ -24,7 +24,7 @@ export const SCHEMA_VERSION = 1
  *  the bundled pattern/vector/icon data. Hosts that re-render a frozen record later should
  *  record this at freeze time (alongside the typst version their wrapper reports) so a drifted
  *  reprint is detectable instead of silent. */
-export const RENDER_VERSION = 1
+export const RENDER_VERSION = 2
 
 /** What an omitted CoverSchema field resolves to at render time. Derived fields are absent by
  *  design — see the note at the top of this file. */

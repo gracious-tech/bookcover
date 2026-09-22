@@ -21,6 +21,10 @@
             "types": "./dist/patterns_svg.d.ts",
             "default": "./dist/patterns_svg.js"
         },
+        "./preset-icons-svg": {
+            "types": "./dist/preset_icons_svg.d.ts",
+            "default": "./dist/preset_icons_svg.js"
+        },
         "./package.json": "./package.json"
     },
     "files": [

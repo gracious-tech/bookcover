@@ -3,6 +3,7 @@
 // built-in icon set
 
 import {find_builtin_icon} from './builtin_icons.js'
+import {find_preset_icon_svg} from './preset_icons_svg.js'
 
 // Module-level in-memory cache: iconify ID → raw SVG string
 const svg_cache = new Map<string, string>()
@@ -47,6 +48,15 @@ async function fetch_icon_svg(iconify_id:string):Promise<string> {
         }
         svg_cache.set(iconify_id, svg)
         return svg
+    }
+
+    // Preset icons (see generator/src/preset_icons.ts) are baked in at build time from
+    // generator/preset_icon_svgs/ — resolve from there before ever touching the network, so a
+    // client generating with one of the curated icons never hits Iconify's rate limit
+    const preset_svg = find_preset_icon_svg(iconify_id)
+    if (preset_svg) {
+        svg_cache.set(iconify_id, preset_svg)
+        return preset_svg
     }
 
     const url = `https://api.iconify.design/${collection}/${name}.svg`
