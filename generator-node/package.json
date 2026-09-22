@@ -1,6 +1,6 @@
 {
     "name": "bookcover-node",
-    "version": "0.16.0",
+    "version": "0.17.0",
     "license": "MIT-0",
     "repository": {
         "type": "git",
@@ -22,7 +22,7 @@
         "test": "vitest run"
     },
     "dependencies": {
-        "bookcover-core": "^0.16.0",
+        "bookcover-core": "^0.17.0",
         "sharp": "^0.34.5",
         "typst-fonts": "^0.1.0"
     },
