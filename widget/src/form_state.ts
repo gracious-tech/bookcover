@@ -23,6 +23,21 @@ export const GENERATOR_KEY: InjectionKey<ShallowRef<GeneratorWorkerClient | null
     Symbol('generator')
 export const INIT_ERROR_KEY: InjectionKey<Ref<string | null>> = Symbol('init_error')
 
+/** Save-image/export-PDF state and actions — owned by PreviewPane (which holds the preview
+ *  canvases and export logic), shared so the sidebar's mobile header can offer the same buttons */
+export interface PreviewExports {
+    is_ready:boolean
+    has_preview:boolean
+    is_saving:boolean
+    is_exporting:boolean
+    save_label:string
+    export_label:string
+    save_image():Promise<void>
+    export_pdf():Promise<void>
+}
+export const PREVIEW_EXPORTS_KEY: InjectionKey<ShallowRef<PreviewExports | null>> =
+    Symbol('preview_exports')
+
 
 // Small builders for composing the demo blurb as a ProseMirror document
 function text(value:string):PmNode {

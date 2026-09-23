@@ -159,7 +159,7 @@ function fonts_changed():boolean {
     return current.some((font, i) => font !== last_sent_fonts![i])
 }
 
-// Baseline captured after the init preset is applied, for dirty detection (Cancel button)
+// Baseline captured after the init preset is applied, for dirty detection (Finished button)
 let baseline_json:string | null = null
 let baseline_bg:File | null = null
 let baseline_builtin:string | null = null
@@ -177,9 +177,9 @@ export function is_form_dirty(form:FormState):boolean {
     return JSON.stringify(serialize_form(form)) !== baseline_json
 }
 
-/** Notify the parent the user is done — used by the "Finished" button. Posts the final form and
- *  binaries so edits made within the debounce window before clicking aren't lost and a host that
- *  only persists on finish gets the complete state. */
+/** Notify the parent the user is done — used by the "Finished" button's Save. Posts the final
+ *  form and binaries so edits made within the debounce window before clicking aren't lost and a
+ *  host that only persists on finish gets the complete state. */
 export function notify_finished(form:FormState):void {
     post({
         type: 'finished',
@@ -190,7 +190,7 @@ export function notify_finished(form:FormState):void {
     })
 }
 
-/** Notify the parent the user abandoned their edits — used by the "Cancel" button */
+/** Notify the parent the user abandoned their edits — used by the "Finished" button's Discard */
 export function notify_cancelled():void {
     post({type: 'cancelled'})
 }
@@ -302,7 +302,7 @@ export function init_embed(form:FormState):void {
 
     apply_preset(form)
 
-    // Snapshot the post-preset state as the Cancel button's "no edits yet" baseline
+    // Snapshot the post-preset state as the Finished button's "no edits yet" baseline
     baseline_json = JSON.stringify(serialize_form(form))
     baseline_bg = form.bg_image
     baseline_builtin = form.bg_image_builtin

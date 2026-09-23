@@ -67,51 +67,11 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
                     @click="view_mode = m.id"
                 )
 
-            div(class="flex flex-1 items-center justify-end gap-2")
-                //- Context-sensitive save button — output depends on active view mode
-                UButton(
-                    v-if="has_preview"
-                    :label="is_mobile ? undefined : save_label"
-                    :icon="is_mobile ? 'material-symbols:image' : undefined"
-                    color="neutral"
-                    :variant="is_mobile ? 'ghost' : 'outline'"
-                    class="cursor-pointer"
-                    :loading="is_saving"
-                    :disabled="is_saving"
-                    @click="save_image"
-                )
-                //- Embed mode: abandon edits and signal the parent to close (confirm if dirty)
-                UButton(
-                    v-if="finished_mode"
-                    :icon="is_mobile ? 'material-symbols:close' : undefined"
-                    color="neutral"
-                    variant="outline"
-                    class="cursor-pointer"
-                    @click="on_cancel"
-                )
-                    template(v-if="!is_mobile") {{ t('preview.cancel_button') }}
-                //- Export PDF (single) or Export PDFs (split parts as zip)
-                UButton(
-                    v-if="!finished_mode"
-                    :icon="is_mobile ? 'material-symbols:draft' : undefined"
-                    color="primary"
-                    variant='solid'
-                    class="cursor-pointer"
-                    :disabled="!is_ready || is_exporting"
-                    :loading="is_exporting"
-                    @click="view_mode === 'split' ? export_split_pdfs() : export_pdf()"
-                )
-                    template(v-if="!is_mobile") {{ view_mode === 'split' ? t('preview.export_pdfs') : t('preview.export_pdf') }}
-                //- Embed mode: signals the parent to close instead of exporting a PDF locally
-                UButton(
-                    v-else
-                    :icon="is_mobile ? 'material-symbols:check-circle' : undefined"
-                    color="primary"
-                    variant='solid'
-                    class="cursor-pointer"
-                    @click="notify_finished(form)"
-                )
-                    template(v-if="!is_mobile") {{ t('preview.finished_button') }}
+            //- min-w-max: shares spare width equally with the left group (keeping the view toggle
+            //- centred) but never shrinks below its own buttons when space runs out
+            div(class="flex flex-1 min-w-max items-center justify-end gap-2")
+                //- Save image, plus Export PDF (or Finished when embedded)
+                CoverActions
                 //- Fallback download icon — redownloads whatever was last saved/exported
                 UButton(
                     v-if="last_url"
@@ -219,21 +179,6 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
                 )
                     PaperScaleLines(:zoom="zoom_per_view[view_mode]" :cover_width_mm="cover_width_mm")
 
-    //- Confirmation dialog for cancelling with unsaved edits (embed mode)
-    UModal(
-        :open="cancel_confirm_open"
-        @update:open="cancel_confirm_open = $event"
-        :title="t('preview.cancel_confirm_title')"
-        :close="false"
-        :ui="{content: 'max-w-sm', footer: 'justify-between gap-2'}"
-    )
-        template(#body)
-            p(class="text-sm") {{ t('preview.cancel_confirm_body') }}
-
-        template(#footer)
-            UButton(type="button" color="neutral" variant="subtle" size="lg" @click="cancel_confirm_open = false") {{ t('common.cancel') }}
-            UButton(type="button" color="error" variant="soft" size="lg" @click="do_cancel") {{ t('preview.cancel_confirm_discard') }}
-
 </template>
 
 <script setup lang="ts">
@@ -257,7 +202,7 @@ import {zipSync} from 'fflate'
 import {get_service} from 'printing-services'
 import type {SizeId} from 'printing-services'
 import {
-    FORM_KEY, IS_MOBILE_KEY, FULL_SVG_KEY, GENERATOR_KEY, INIT_ERROR_KEY,
+    FORM_KEY, IS_MOBILE_KEY, FULL_SVG_KEY, GENERATOR_KEY, INIT_ERROR_KEY, PREVIEW_EXPORTS_KEY,
 } from '../../form_state'
 import {build_schema} from '../../schema'
 import {read_render_image} from '../../services/backgrounds'
@@ -266,9 +211,9 @@ import {image_regions} from '../../image_regions_cache'
 import {compute_cover_dims} from '../../dimensions'
 import {debounce} from '../../svg_utils'
 import {modal_open_count} from '../../modal_state'
-import {finished_mode, notify_finished, notify_cancelled, is_form_dirty} from '../../embed'
 
 import LogSlider from '../LogSlider.vue'
+import CoverActions from '../CoverActions.vue'
 import Preview3D from './Preview3D.vue'
 import PreviewPhoto from './PreviewPhoto.vue'
 import PreviewSplit from './PreviewSplit.vue'
@@ -276,7 +221,9 @@ import PreviewFull from './PreviewFull.vue'
 import PaperScaleLines from './PaperScaleLines.vue'
 
 // Explicitly register components (suppresses TS unused-import warning for Pug templates)
-defineOptions({components: {Preview3D, PreviewPhoto, PreviewSplit, PreviewFull, PaperScaleLines}})
+defineOptions({components: {
+    Preview3D, PreviewPhoto, PreviewSplit, PreviewFull, PaperScaleLines, CoverActions,
+}})
 
 // Inject the generator instance (null until WASM init completes)
 const generator = inject(GENERATOR_KEY)!
@@ -299,27 +246,6 @@ function toggle_color_mode():void {
 }
 
 const {t} = useI18n()
-
-// Controls the cancel confirmation modal (embed mode)
-const cancel_confirm_open = ref(false)
-
-/** Cancel: confirm when there are unsaved edits, otherwise signal the parent immediately */
-// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
-function on_cancel():void {
-    if (is_form_dirty(form)) {
-        cancel_confirm_open.value = true
-    }
-    else {
-        notify_cancelled()
-    }
-}
-
-/** Confirmed cancel: close the dialog and signal the parent to discard the session */
-// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
-function do_cancel():void {
-    cancel_confirm_open.value = false
-    notify_cancelled()
-}
 
 // Resolution previews render the background image at — standard screen 96dpi × 2 for zoom
 const PREVIEW_DPI = 96 * 2
@@ -693,6 +619,21 @@ async function save_image():Promise<void> {
         is_saving.value = false
     }
 }
+
+// Publish save/export state and actions for CoverActions here and in the sidebar's mobile header
+// (reactive() unwraps the refs so consumers read plain values)
+const preview_exports = inject(PREVIEW_EXPORTS_KEY)!
+preview_exports.value = reactive({
+    is_ready,
+    has_preview,
+    is_saving,
+    is_exporting,
+    save_label,
+    export_label: computed(() => view_mode.value === 'split'
+        ? t('preview.export_pdfs') : t('preview.export_pdf')),
+    save_image,
+    export_pdf: () => view_mode.value === 'split' ? export_split_pdfs() : export_pdf(),
+})
 
 /** Handle background thumbnail click in photo mode */
 function on_photo_bg_click(id:string):void {

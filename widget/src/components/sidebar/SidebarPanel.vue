@@ -5,7 +5,11 @@
 
 aside.sidebar-panel(class="relative flex flex-col w-100 shrink-0 bg-(--ui-bg-elevated) border-r border-(--ui-border) overflow-hidden")
     div(class="flex-1 overflow-y-auto flex flex-col pb-50")
-        div(class="text-sm font-bold tracking-[0.08em] uppercase bg-(--section-primary-header) border-b border-(--ui-border) px-4 py-[14px]") {{ t('sidebar.section_cover_text') }}
+        div(class="flex items-center justify-between gap-2 text-sm font-bold tracking-[0.08em] uppercase bg-(--section-primary-header) border-b border-(--ui-border) px-4 py-[14px]")
+            span {{ t('sidebar.section_cover_text') }}
+            //- Mobile: the preview toolbar's actions here too, so they're reachable without
+            //- switching to the preview (negative margin keeps the header height unchanged)
+            CoverActions(v-if="is_mobile" class="shrink-0 -my-1.5 normal-case tracking-normal")
         div(class="flex flex-col gap-[24px] px-4 pb-[48px] pt-[14px] bg-(--section-primary-body)")
             ContentSection
 
@@ -77,6 +81,7 @@ import {IS_MOBILE_KEY, FULL_SVG_KEY} from '../../form_state'
 import {svg_data_url} from '../../svg_utils'
 import {hide_size_section} from '../../embed'
 import {AVAILABLE_LOCALES, set_locale} from '../../i18n'
+import CoverActions from '../CoverActions.vue'
 import ContentSection from './ContentSection.vue'
 import BackgroundSection from './BackgroundSection.vue'
 import SizeSection from './SizeSection.vue'
@@ -98,7 +103,9 @@ const show_advanced = ref(false)
 const size_help_open = ref(false)
 
 // Explicitly register components (suppresses TS unused-import warning for Pug templates)
-defineOptions({components: {ContentSection, BackgroundSection, SizeSection, AdvancedSection, SizeSectionHelpModal}})
+defineOptions({components: {
+    ContentSection, BackgroundSection, SizeSection, AdvancedSection, SizeSectionHelpModal, CoverActions,
+}})
 
 const {t, locale} = useI18n()
 

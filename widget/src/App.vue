@@ -25,7 +25,9 @@ import {useI18n} from 'vue-i18n'
 import {load_fonts_prefix, FontsServerError} from 'typst-fonts/web'
 import {
     make_form, make_blank_form, FORM_KEY, IS_MOBILE_KEY, FULL_SVG_KEY, GENERATOR_KEY, INIT_ERROR_KEY,
+    PREVIEW_EXPORTS_KEY,
 } from './form_state'
+import type {PreviewExports} from './form_state'
 import {GeneratorWorkerClient} from './generator_client'
 import {fonts_prefix, all_custom_font_bytes} from './fonts'
 import {assets_prefix} from './assets'
@@ -61,6 +63,10 @@ provide(IS_MOBILE_KEY, is_mobile)
 // Full print SVG shared from PreviewPane via provide/inject
 const full_svg = ref<string | null>(null)
 provide(FULL_SVG_KEY, full_svg)
+
+// Save/export actions — filled in by PreviewPane, also used by the sidebar's mobile header
+const preview_exports = shallowRef<PreviewExports | null>(null)
+provide(PREVIEW_EXPORTS_KEY, preview_exports)
 
 // Mobile view toggle — which panel is visible on narrow viewports
 const mobile_view = ref<'sidebar' | 'preview'>('sidebar')

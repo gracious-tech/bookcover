@@ -93,7 +93,8 @@ export interface InitMessage {
      *  everything here is fetched and cloned before the editor can open. Seeding speculatively
      *  is paid for on the critical path. */
     custom_fonts?: CustomFont[]
-    // Swap the export button for a "Finished" signal, and show a Cancel button
+    // Swap the export button for a "Finished" button. With unsaved edits it asks Save (sends
+    // 'finished') or Discard (sends 'cancelled'); with none it sends 'finished' straight away
     finished_mode?: boolean
     // Hide the Book Size sidebar section entirely
     hide_size_section?: boolean
