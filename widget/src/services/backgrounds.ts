@@ -14,7 +14,7 @@
 //
 // The ID names the picture, not the bytes. A visually identical re-encode at the same pixel
 // size and format may replace a file in place: keep the untouched original in
-// assets/backgrounds_originals/ and rerun .bin/gen_bg_regions (the baked colour regions are a
+// assets/backgrounds/originals/ and rerun .bin/gen_bg_regions (the baked colour regions are a
 // rough read, so the re-bake shifts nothing that matters). Anything that changes what the
 // picture looks like — new pixels, crop or dimensions — is a new ID.
 //

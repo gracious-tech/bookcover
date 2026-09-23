@@ -95,9 +95,9 @@ in production the widget
 fetches it from `https://assets.paper.bible/` (deployed via `.bin/deploy_assets static`, see
 `widget/src/assets.ts`).
 
-`assets/backgrounds_originals/` (committed, NOT deployed — `deploy_assets static` syncs only
-`backgrounds/`, `frames/` and `3d/`) keeps the untouched source of any background whose
-`backgrounds/` copy was re-encoded. Only the outliers were: at print-master settings (q95,
+`assets/backgrounds/originals/` keeps the untouched source of any background whose
+`backgrounds/` copy isn't the original (edited or re-encoded). The re-encodes were only the
+outliers: at print-master settings (q95,
 4:4:4, mozjpeg, ICC kept) `rocket.jpg` and `bird.jpg` shrank ~55%, while every other file came
 out the same size or larger, since they're already near that quality or 4:2:0.
 
@@ -448,7 +448,7 @@ note when published; paper.bible is the known consumer and must send IDs to keep
 For backgrounds specifically, **the filename is the ID** — hosts path-join it to fetch bytes and
 slice its extension off for the MIME type, with no lookup table anywhere. The ID names the
 picture, not the bytes: a visually identical re-encode at the same pixel size and format may
-replace a file in place (original kept in `assets/backgrounds_originals/`, then rerun
+replace a file in place (original kept in `assets/backgrounds/originals/`, then rerun
 `.bin/gen_bg_regions` — the baked regions are a rough colour read, so the re-bake is noise and
 needs no `RENDER_VERSION` bump). A format change or anything visibly different is a new ID, and
 `bg_image_builtin` must keep carrying a filename.
