@@ -430,20 +430,20 @@ pruning one breaks covers that can no longer be reproduced (the `black_`/`white_
 prefix drop in 0.9.0 already did this once). Unknown IDs now warn via `warn_unknown()` instead of
 vanishing silently. Finalize and prune all of these before 1.0, then treat them as append-only.
 
-UNRELEASED BREAKING CHANGE (not yet published — the last release was 0.18.0): built-in
-backgrounds are identified by ID, not bytes. The embed protocol sends a built-in as
-`bg_image_builtin` with `bg_image: null` (in `InitMessage` too; there, an ID sent beside bytes
-wins), and `FormState` gained `bg_image_builtin`. `get_builtin_bg_regions(filename)` looks up by
-filename alone and `get_builtin_bg()` adds the original's pixel size. Built-ins are no longer
-recognised from bytes: `match_builtin_bg_regions()` and the baked byte `size` are gone, and
-`analyze_image_regions()` always decodes (the Node one lost its `filename` argument) — a host
-that passes a built-in's bytes without its ID gets a live decode, with slightly different auto
-colours than the baked ones. `generate()` takes `image_builtin` (baked colors for whichever copy
-of a built-in is passed) and, on web, `image_max_dpi` (shrinks the image for fast previews,
-sampling colors from the original). The `backgrounds/previews/` directory is now `previews_800/`,
-beside the new `previews_2700/`. `rocket.jpg` and `bird.jpg` were re-encoded in place (same
-pixels to the eye, ~55% smaller). No stored record changes. Needs a minor bump and a release
-note when published; paper.bible is the known consumer and must send IDs to keep baked colours.
+0.19.0 (published 2026-09-23) made built-in backgrounds identified by ID, not bytes — a breaking
+change for embed hosts. The embed protocol sends a built-in as `bg_image_builtin` with
+`bg_image: null` (in `InitMessage` too; there, an ID sent beside bytes wins), and `FormState`
+gained `bg_image_builtin`. `get_builtin_bg_regions(filename)` looks up by filename alone and
+`get_builtin_bg()` adds the original's pixel size. Built-ins are never recognised from bytes:
+`analyze_image_regions()` always decodes (the Node one takes no `filename`), so a host that
+passes a built-in's bytes without its ID gets a live decode, with slightly different auto colours
+than the baked ones. `generate()` takes `image_builtin` (baked colors for whichever copy of a
+built-in is passed) and, on web, `image_max_dpi` (shrinks the image for fast previews, sampling
+colors from the original). The `backgrounds/previews/` directory became `previews_800/`, beside
+the new `previews_2700/`, and `rocket.jpg`/`bird.jpg` were re-encoded in place (same pixels to
+the eye, ~55% smaller). No stored record changed. paper.bible is the known consumer: it must send
+IDs to keep baked colours, and must move off `previews/` before the next `deploy_assets static`
+removes it from the bucket.
 
 For backgrounds specifically, **the filename is the ID** — hosts path-join it to fetch bytes and
 slice its extension off for the MIME type, with no lookup table anywhere. The ID names the
