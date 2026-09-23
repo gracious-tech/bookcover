@@ -6,14 +6,15 @@ import type {CjkVariant} from 'typst-fonts'
 import type {PmDoc} from 'pm-to-typst'
 import {FORM_DEFAULTS} from './defaults.js'
 
-/** JSON-safe form values — every form field except the bg_image binary. This is the shape
+/** JSON-safe form values — every form field except the background image (bg_image's binary, or
+ *  the bg_image_builtin reference that stands in for one). This is the shape
  *  hosts store and round-trip (e.g. via the widget's embed protocol).
  *
  *  Two invariants hosts can rely on, and must preserve:
  *  - NO BINARIES. The background image and custom font bytes are never in this record; they
- *    are referenced out-of-band by the host, which owns their storage and identity. The widget
- *    reports which built-in background the user picked as an advisory protocol field, never as
- *    a field in here (see generator-web's embed_types.ts).
+ *    are referenced out-of-band by the host, which owns their storage and identity. A built-in
+ *    background travels as its ID in the protocol's bg_image_builtin field, never as a field in
+ *    here (see generator-web's embed_types.ts).
  *  - ABSENCE MEANS NOTHING. Every field is always present and explicitly valued. Where a value
  *    is meant to be derived at render time, it says so with an explicit sentinel ('auto'/null),
  *    never by omitting the key — so a record's meaning can't shift when a default changes. */
@@ -157,23 +158,31 @@ export interface EmbedFormState {
     cjk_variant: CjkVariant | 'auto'  // Regional glyph style for Han characters
 }
 
-/** Live form values — adds the background image File, which is held only in the browser and
- *  never serialized with the rest of the form */
+/** Live form values — adds the background image, which is held only in the browser and never
+ *  serialized with the rest of the form. At most one of bg_image and bg_image_builtin is set:
+ *  a built-in background is held by ID alone, an upload by its bytes */
 export interface FormState extends EmbedFormState {
-    /** The background image, held byte-for-byte.
+    /** An uploaded background image (a user upload or a host-supplied one), held byte-for-byte.
+     *  Always null for a built-in background — see bg_image_builtin.
      *
-     *  BYTES ROUND-TRIP UNMODIFIED. A File put in this slot — whether the user uploaded it, a
-     *  host handed it over the embed protocol, or it was fetched from the built-in backgrounds
-     *  — is the exact File handed back out again: never re-encoded, resized, recompressed or
-     *  stripped of metadata. So any host may use the bytes themselves as the image's identity
-     *  (hashing them to recognise an image it already stores), and that identity survives a
-     *  round trip through the editor.
+     *  BYTES ROUND-TRIP UNMODIFIED. A File put in this slot — whether the user uploaded it or a
+     *  host handed it over the embed protocol — is the exact File handed back out again: never
+     *  re-encoded, resized, recompressed or stripped of metadata. So any host may use the bytes
+     *  themselves as the image's identity (hashing them to recognise an image it already
+     *  stores), and that identity survives a round trip through the editor.
      *
      *  Everything the editor derives FROM the pixels — crop/coverage choices, sampled colors,
      *  region analysis — lives in the form values or is recomputed at render time, never by
      *  rewriting this file. Downscaling for preview rendering is fine, but the result is a
      *  separate Blob that must not be written back here. */
     bg_image: File | null
+
+    /** Filename of the built-in background in use (e.g. 'beach.jpg') — its ID, and the whole of
+     *  its identity: no bytes are held for it. Renderers fetch whichever copy they need by this
+     *  name (the preview-sized one in BG_PREVIEW_DIR, or the original under backgrounds/), and
+     *  its colors come from the baked table by the same name (get_builtin_bg_regions). Null
+     *  for an upload or no image. */
+    bg_image_builtin: string | null
 }
 
 /** Plain object with blank/empty values — no demo content, white background, no icon or

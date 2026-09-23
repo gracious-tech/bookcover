@@ -259,7 +259,8 @@ import type {SizeId} from 'printing-services'
 import {
     FORM_KEY, IS_MOBILE_KEY, FULL_SVG_KEY, GENERATOR_KEY, INIT_ERROR_KEY,
 } from '../../form_state'
-import {build_schema, read_image, read_image_preview} from '../../schema'
+import {build_schema} from '../../schema'
+import {read_render_image} from '../../services/backgrounds'
 import {all_custom_font_bytes} from '../../fonts'
 import {image_regions} from '../../image_regions_cache'
 import {compute_cover_dims} from '../../dimensions'
@@ -319,6 +320,9 @@ function do_cancel():void {
     cancel_confirm_open.value = false
     notify_cancelled()
 }
+
+// Resolution previews render the background image at — standard screen 96dpi × 2 for zoom
+const PREVIEW_DPI = 96 * 2
 
 // UI state refs
 const is_generating = ref(false)
@@ -511,24 +515,26 @@ async function run_generate():Promise<void> {
         // Clear any previous error before generating
         preview_error.value = null
 
+        // Everything the render depends on is read before the image fetch below, so a background
+        // picked mid-fetch can't pair with this render's image (the queued re-run picks it up)
         const schema = build_schema(form)
-
-        // Compute preview image dimensions
-        // Using a lower res version for preview greatly speeds up render
-        // Full res still used for save and export
         const dims = compute_cover_dims(form)
-        const dpi = 96 * 2  // Standard screen 96dpi × 2 for zoom
-        const preview_w = Math.round(dims.cover_total_width.toNumber() / 25.4 * dpi)
-        const preview_h = Math.round(dims.cover_total_height.toNumber() / 25.4 * dpi)
-        const img = await read_image_preview(form, preview_w, preview_h)
+        const image_builtin = form.bg_image_builtin ?? undefined
+        const regions = toRaw(image_regions.value)
 
-        // Generate SVG with split panels (needed for 3D renderer and split view). image_regions
-        // is passed explicitly (sampled from the original file, not this downscaled preview
-        // blob) so auto text/blurb/spine coloring matches the full-res export exactly
+        // A built-in renders from its preview-sized copy, and the worker shrinks an upload to
+        // PREVIEW_DPI — a lower res image greatly speeds up render; full res is still used for
+        // export. image_regions is passed explicitly (baked for a built-in, sampled from an
+        // upload's original) so auto text/blurb/spine coloring matches the export exactly
+        const img = await read_render_image(form, 'preview')
+
+        // Generate SVG with split panels (needed for 3D renderer and split view)
         const result = await generator.value!.generate({
             schema,
             image: img,
-            image_regions: toRaw(image_regions.value),
+            image_builtin,
+            image_max_dpi: PREVIEW_DPI,
+            image_regions: regions,
             format: 'svg',
             split: true,
         })
@@ -595,8 +601,12 @@ async function export_pdf():Promise<void> {
 
     try {
         const schema = build_schema(form)
-        const img = read_image(form)
-        const result = await generator.value!.generate({schema, image: img, image_regions: toRaw(image_regions.value)})
+        const image_builtin = form.bg_image_builtin ?? undefined
+        const regions = toRaw(image_regions.value)
+        const img = await read_render_image(form, 'final')
+        const result = await generator.value!.generate({
+            schema, image: img, image_builtin, image_regions: regions,
+        })
         // .slice() produces Uint8Array<ArrayBuffer> (not ArrayBufferLike), satisfying BlobPart
         trigger_download(new Blob([(result.data as Uint8Array).slice()], {type: 'application/pdf'}), 'cover.pdf')
     }
@@ -619,9 +629,11 @@ async function export_split_pdfs():Promise<void> {
 
     try {
         const schema = build_schema(form)
-        const img = read_image(form)
+        const image_builtin = form.bg_image_builtin ?? undefined
+        const regions = toRaw(image_regions.value)
+        const img = await read_render_image(form, 'final')
         const result = await generator.value!.generate({
-            schema, image: img, image_regions: toRaw(image_regions.value), format: 'pdf', split: true,
+            schema, image: img, image_builtin, image_regions: regions, format: 'pdf', split: true,
         })
 
         const parts = result.split as {front:Uint8Array, back:Uint8Array, spine?:Uint8Array}
@@ -718,11 +730,11 @@ watch(
 // Flag set when the background image itself changes, so the deep watcher below skips its
 // immediate (stale-colors) generate and waits for the image_regions watcher instead — avoids
 // rendering once with the new image but the old image's auto-colors, then again moments later
-// once color sampling catches up. Whenever bg_image actually changes, image_regions is
-// guaranteed to be reassigned afterwards (to freshly-sampled regions, or to null if cleared),
-// so exactly one render still always follows — just the single, correct one.
+// once color sampling catches up. Whenever the image actually changes, image_regions is
+// guaranteed to be reassigned afterwards (to a built-in's baked regions, freshly-sampled ones,
+// or null if cleared), so exactly one render still always follows — just the single, correct one.
 let bg_image_changed = false
-watch(() => form.bg_image, () => { bg_image_changed = true })
+watch(() => [form.bg_image, form.bg_image_builtin], () => { bg_image_changed = true })
 
 // Push uploaded fonts to the generator worker (it holds a copy, not our array reference),
 // then re-generate with them. Uploads before the worker is ready are sent by App.vue instead.

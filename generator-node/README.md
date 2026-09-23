@@ -34,6 +34,9 @@ interface GenerateOptions {
     fonts_dir?: string           // fonts tree if kept elsewhere, default: <assets_dir>/fonts
     typst_path?: string          // typst CLI binary, default: 'typst' from $PATH
     custom_fonts?: CustomFont[]  // user-uploaded font families (from typst-fonts)
+    // Filename of the built-in background the image is (e.g. 'beach.jpg') — colors come from its
+    // baked data, whichever copy of it is in input_path
+    image_builtin?: string
 }
 
 interface GenerateResult {

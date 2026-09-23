@@ -6,6 +6,10 @@ import {make_blank_form_values} from 'bookcover-web'
 import type {FormState} from '../src/form_state'
 import {init_color_palette_cache, current_cover_colors} from '../src/color_palette'
 
+// assets.ts (reached via the image-regions cache) reads window.location in dev, which the node
+// test environment doesn't have
+vi.mock('../src/assets', () => ({assets_prefix: 'https://assets.test/'}))
+
 // The palette cache is a module-level singleton watching one form, so the whole file shares
 // one reactive form and edits it between tests (matching the app's one-form-per-context model)
 const form = reactive(make_blank_form_values()) as FormState

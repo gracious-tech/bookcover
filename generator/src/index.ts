@@ -53,7 +53,9 @@ export {warn_unknown} from './utils.js'
 export {build_schema, curly_quotes, parse_font_family, normalize_font_family,
     font_families_in_form} from './form_schema.js'
 export type {CustomFontStyle} from './form_schema.js'
-export {analyze_pixel_regions, get_builtin_bg_regions} from './image_regions.js'
+export {analyze_pixel_regions, get_builtin_bg, get_builtin_bg_regions,
+    BG_PREVIEW_DIR} from './image_regions.js'
+export type {BuiltinBg} from './generated/builtin_bg_regions.js'
 export {derive_colors, hex_override_to_hsl, hex_to_hsl, is_dark_color} from './colors.js'
 export type {DerivedColors} from './colors.js'
 export type {FontSizes} from './font_sizes.js'
@@ -129,7 +131,7 @@ function wrap_blurb_cjk(
  * image_regions, when provided, is passed straight through to resolve_colors() to fill in any
  * color fields the schema left unset (see design.ts) — this function does no image decoding
  * itself (stays pure/no I/O); generator-node/generator-web compute image_regions (via
- * get_builtin_bg_regions or a live analyze_pixel_regions decode) and pass it in.
+ * the builtin lookups or a live analyze_pixel_regions decode) and pass it in.
  */
 export async function build(
     schema:CoverSchema,

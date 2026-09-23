@@ -9,7 +9,13 @@
 // Messages carry no derived schema: hosts call build_schema(form) from bookcover-core, so there
 // is exactly one place that form → schema conversion happens.
 //
-// BACKGROUND IMAGE BYTES ROUND-TRIP UNMODIFIED. Whatever File the host hands in comes back out
+// A BACKGROUND IMAGE IS AN ID OR BYTES, NEVER BOTH. A built-in background travels as its
+// filename in `bg_image_builtin` with `bg_image: null` — no bytes, in either direction, so
+// neither side has to download a multi-megabyte original just to open or report the editor. An
+// uploaded image (a user upload, or a host-supplied one) travels as `bg_image` bytes with
+// `bg_image_builtin: null`.
+//
+// UPLOADED IMAGE BYTES ROUND-TRIP UNMODIFIED. Whatever File the host hands in comes back out
 // byte-for-byte — never re-encoded, resized or stripped of metadata — so a host can hash the
 // bytes to recognise an image it already stores. See FormState.bg_image in bookcover-core.
 
@@ -56,12 +62,12 @@ export interface InitMessage {
     type: 'init'
     // Form values to preset — pure JSON, no binaries inside
     preset?: Partial<EmbedFormState>
-    // Background image to restore into the editor (File structured-clones as a cheap blob ref).
-    // Returned byte-for-byte — see the round-trip guarantee at the top of this file
+    // Uploaded background image to restore into the editor (File structured-clones as a cheap
+    // blob ref). Returned byte-for-byte — see the round-trip guarantee at the top of this file
     bg_image?: File | null
-    // Published filename of that image when it is one of the widget's built-in backgrounds.
-    // Seeds the widget's advisory tracking so a restored built-in isn't reported back as a
-    // user upload on the first data message — see bg_image_builtin on WidgetMessage
+    // Built-in background to restore, by its published filename — send this INSTEAD of bytes
+    // for a built-in (see the top of this file). A name the widget doesn't ship is ignored with
+    // a console warning. If both fields are sent, this one wins and the bytes are dropped
     bg_image_builtin?: string | null
     /** Font families to make available in the editor's font pickers.
      *
@@ -114,7 +120,8 @@ export type HostMessage =
     | InitMessage
     | {type: 'bg_suggestion_resolved', id: string, bg_image: File | null}
 
-/** Widget -> host. `bg_image` rides on every data/finished message (cloning a File is cheap);
+/** Widget -> host. `bg_image` and `bg_image_builtin` ride on every data/finished message
+ *  (cloning a File is cheap), at most one of them non-null;
  *  `custom_fonts` byte arrays are expensive to clone, so on 'data' messages the field is only
  *  present when the font set changed since the last message (absent = unchanged), while
  *  'finished' always carries the complete array.
@@ -127,17 +134,18 @@ export type HostMessage =
  *  InitMessage.custom_fonts for the rule, and font_families_in_form in bookcover-core for the
  *  applied set).
  *
- *  `bg_image_builtin` is ADVISORY background identity, so a host doesn't have to recover it by
- *  hashing returned bytes: when the user picks one of the widget's built-in backgrounds it
- *  carries that image's published filename, and it is null for a user upload or no image at all.
- *  The filename IS the id — hosts join it onto their own assets path to get the bytes and slice
- *  its extension off for the MIME type, so it must stay a filename (see the contract on
- *  BACKGROUNDS in the widget's services/backgrounds.ts). It exists purely so the host can store a
- *  reference instead of a private copy of a shipped image. Treat it as untrusted input — map it
- *  to a built-in only after checking it against your own allowlist, and fall back to the upload
- *  path otherwise. Nothing in bookcover ever resolves bytes from this field.
+ *  `bg_image_builtin` IS the background when the user picked one of the widget's built-ins: it
+ *  carries that image's published filename and `bg_image` is null. It is null for an upload or
+ *  no image at all. The filename IS the id — hosts join it onto their own assets path to get the
+ *  bytes (`backgrounds/<name>` for the original, BG_PREVIEW_DIR for a preview-sized copy) and
+ *  slice its extension off for the MIME type, so it must stay a filename (see the contract on
+ *  BACKGROUNDS in the widget's services/backgrounds.ts). Pass it to generate() as image_builtin
+ *  so colors come from the baked table whichever copy is rendered. Treat it as untrusted input
+ *  — map it to a built-in only after checking it against your own allowlist. A name that fails
+ *  that check comes with no bytes to fall back on, so keep the cover's existing background
+ *  rather than treating the message as clearing it.
  *
- *  The `bg_image` File is the one the host supplied, byte-for-byte — see the round-trip
+ *  A non-null `bg_image` File is the one the host supplied, byte-for-byte — see the round-trip
  *  guarantee at the top of this file.
  *
  *  'bg_suggestion_selected' asks the host for the bytes behind one of the BgSuggestions it sent

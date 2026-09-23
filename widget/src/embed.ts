@@ -2,15 +2,17 @@
 // Embed API — lets a parent frame preset the form, receive live updates, and control the
 // primary button / Book Size section via postMessage. No-ops entirely when not in an iframe.
 // The message types are published from bookcover-web (embed_types.ts) so hosts share them.
-// Binaries (bg image File, custom font bytes) ride as structured-clone fields beside the
-// pure-JSON form values — see WidgetMessage's doc comment for the send policy.
+// The background image (an upload's File, or a built-in's ID with no bytes) and custom font
+// bytes ride as structured-clone fields beside the pure-JSON form values — see WidgetMessage's
+// doc comment for the send policy.
 
 import {ref, watch, toRaw} from 'vue'
+import {warn_unknown} from 'bookcover-web'
 import type {EmbedFormState, HostMessage, WidgetMessage, BgSuggestion, AppLocale} from 'bookcover-web'
 import type {CustomFont} from 'typst-fonts'
 import type {FormState} from './form_state'
 import {add_custom_fonts, custom_font_families} from './fonts'
-import {adopt_bg_image, builtin_bg_filename} from './services/backgrounds'
+import {adopt_bg_image, is_builtin_bg} from './services/backgrounds'
 import {debounce} from './svg_utils'
 
 // Swaps the primary export button into a "Finished" signal instead of a PDF download
@@ -115,7 +117,7 @@ function on_suggestion_resolved(id:string, file:File | null):void {
     // Adopted as an upload, not a built-in: bg_image_builtin stays null and the image gets no
     // published region metadata. user_upload arms the low-resolution check, whose verdict can
     // differ from the other cover's when this book is a different trim size
-    adopt_bg_image(current_form, file, {suggestion: id, user_upload: true})
+    adopt_bg_image(current_form, {file}, {suggestion: id, user_upload: true})
 }
 
 /** Keep only well-formed suggestions — a host sending junk loses those tiles, not the widget */
@@ -129,9 +131,10 @@ function valid_suggestions(value:unknown):BgSuggestion[] {
     ))
 }
 
-/** Serialize the reactive form into a JSON-safe, postMessage-able snapshot (binaries excluded) */
+/** Serialize the reactive form into a JSON-safe, postMessage-able snapshot (background image
+ *  excluded — it travels beside the record, as bytes or a built-in ID) */
 function serialize_form(form:FormState):EmbedFormState {
-    const {bg_image, ...rest} = form
+    const {bg_image, bg_image_builtin, ...rest} = form
     // The JSON round-trip strips undefined values and Vue reactivity proxies
     return JSON.parse(JSON.stringify(rest)) as EmbedFormState
 }
@@ -145,6 +148,7 @@ function raw_fonts():CustomFont[] {
 // Last-sent state, for skipping no-op messages and omitting unchanged font bytes
 let last_sent_json:string | null = null
 let last_sent_bg:File | null = null
+let last_sent_builtin:string | null = null
 let last_sent_fonts:CustomFont[] | null = null
 
 /** Whether the font store differs from what was last posted (by length + element identity) */
@@ -158,13 +162,14 @@ function fonts_changed():boolean {
 // Baseline captured after the init preset is applied, for dirty detection (Cancel button)
 let baseline_json:string | null = null
 let baseline_bg:File | null = null
+let baseline_builtin:string | null = null
 let baseline_fonts:CustomFont[] = []
 
 /** Whether the user has edited anything since the parent's preset was applied */
 export function is_form_dirty(form:FormState):boolean {
     if (baseline_json === null)
         return true
-    if (form.bg_image !== baseline_bg)
+    if (form.bg_image !== baseline_bg || form.bg_image_builtin !== baseline_builtin)
         return true
     const fonts = raw_fonts()
     if (fonts.length !== baseline_fonts.length || fonts.some((f, i) => f !== baseline_fonts[i]))
@@ -180,7 +185,7 @@ export function notify_finished(form:FormState):void {
         type: 'finished',
         data: serialize_form(form),
         bg_image: form.bg_image,
-        bg_image_builtin: builtin_bg_filename.value,
+        bg_image_builtin: form.bg_image_builtin,
         custom_fonts: raw_fonts(),
     })
 }
@@ -190,18 +195,29 @@ export function notify_cancelled():void {
     post({type: 'cancelled'})
 }
 
-/** Apply a parent-supplied preset (form values + binaries) onto the existing reactive form.
- *  Deliberately NOT routed through adopt_bg_image: this has to tell an absent bg_image from an
- *  explicit null, and it must leave bg_vector_id alone, since the preset itself may have just
- *  set a vector background that the helper would clear. */
+/** Apply a parent-supplied preset (form values + background image + fonts) onto the existing
+ *  reactive form. Deliberately NOT routed through adopt_bg_image: this has to tell an absent
+ *  bg_image from an explicit null, and it must leave bg_vector_id alone, since the preset itself
+ *  may have just set a vector background that the helper would clear. */
 function apply_preset(form:FormState):void {
     if (pending_preset)
         Object.assign(form, pending_preset)
-    if (pending_bg_image !== undefined)
+
+    // A built-in's ID wins over any bytes sent beside it; a name this app doesn't ship is
+    // reported and ignored, leaving the bytes (if any) to stand as an upload
+    const builtin = pending_bg_builtin && is_builtin_bg(pending_bg_builtin)
+        ? pending_bg_builtin : null
+    if (pending_bg_builtin && !builtin)
+        warn_unknown('bg_image_builtin', pending_bg_builtin)
+    if (builtin) {
+        form.bg_image_builtin = builtin
+        form.bg_image = null
+    }
+    else if (pending_bg_image !== undefined) {
         form.bg_image = pending_bg_image
-    // Seed advisory identity so a restored built-in isn't reported back as a user upload
-    if (pending_bg_builtin !== undefined)
-        builtin_bg_filename.value = pending_bg_builtin
+        form.bg_image_builtin = null
+    }
+
     // Families land in the store synchronously; only preview @font-face registration is async
     if (pending_fonts?.length)
         void add_custom_fonts(pending_fonts)
@@ -223,7 +239,7 @@ function on_init(msg:Extract<HostMessage, {type: 'init'}>):void {
     if (msg.custom_fonts) pending_fonts = msg.custom_fonts
     // Suggestions are just offers — they don't seed the form, so embed_seeded ignores them
     bg_suggestions.value = valid_suggestions(msg.bg_suggestions)
-    if (msg.preset || msg.bg_image !== undefined) embed_seeded.value = true
+    if (msg.preset || msg.bg_image !== undefined || msg.bg_image_builtin) embed_seeded.value = true
 }
 
 /** Wait for the parent's 'init' message before the app mounts, so form fields set by a preset
@@ -289,6 +305,7 @@ export function init_embed(form:FormState):void {
     // Snapshot the post-preset state as the Cancel button's "no edits yet" baseline
     baseline_json = JSON.stringify(serialize_form(form))
     baseline_bg = form.bg_image
+    baseline_builtin = form.bg_image_builtin
     baseline_fonts = raw_fonts()
 
     // Live change notifications, deduped so unrelated re-renders don't spam the parent.
@@ -297,15 +314,18 @@ export function init_embed(form:FormState):void {
         const data = serialize_form(form)
         const json = JSON.stringify(data)
         const send_fonts = fonts_changed()
-        if (json === last_sent_json && form.bg_image === last_sent_bg && !send_fonts)
+        const bg_unchanged = form.bg_image === last_sent_bg
+            && form.bg_image_builtin === last_sent_builtin
+        if (json === last_sent_json && bg_unchanged && !send_fonts)
             return
         last_sent_json = json
         last_sent_bg = form.bg_image
+        last_sent_builtin = form.bg_image_builtin
         post({
             type: 'data',
             data,
             bg_image: form.bg_image,
-            bg_image_builtin: builtin_bg_filename.value,
+            bg_image_builtin: form.bg_image_builtin,
             ...(send_fonts ? {custom_fonts: raw_fonts()} : {}),
         })
         if (send_fonts)

@@ -8,7 +8,8 @@ import * as crypto from 'node:crypto'
 import {fileURLToPath} from 'node:url'
 import {spawn} from 'node:child_process'
 import {build, cover_schema, split_svg, split_png, split_pdf,
-    collect_all_fonts, analyze_pixel_regions, get_builtin_bg_regions, resolve_dimensions} from 'bookcover-core'
+    collect_all_fonts, analyze_pixel_regions, get_builtin_bg_regions,
+    resolve_dimensions} from 'bookcover-core'
 import type {OutputFormat} from 'bookcover-core'
 import type {CoverSchema, ImageRegions, GetDimensionsResult} from 'bookcover-core'
 import {load_fonts_dir, write_custom_fonts,
@@ -21,6 +22,10 @@ export type {CoverSchema, TitlePosition, FontConfig,
 export type {BundledFont, CustomFont} from 'typst-fonts'
 export {get_fonts, get_bundled_font} from 'typst-fonts'
 export {list_patterns, collect_fonts, collect_all_fonts, default_spine_title} from 'bookcover-core'
+
+// Builtin background lookups by filename (the ID a host stores), for colors and original pixel size
+export {get_builtin_bg, get_builtin_bg_regions, BG_PREVIEW_DIR} from 'bookcover-core'
+export type {BuiltinBg} from 'bookcover-core'
 
 // Form state + form->schema conversion, so hosts can derive the renderable schema server-side
 export {make_blank_form_values, build_schema, curly_quotes,
@@ -66,6 +71,10 @@ export interface GenerateOptions {
     // that already have them cached. When omitted, generate() samples the resolved background
     // image itself; pass null explicitly to skip auto-coloring even though an image is present.
     image_regions?:ImageRegions | null
+    // Filename of the builtin background the image is (e.g. 'beach.jpg', as reported in the embed
+    // protocol's bg_image_builtin). When image_regions is omitted, colors come from that builtin's
+    // baked regions, whichever copy of it is being rendered — see get_builtin_bg_regions
+    image_builtin?:string
 }
 
 export interface GenerateResult {
@@ -105,19 +114,14 @@ const IMAGE_REGIONS_MAX_DIM = 400
 
 /**
  * Sample a background image's dominant colors, under both interpretations at once — see
- * analyze_pixel_regions for what `dims` does. Skips decoding entirely when `filename` matches a
- * known builtin background by name + byte length (see get_builtin_bg_regions); otherwise
- * decodes via sharp. Exported so hosts can sample ahead of generate() and pass the result back
- * in via GenerateOptions.image_regions.
+ * analyze_pixel_regions for what `dims` does. Always decodes via sharp — a builtin background's
+ * baked regions come from get_builtin_bg_regions() by its ID instead. Exported so hosts can
+ * sample ahead of generate() and pass the result back in via GenerateOptions.image_regions.
  */
 export async function analyze_image_regions(
     data:Uint8Array,
-    filename:string | undefined,
     dims:GetDimensionsResult | null,
 ):Promise<ImageRegions> {
-    const builtin = filename ? get_builtin_bg_regions(filename, data.length) : null
-    if (builtin) return builtin
-
     const buf = Buffer.from(data)
     const meta = await sharp(buf).metadata()
     if (!meta.width || !meta.height) throw new Error('[generator-node] Could not read image dimensions')
@@ -275,15 +279,20 @@ export async function generate(options:GenerateOptions):Promise<GenerateResult> 
     }
 
     // Colors sampled from the background image, for auto text/blurb/spine coloring. A
-    // caller-supplied value is used as-is; otherwise this samples the resolved image itself —
-    // best-effort, since a decode failure here would otherwise take down an unrelated generate().
+    // caller-supplied value is used as-is, then a named builtin's baked regions; otherwise this
+    // samples the resolved image itself — best-effort, since a decode failure here would
+    // otherwise take down an unrelated generate().
+    const builtin_regions = options.image_builtin
+        ? get_builtin_bg_regions(options.image_builtin) : null
     let image_regions:ImageRegions | null
     if (options.image_regions !== undefined) {
         image_regions = options.image_regions
     }
+    else if (image && builtin_regions) {
+        image_regions = builtin_regions
+    }
     else if (image) {
-        const filename = found_image ? path.basename(found_image.full_path) : undefined
-        image_regions = await analyze_image_regions(image.data, filename, resolve_dimensions(parsed))
+        image_regions = await analyze_image_regions(image.data, resolve_dimensions(parsed))
             .catch(() => null)
     }
     else {

@@ -7,7 +7,8 @@ import type {TypstCompiler} from '@myriaddreamin/typst.ts/compiler'
 import type {TypstRenderer} from '@myriaddreamin/typst.ts/renderer'
 import {loadFonts} from '@myriaddreamin/typst.ts'
 import {build, cover_schema, split_svg, split_png, split_pdf, frame_image, frame_asset_path,
-    collect_all_fonts, analyze_pixel_regions, get_builtin_bg_regions, resolve_dimensions} from 'bookcover-core'
+    collect_all_fonts, analyze_pixel_regions, get_builtin_bg_regions,
+    resolve_dimensions} from 'bookcover-core'
 import type {OutputFormat, SplitResult, ImageRegions, GetDimensionsResult} from 'bookcover-core'
 import {base_font} from 'typst-fonts'
 import {load_fonts_prefix, font_urls_for as build_font_urls, fetch_font_bytes,
@@ -23,14 +24,14 @@ export {list_patterns, collect_fonts, collect_all_fonts, default_spine_title,
     find_builtin_icon, icon_categories, suggested_icons, generate_palette, cover_schema} from 'bookcover-core'
 export type {IconCategory} from 'bookcover-core'
 export {tinted_contrast_text, pick_vivid_tint, synthesize_fill, blend_regions, region_hex,
-    all_image_regions, analyze_pixel_regions, get_builtin_bg_regions,
-    VECTOR_BG_AUTO_COLOR, resolve_colors, darken_hsl} from 'bookcover-core'
-export type {RegionStats, ImageRegions, ResolvedColors} from 'bookcover-core'
+    all_image_regions, analyze_pixel_regions, get_builtin_bg, get_builtin_bg_regions,
+    BG_PREVIEW_DIR, VECTOR_BG_AUTO_COLOR, resolve_colors, darken_hsl} from 'bookcover-core'
+export type {RegionStats, ImageRegions, ResolvedColors, BuiltinBg} from 'bookcover-core'
 
 // Form state + form->schema conversion, so hosts can derive the renderable schema themselves
 export {make_blank_form_values, build_schema, curly_quotes,
     parse_font_family, find_pattern, derive_colors, hex_override_to_hsl, hex_to_hsl,
-    is_dark_color} from 'bookcover-core'
+    is_dark_color, warn_unknown} from 'bookcover-core'
 export type {FormState, EmbedFormState, CustomFontStyle, DerivedColors} from 'bookcover-core'
 
 // Dimension resolution, so hosts can locate cover panels (e.g. for background-image analysis)
@@ -61,10 +62,18 @@ export interface InitOptions {
 
 export interface GenerateOptions {
     schema:unknown
-    // Background image as a Blob (content type included). Pass a File (or any Blob with a
-    // `name`) so a builtin background can be matched by filename for auto text/blurb/spine
-    // coloring — see get_builtin_bg_regions; a plain nameless Blob still gets a live decode.
+    // Background image as a Blob (content type included). For a builtin background, name it
+    // via image_builtin to get its baked colors; anything else gets a live decode.
     image?:Blob
+    // Filename of the builtin background `image` is a copy of (e.g. 'beach.jpg', as reported in
+    // the embed protocol's bg_image_builtin). When image_regions is omitted, colors come from
+    // that builtin's baked regions whichever copy is passed — so a preview rendered from the
+    // BG_PREVIEW_DIR copy gets exactly the colors the original will
+    image_builtin?:string
+    // Shrink `image` before compiling so it has at most this many pixels per inch of cover
+    // (while still covering the whole spread) — for fast previews. Omit for final output, where
+    // the image is used exactly as given. Colors are still sampled from the original
+    image_max_dpi?:number
     // Output format: 'pdf' (default), 'svg', or 'png'
     format?:OutputFormat
     // PPI for PNG output (default 144)
@@ -107,13 +116,19 @@ function make_canvas(width:number, height:number):HTMLCanvasElement | OffscreenC
     return canvas
 }
 
+/** Encode a canvas' contents as an image Blob of the given type (handles both canvas types) */
+async function canvas_blob(canvas:HTMLCanvasElement | OffscreenCanvas, type:string,
+    quality?:number):Promise<Blob> {
+    if ('convertToBlob' in canvas)
+        return canvas.convertToBlob({type, quality})
+    return new Promise<Blob>((resolve) => {
+        canvas.toBlob((b) => resolve(b!), type, quality)
+    })
+}
+
 /** Encode a canvas' contents as PNG bytes (handles both canvas types) */
 async function canvas_png_bytes(canvas:HTMLCanvasElement | OffscreenCanvas):Promise<Uint8Array> {
-    const blob = 'convertToBlob' in canvas
-        ? await canvas.convertToBlob({type: 'image/png'})
-        : await new Promise<Blob>((resolve) => {
-            canvas.toBlob((b) => resolve(b!), 'image/png')
-        })
+    const blob = await canvas_blob(canvas, 'image/png')
     return new Uint8Array(await blob.arrayBuffer())
 }
 
@@ -140,27 +155,87 @@ async function canvas_crop(
 // dominant-color read while keeping the pixel scan cheap
 const IMAGE_REGIONS_MAX_DIM = 400
 
+// Resizing is skipped when it would shrink the image by less than this fraction of its size —
+// a near-target image (e.g. a built-in's preview copy, sized for a 6x9 cover) gains nothing from
+// another decode and lossy re-encode
+const MIN_DOWNSCALE = 0.85
+
+// The most recent downscaled copy (see downscale_image), so repeat previews of one image at one
+// size skip the decode + re-encode. Just one entry: the target size shifts with every page count
+// or trim edit, and older copies would otherwise pile up
+let downscaled:{image_key:string, source:Blob, size_key:string, blob:Promise<Blob>} | null = null
+
+/** Identify an image across structured clones. A File posted to a worker arrives as a new object
+ *  on every message, so identity alone would never match; its name, size, type and modified time
+ *  together do. A plain Blob carries none of that beyond size/type, so it's matched by identity */
+function image_key(image:Blob):string | null {
+    if (!(image instanceof File))
+        return null
+    return `${image.name}:${image.size}:${image.type}:${image.lastModified}`
+}
+
+/** Shrink an image to the smallest size that still covers target_w x target_h — the templates
+ *  place background images with fit "cover", so the LARGER of the two scale factors is the one
+ *  that keeps every covered pixel. Never enlarges, and returns the image itself when it's already
+ *  small enough or near enough (see MIN_DOWNSCALE). PNGs stay PNG so transparency survives;
+ *  anything else is re-encoded as JPEG */
+async function resize_to_cover(image:Blob, target_w:number, target_h:number):Promise<Blob> {
+    const bitmap = await createImageBitmap(image)
+    const scale = Math.max(target_w / bitmap.width, target_h / bitmap.height)
+    if (scale >= MIN_DOWNSCALE) {
+        bitmap.close()
+        return image
+    }
+    const w = Math.max(1, Math.round(bitmap.width * scale))
+    const h = Math.max(1, Math.round(bitmap.height * scale))
+    const canvas = make_canvas(w, h)
+    const ctx = (canvas as HTMLCanvasElement).getContext('2d')
+    if (!ctx) throw new Error('[generator-web] 2D canvas context unavailable')
+    ctx.drawImage(bitmap, 0, 0, w, h)
+    bitmap.close()
+    const type = image.type === 'image/png' ? 'image/png' : 'image/jpeg'
+    return canvas_blob(canvas, type, 0.85)
+}
+
+/** A copy of a background image with at most max_dpi pixels per inch across the full cover
+ *  spread (see GenerateOptions.image_max_dpi), reusing the last one when nothing changed */
+function downscale_image(image:Blob, dims:GetDimensionsResult, max_dpi:number):Promise<Blob> {
+    const target_w = Math.round(dims.cover_total_width.toNumber() / 25.4 * max_dpi)
+    const target_h = Math.round(dims.cover_total_height.toNumber() / 25.4 * max_dpi)
+    const size_key = `${target_w}x${target_h}`
+    const key = image_key(image) ?? ''
+    const same_image = downscaled !== null
+        && (downscaled.source === image || (key !== '' && downscaled.image_key === key))
+    if (downscaled && same_image && downscaled.size_key === size_key)
+        return downscaled.blob
+
+    // Cache the promise so concurrent calls share one resize, but drop it if the resize fails
+    const blob = resize_to_cover(image, target_w, target_h)
+    const entry = {image_key: key, source: image, size_key, blob}
+    downscaled = entry
+    blob.catch(() => {
+        if (downscaled === entry)
+            downscaled = null
+    })
+    return blob
+}
+
 // How many generate() calls to allow between forced memory resets, as a fallback for whatever
 // slow growth an image-identity change alone wouldn't catch — see reset_memory_if_needed
 const MEMORY_RESET_INTERVAL = 25
 
 /**
  * Sample a background image's dominant colors, under both interpretations at once — see
- * analyze_pixel_regions for what `dims` does. Skips decoding entirely when the image matches a
- * known builtin background by filename + byte size (see get_builtin_bg_regions) — that fast
- * path needs a File (or any Blob with a `name`); a plain nameless Blob always gets a live
- * decode via the Canvas API. Exported so hosts can sample ahead of generate() (e.g. the widget
- * caches this on a debounced watcher, independent of when generate() itself runs, then passes
- * the result back in via GenerateOptions.image_regions).
+ * analyze_pixel_regions for what `dims` does. Always decodes via the Canvas API — a builtin
+ * background's baked regions come from get_builtin_bg_regions() by its ID instead. Exported so
+ * hosts can sample ahead of generate() (e.g. the widget caches this on a debounced watcher,
+ * independent of when generate() itself runs, then passes the result back in via
+ * GenerateOptions.image_regions).
  */
 export async function analyze_image_regions(
     image:Blob,
     dims:GetDimensionsResult | null,
 ):Promise<ImageRegions> {
-    const filename = 'name' in image ? (image as File).name : undefined
-    const builtin = filename ? get_builtin_bg_regions(filename, image.size) : null
-    if (builtin) return builtin
-
     const bitmap = await createImageBitmap(image)
     const scale = Math.min(1, IMAGE_REGIONS_MAX_DIM / Math.max(bitmap.width, bitmap.height))
     const w = Math.max(1, Math.round(bitmap.width * scale))
@@ -438,10 +513,17 @@ export class CoverGenerator {
         // Bound the compiler/renderer's WASM memory growth — see reset_memory_if_needed
         await this.reset_memory_if_needed(options.image)
 
+        // The image actually compiled — a downscaled copy for previews (see image_max_dpi), which
+        // only ever feeds build(); colors and the memory-reset check above use the original
+        const cover_dims = resolve_dimensions(parsed)
+        const render_image = options.image && options.image_max_dpi
+            ? await downscale_image(options.image, cover_dims, options.image_max_dpi)
+            : options.image
+
         // Convert Blob to ImageInput (Uint8Array + extension) for the core builder
         let image_input:{data:Uint8Array, ext:string} | undefined
-        if (options.image) {
-            const blob = options.image
+        if (render_image) {
+            const blob = render_image
             const ext = '.' + (blob.type.split('/')[1] ?? 'jpg').replace('jpeg', 'jpg')
             image_input = {data: new Uint8Array(await blob.arrayBuffer()), ext}
         }
@@ -455,16 +537,21 @@ export class CoverGenerator {
         }
 
         // Colors sampled from the background image, for auto text/blurb/spine coloring. A
-        // caller-supplied value (e.g. the widget's own debounced cache) is used as-is; otherwise
-        // this samples `image` itself (see analyze_image_regions) — best-effort, since a decode
-        // failure here would otherwise take down an unrelated generate() call.
+        // caller-supplied value (e.g. the widget's own debounced cache) is used as-is, then a
+        // named builtin's baked regions; otherwise this samples the original `image` itself (see
+        // analyze_image_regions) — best-effort, since a decode failure here would otherwise take
+        // down an unrelated generate() call.
+        const builtin_regions = options.image_builtin
+            ? get_builtin_bg_regions(options.image_builtin) : null
         let image_regions:ImageRegions | null
         if (options.image_regions !== undefined) {
             image_regions = options.image_regions
         }
+        else if (options.image && builtin_regions) {
+            image_regions = builtin_regions
+        }
         else if (options.image) {
-            image_regions = await analyze_image_regions(options.image, resolve_dimensions(parsed))
-                .catch(() => null)
+            image_regions = await analyze_image_regions(options.image, cover_dims).catch(() => null)
         }
         else {
             image_regions = null

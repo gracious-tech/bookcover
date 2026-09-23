@@ -83,10 +83,23 @@ generate time).
 
 The rest of the top-level `assets/` tree IS committed: `backgrounds/`, `frames/` and `3d/`
 (photo-preview background JPGs + originals — the `bookcover-3d-web` package ships only their
-metadata, see `3d/src/photo.ts`). In dev the whole tree is
-served under `/generator_assets/` by `widget/vite_plugin_assets.ts`; in production the widget
+metadata, see `3d/src/photo.ts`). `.bin/gen_bg_thumbnails` derives three sets from
+`backgrounds/*.jpg`, each directory named for its size (a new size needs a new directory name,
+since `backgrounds/` is cached immutable): `thumbnails/` (160x120, the widget's picker tiles),
+`previews_2700/` (what previews render from instead of the original — ~380KB against a 2.8MB
+average; published as `BG_PREVIEW_DIR`, with the sizing reasoning in the script's header) and
+`previews_800/`, which nothing in this repo reads — paper.bible uses them as large thumbnails
+when the user chooses a cover design, so don't remove or resize them without checking with it.
+In dev the whole tree is served under `/generator_assets/` by `widget/vite_plugin_assets.ts`;
+in production the widget
 fetches it from `https://assets.paper.bible/` (deployed via `.bin/deploy_assets static`, see
 `widget/src/assets.ts`).
+
+`assets/backgrounds_originals/` (committed, NOT deployed — `deploy_assets static` syncs only
+`backgrounds/`, `frames/` and `3d/`) keeps the untouched source of any background whose
+`backgrounds/` copy was re-encoded. Only the outliers were: at print-master settings (q95,
+4:4:4, mozjpeg, ICC kept) `rocket.jpg` and `bird.jpg` shrank ~55%, while every other file came
+out the same size or larger, since they're already near that quality or 4:2:0.
 
 `generator/vector_bg_images/*.svg` (committed) are the editable source for the built-in vector
 background designs in `generator/src/vector_backgrounds.ts` — open one directly in an SVG editor
@@ -384,10 +397,11 @@ schema is version-locked and not re-editable). Two invariants hold it together:
 
 - **No binaries.** The background image and custom font bytes are never in the record. They
   travel as separate structured-clone fields on the embed messages, and the host owns their
-  storage and identity. `WidgetMessage.bg_image_builtin` reports which built-in background the
-  user picked as ADVISORY protocol data (the published `backgrounds/` filename) purely so a host
-  can store a reference instead of its own copy of a shipped image — nothing here resolves bytes
-  from it, and hosts must check it against their own allowlist before trusting it.
+  storage and identity. A background is an ID or bytes, never both: a built-in travels as its
+  published `backgrounds/` filename in `bg_image_builtin` with `bg_image: null` (the widget holds
+  it the same way, as `FormState.bg_image_builtin`, and never downloads the original except for
+  its own PDF export), while an upload travels as `bg_image` bytes, returned byte-for-byte. Hosts
+  must check a `bg_image_builtin` against their own allowlist before trusting it.
 - **Absence means nothing.** Every field in the record is always present and explicitly valued.
   Where a value is meant to be derived at render time it says so with a sentinel (`'auto'`,
   `null`, `''`), never by omitting a key. So `build_schema()` knows nothing about defaults and
@@ -416,24 +430,34 @@ pruning one breaks covers that can no longer be reproduced (the `black_`/`white_
 prefix drop in 0.9.0 already did this once). Unknown IDs now warn via `warn_unknown()` instead of
 vanishing silently. Finalize and prune all of these before 1.0, then treat them as append-only.
 
-UNRELEASED BREAKING CHANGE (not yet published — the last release was 0.14.0): `list_patterns()`
-and `find_pattern()` no longer return a pattern's `svg`, and `PatternDef` gained `aspect_ratio`.
-The SVG moved to the `bookcover-core/patterns-svg` / `bookcover-web/patterns-svg` subpath so the
-payload stops riding along with the metadata (see `patterns.ts`). Pattern IDs are unchanged, so
-no stored cover is affected — only code that read `pattern.svg`, which now calls
-`find_pattern_svg(id)`. Needs a minor/major bump and a release note when published; paper.bible
-is the known consumer.
+UNRELEASED BREAKING CHANGE (not yet published — the last release was 0.18.0): built-in
+backgrounds are identified by ID, not bytes. The embed protocol sends a built-in as
+`bg_image_builtin` with `bg_image: null` (in `InitMessage` too; there, an ID sent beside bytes
+wins), and `FormState` gained `bg_image_builtin`. `get_builtin_bg_regions(filename)` looks up by
+filename alone and `get_builtin_bg()` adds the original's pixel size. Built-ins are no longer
+recognised from bytes: `match_builtin_bg_regions()` and the baked byte `size` are gone, and
+`analyze_image_regions()` always decodes (the Node one lost its `filename` argument) — a host
+that passes a built-in's bytes without its ID gets a live decode, with slightly different auto
+colours than the baked ones. `generate()` takes `image_builtin` (baked colors for whichever copy
+of a built-in is passed) and, on web, `image_max_dpi` (shrinks the image for fast previews,
+sampling colors from the original). The `backgrounds/previews/` directory is now `previews_800/`,
+beside the new `previews_2700/`. `rocket.jpg` and `bird.jpg` were re-encoded in place (same
+pixels to the eye, ~55% smaller). No stored record changes. Needs a minor bump and a release
+note when published; paper.bible is the known consumer and must send IDs to keep baked colours.
 
 For backgrounds specifically, **the filename is the ID** — hosts path-join it to fetch bytes and
-slice its extension off for the MIME type, with no lookup table anywhere. So a re-encode is a new
-ID, not new bytes behind an old one, and `bg_image_builtin` must keep carrying a filename.
+slice its extension off for the MIME type, with no lookup table anywhere. The ID names the
+picture, not the bytes: a visually identical re-encode at the same pixel size and format may
+replace a file in place (original kept in `assets/backgrounds_originals/`, then rerun
+`.bin/gen_bg_regions` — the baked regions are a rough colour read, so the re-bake is noise and
+needs no `RENDER_VERSION` bump). A format change or anything visibly different is a new ID, and
+`bg_image_builtin` must keep carrying a filename.
 
 Retiring a background is a UI-only change local to this app: move its name from `BACKGROUNDS` to
 `RETIRED_BACKGROUNDS` in `widget/src/services/backgrounds.ts` and it leaves the picker while
-staying fully valid. Its file must stay in `assets/backgrounds/` byte-for-byte — deleting or
-re-optimising it drops existing covers off the baked `builtin_bg_regions.ts` fast path (the entry
-is keyed by filename AND byte length) and onto a live pixel decode, which shifts their auto
-colours. `.bin/gen_bg_regions` cross-checks the directory against both lists and fails on a name
+staying fully valid. Its file must stay in `assets/backgrounds/` — deleting it drops its entry
+from the baked `builtin_bg_regions.ts` table, so covers naming it fall back to a live pixel
+decode. `.bin/gen_bg_regions` cross-checks the directory against both lists and fails on a name
 with no file. Retiring needs no coordination with anyone — consumer apps fetch backgrounds from
 the assets bucket by name and never read our picker list, so a retired background keeps working
 for them (some name our files directly as their own cover defaults). What no background survives
@@ -460,6 +484,15 @@ Full contract in that file's header.
   are keyed by `Uint8Array` object identity (WeakMap ids), so callers must pass stable
   references across generates (structured clone breaks identity, hence the worker's
   `set_custom_fonts` snapshot in the widget).
+- **Background images (widget)**: a built-in background is held by ID alone
+  (`form.bg_image_builtin`), so picking one downloads nothing up front. Previews render from its
+  `previews_2700/` copy (`fetch_bg_preview`, a small LRU; tiles prefetch on hover) and exports from
+  the original (`fetch_bg_original`) — both via `read_render_image` in `services/backgrounds.ts`.
+  An upload is shrunk inside the worker by `generate()`'s `image_max_dpi`. Either way the colors
+  never come from the smaller copy: `image_regions_cache.ts` takes a built-in's baked regions by
+  name and samples an upload's original, and that is passed to `generate()` explicitly. A
+  built-in missing from the baked table falls back to sampling its preview copy (with a console
+  warning), and `widget/tests/backgrounds.test.ts` fails on one.
 - **Split output**: SVG splits adjust the viewBox; PDF splits inject CropBox arrays into the
   raw PDF bytes; PNG splits use a crop callback (`sharp` on Node, Canvas API on web).
 - **Debounced inputs**: Color pickers debounce at 800ms (`ColorPicker.vue`) or 2000ms

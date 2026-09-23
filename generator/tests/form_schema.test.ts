@@ -110,8 +110,8 @@ describe('build_schema record determinism', () => {
         for (const key of Object.keys(FORM_DEFAULTS)) {
             if (DERIVED_FIELDS.has(key) || key === 'schema_version' || key === 'size_mode')
                 continue
-            // The image is a binary, passed to the generators out-of-band (see below)
-            if (key === 'bg_image')
+            // The image (a binary, or a built-in's ID) goes to the generators out-of-band
+            if (key === 'bg_image' || key === 'bg_image_builtin')
                 continue
             // Size fields are mode-dependent and checked separately below
             if (key.startsWith('custom_') || key === 'size_id' || key === 'page_count')

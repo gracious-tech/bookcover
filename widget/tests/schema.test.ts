@@ -3,7 +3,7 @@ import {describe, it, expect} from 'vitest'
 
 import {cover_schema, make_blank_form_values} from 'bookcover-web'
 import type {FormState} from '../src/form_state'
-import {build_schema, read_image, parse_svg_size} from '../src/schema'
+import {build_schema, parse_svg_size} from '../src/schema'
 
 /** A complete form, overridden field by field */
 function make_form(overrides:Partial<FormState> = {}):FormState {
@@ -27,19 +27,6 @@ describe('build_schema', () => {
         const schema = build_schema(make_form({bg_color: null, title1_color: null}))
         expect(schema['bg_color']).toBeUndefined()
         expect(schema['title1_color']).toBeUndefined()
-    })
-})
-
-
-describe('read_image', () => {
-
-    it('returns the background image blob when one is selected', () => {
-        const file = new File([new Uint8Array([1, 2, 3])], 'bg.jpg', {type: 'image/jpeg'})
-        expect(read_image(make_form({bg_image: file}))).toBe(file)
-    })
-
-    it('returns undefined rather than null when there is no image', () => {
-        expect(read_image(make_form())).toBeUndefined()
     })
 })
 

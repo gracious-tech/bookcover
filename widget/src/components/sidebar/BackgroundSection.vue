@@ -120,7 +120,9 @@ div(class="flex flex-col gap-1")
                         :key="bg"
                         type="button"
                         class="aspect-4/3 rounded border-2 overflow-hidden cursor-pointer touch-manipulation transition-transform duration-100 hover:scale-[1.05]"
-                        :class="builtin_bg_filename === bg ? 'border-(--ui-text)' : 'border-transparent'"
+                        :class="form.bg_image_builtin === bg ? 'border-(--ui-text)' : 'border-transparent'"
+                        @mouseenter="prefetch_bg(bg)"
+                        @mouseleave="cancel_prefetch_bg()"
                         @click="select_suggested_bg(bg)"
                     )
                         img(:src="bg_thumb_url(bg)" class="w-full h-full object-cover block")
@@ -179,7 +181,7 @@ div(class="flex flex-col gap-1")
         //- mobile since the dialog is full-screen there and these buttons duplicate the
         //- always-visible coverage row below the trigger (BackgroundSection.vue's own)
         template(#header-extra)
-            div(v-if='form.bg_image && !is_mobile' class="flex")
+            div(v-if='has_bg_image && !is_mobile' class="flex")
                 UButton(
                     type="button"
                     color="neutral"
@@ -194,10 +196,10 @@ div(class="flex flex-col gap-1")
                     :variant="form.bg_image_coverage === 'front' ? 'solid' : 'outline'"
                     size="sm"
                     class="w-[50px] justify-center"
-                    :class="form.bg_image ? 'rounded-none' : 'rounded-l-none'"
+                    :class="has_bg_image ? 'rounded-none' : 'rounded-l-none'"
                     @click="form.bg_image_coverage = 'front'"
                 ) {{ t('background.coverage_front') }}
-                template(v-if="form.bg_image")
+                template(v-if="has_bg_image")
                     UButton(
                         type="button"
                         color="neutral"
@@ -232,7 +234,7 @@ div(class="flex flex-col gap-1")
 
 
 //- Background image coverage — hidden for vector backgrounds (always full-wrap, forced by the generator)
-div(v-if='form.bg_image' class="flex flex-col gap-1")
+div(v-if='has_bg_image' class="flex flex-col gap-1")
     div(class="text-xs font-semibold tracking-[0.02em]") {{ t('background.position_label') }}
     div(class="flex mt-3")
         UButton(
@@ -249,10 +251,10 @@ div(v-if='form.bg_image' class="flex flex-col gap-1")
             :variant="form.bg_image_coverage === 'front' ? 'solid' : 'outline'"
             size="sm"
             class="w-[50px] justify-center"
-            :class="form.bg_image ? 'rounded-none' : 'rounded-l-none'"
+            :class="has_bg_image ? 'rounded-none' : 'rounded-l-none'"
             @click="form.bg_image_coverage = 'front'"
         ) {{ t('background.coverage_front') }}
-        template(v-if="form.bg_image")
+        template(v-if="has_bg_image")
             UButton(
                 type="button"
                 color="neutral"
@@ -612,9 +614,8 @@ import {suggested_icons, icon_categories, preset_icon_svgs,
 import {PATTERNS, PREVIEW_PATTERNS, get_preview_url, get_preview_size,
     load_pattern_svgs} from '../../services/patterns'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
-import {BACKGROUNDS, PREVIEW_BGS, bg_thumb_url, fetch_bg_file, adopt_bg_image,
-    bg_image_is_user_upload, builtin_bg_filename,
-    adopted_bg_suggestion_id} from '../../services/backgrounds'
+import {BACKGROUNDS, PREVIEW_BGS, bg_thumb_url, fetch_bg_preview, adopt_bg_image,
+    bg_image_is_user_upload, adopted_bg_suggestion_id} from '../../services/backgrounds'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
 import {bg_suggestions, pending_suggestion_id, failed_suggestion_id,
     select_bg_suggestion} from '../../embed'
@@ -622,7 +623,8 @@ import {bg_suggestions, pending_suggestion_id, failed_suggestion_id,
 import {VECTOR_BACKGROUNDS, find_vector_background, get_preview_url as get_vector_preview_url} from '../../services/vector_backgrounds'
 import {check_bg_image_dpi} from '../../dpi'
 import type {BgImageDpiWarning} from '../../dpi'
-import {synthesize_fill, all_image_regions, VECTOR_BG_AUTO_COLOR, find_builtin_icon} from 'bookcover-web'
+import {synthesize_fill, all_image_regions, VECTOR_BG_AUTO_COLOR, find_builtin_icon,
+    get_builtin_bg} from 'bookcover-web'
 import {image_regions} from '../../image_regions_cache'
 import {contrast_color} from '../../svg_utils'
 import ColorPicker from './ColorPicker.vue'
@@ -677,9 +679,17 @@ const icon_picker_open = ref(false)
 const bg_picker_open = ref(false)
 const pattern_picker_open = ref(false)
 
-// Object URL for current bg_image File — revokes previous URL on change
-const bg_image_url = computed(() => form.bg_image ? URL.createObjectURL(form.bg_image) : '')
-watch(bg_image_url, (_new, old) => { if (old) URL.revokeObjectURL(old) })
+// Whether a photo background is set — an upload or a built-in
+const has_bg_image = computed(() => !!form.bg_image || !!form.bg_image_builtin)
+
+// Object URL for an uploaded bg_image File — revokes previous URL on change
+const upload_url = computed(() => form.bg_image ? URL.createObjectURL(form.bg_image) : '')
+watch(upload_url, (_new, old) => { if (old) URL.revokeObjectURL(old) })
+
+// Small preview of the current photo background: the upload itself, or a built-in's thumbnail
+const bg_image_url = computed(() => (
+    form.bg_image_builtin ? bg_thumb_url(form.bg_image_builtin) : upload_url.value
+))
 
 // bg_color's resolved value when left auto (null) — complements the background image, a fixed
 // neutral tan for a vector background (no pixels to sample), or white when there's neither.
@@ -714,7 +724,8 @@ const selected_vector_bg = computed(() => (
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
 const has_active_bg = computed(() => !!bg_image_url.value || !!selected_vector_bg.value)
 
-// Intrinsic pixel dimensions of the current bg_image, decoded async whenever the file changes
+// Intrinsic pixel dimensions of the current image — a built-in's original's (baked, so nothing
+// is downloaded), or an upload's, decoded async whenever the file changes
 const bg_image_px = ref<{width:number, height:number} | null>(null)
 
 // Live resolution warning for the current image against the current print size (full-cover
@@ -787,13 +798,18 @@ async function decode_image_size(file:File):Promise<{width:number, height:number
     return size
 }
 
-// Re-decode pixel dimensions whenever the image changes, then show the one-time low-res
-// dialog if a newly user-added image doesn't meet the current print size. adopt_bg_image sets
-// the flag for images the user chose themselves (upload, paste, host suggestion) — not for
-// built-in backgrounds or the demo default, which are known good
-watch(() => form.bg_image, async (file) => {
+// Re-read pixel dimensions whenever the image changes, then show the one-time low-res dialog if
+// a newly user-added image doesn't meet the current print size. adopt_bg_image sets the flag
+// for images the user chose themselves (upload, paste, host suggestion) — not for built-in
+// backgrounds, which are known good
+watch(() => [form.bg_image, form.bg_image_builtin] as const, async ([file, builtin]) => {
     const check_dialog = bg_image_is_user_upload.value
     bg_image_is_user_upload.value = false
+    if (builtin) {
+        const info = get_builtin_bg(builtin)
+        bg_image_px.value = info ? {width: info.width, height: info.height} : null
+        return
+    }
     if (!file) {
         bg_image_px.value = null
         return
@@ -811,9 +827,34 @@ watch(() => form.bg_image, async (file) => {
     } catch { /* print dimensions not resolvable yet */ }
 })
 
-/** Fetch a suggested background by filename, convert to File, and apply it */
-async function select_suggested_bg(filename:string): Promise<void> {
-    adopt_bg_image(form, await fetch_bg_file(filename), {builtin: filename})
+/** Apply a built-in background by its filename — no download: the preview fetches its own
+ *  preview-sized copy, and only a final export ever needs the original */
+function select_suggested_bg(filename:string): void {
+    adopt_bg_image(form, {builtin: filename})
+}
+
+// How long the pointer has to rest on a tile before its preview copy is prefetched — long enough
+// that sweeping across the grid on the way somewhere else fetches nothing
+const PREFETCH_DELAY_MS = 150
+let prefetch_timer:ReturnType<typeof setTimeout> | null = null
+
+/** Start fetching a built-in's preview copy once the pointer rests on its tile, so the click that
+ *  usually follows renders without waiting on the network */
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+function prefetch_bg(filename:string): void {
+    cancel_prefetch_bg()
+    prefetch_timer = setTimeout(() => {
+        prefetch_timer = null
+        fetch_bg_preview(filename).catch(() => { /* the render retries and reports it */ })
+    }, PREFETCH_DELAY_MS)
+}
+
+/** Drop a pending prefetch when the pointer leaves its tile before the delay is up */
+function cancel_prefetch_bg(): void {
+    if (prefetch_timer === null)
+        return
+    clearTimeout(prefetch_timer)
+    prefetch_timer = null
 }
 
 /** Select a built-in vector background — mutually exclusive with a photo image */
@@ -937,8 +978,8 @@ function on_bg_color_input(e:Event): void {
 
 /** Read the selected file from the file input and store it on the form */
 function on_image_change(event:Event): void {
-    const input = event.target as HTMLInputElement
-    adopt_bg_image(form, input.files?.[0] ?? null, {user_upload: true})
+    const file = (event.target as HTMLInputElement).files?.[0]
+    adopt_bg_image(form, file ? {file} : null, {user_upload: true})
 }
 
 /** Extract an image file from a DataTransferItemList, if present */
@@ -959,7 +1000,7 @@ async function on_paste_click(): Promise<void> {
         const image_type = item.types.find(t => t.startsWith('image/'))
         if (image_type) {
             const blob = await item.getType(image_type)
-            adopt_bg_image(form, new File([blob], 'pasted', {type: image_type}),
+            adopt_bg_image(form, {file: new File([blob], 'pasted', {type: image_type})},
                 {user_upload: true})
             return
         }
@@ -974,12 +1015,15 @@ function on_global_paste(event:ClipboardEvent): void {
     const file = image_from_clipboard(event.clipboardData.items)
     if (file) {
         event.preventDefault()
-        adopt_bg_image(form, file, {user_upload: true})
+        adopt_bg_image(form, {file}, {user_upload: true})
     }
 }
 
 onMounted(() => window.addEventListener('paste', on_global_paste))
-onUnmounted(() => window.removeEventListener('paste', on_global_paste))
+onUnmounted(() => {
+    window.removeEventListener('paste', on_global_paste)
+    cancel_prefetch_bg()
+})
 
 // Pull in the pattern SVG payload once the sidebar is up. Deliberately not awaited — it's a
 // separate chunk kept off the initial bundle, and the swatches fill in when it lands

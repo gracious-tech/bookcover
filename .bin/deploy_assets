@@ -54,9 +54,10 @@ else
     SECTIONS=(static fonts typst)
 fi
 
-# Deploy the committed static assets (mirrored with deletion). These are immutable per
-# filename: a background's filename IS its ID, so a re-encode ships under a new name rather
-# than new bytes behind an old one — see the contract in widget/src/services/backgrounds.ts.
+# Deploy the committed static assets (mirrored with deletion), cached as immutable per filename:
+# a background's filename IS its ID and names a fixed picture. A visually identical re-encode may
+# replace one in place, and a stale cached copy is then harmless — see the contract in
+# widget/src/services/backgrounds.ts.
 deploy_static(){
     for subdir in backgrounds frames 3d; do
         aws s3 sync "assets/$subdir" "s3://$BUCKET/$subdir" \

@@ -64,7 +64,7 @@ To self-host instead, serve the same layout under any prefix on your origin:
   for the renderer). Without a bundler, copy them from `node_modules` into your `public/` dir.
 - **`<assets_prefix>/frames/`** — `painted.png` and `torn.png`, copied from the repo's
   `assets/frames/`. (`backgrounds/` is only needed if your UI offers the suggested
-  background images.)
+  background images — see below.)
 - **`<fonts_prefix>/`** — the fonts tree (`manifest.json`, one dir per family, Noto fallbacks
   under `_noto/`). Generate it with the repo's font config:
 
@@ -74,12 +74,34 @@ To self-host instead, serve the same layout under any prefix on your origin:
   ```
 
 
+### Built-in backgrounds
+
+A built-in background's filename (e.g. `beach.jpg`) is its ID — the embed protocol sends a built-in
+as `bg_image_builtin` with no bytes. Join it onto any of these to fetch a copy:
+
+- `https://assets.paper.bible/backgrounds/<name>` — the original (2.8MB on average), for final
+  output
+- `https://assets.paper.bible/backgrounds/previews_2700/<name>` (`BG_PREVIEW_DIR`) — ~380KB,
+  enough for on-screen previews of a 6x9" cover
+- `https://assets.paper.bible/backgrounds/previews_800/<name>` — large thumbnails
+- `https://assets.paper.bible/backgrounds/thumbnails/<name>` — 160x120 picker tiles
+
+Pass the filename to `generate()` as `image_builtin` whichever copy you render, so the automatic
+text colors come from its baked color data and a preview matches the final output exactly.
+`get_builtin_bg_regions(name)` returns the same data, and `get_builtin_bg(name)` adds the
+original's pixel size (for resolution checks without downloading it).
+
+
 ## `CoverGenerator.generate(options): Promise<GenerateResult>`
 
 ```ts
 interface GenerateOptions {
     schema: unknown               // raw schema (see above)
     image?: Blob                  // background image
+    // Filename of the built-in background `image` is a copy of — colors come from its baked data
+    image_builtin?: string
+    // Shrink `image` to at most this many pixels per inch of cover before compiling (previews)
+    image_max_dpi?: number
     format?: 'pdf'|'svg'|'png'   // default: 'pdf'
     ppi?: number                  // PNG resolution, default: 144
     split?: boolean               // include split panels in result

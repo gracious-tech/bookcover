@@ -12,30 +12,46 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(join(root, 'generator-node/package.json'))
 const sharp = require('sharp')
 
+// Output dirs, each named for its size. All are published under immutable caching, so changing
+// a size means a new directory name rather than new bytes under the old one:
+//   thumbnails/    160x120 crops — the widget's picker tiles
+//   previews_800/  800px wide — NOT used by this repo; paper.bible shows them as large
+//                  thumbnails when the user chooses a cover design. Don't drop or resize without
+//                  checking with it
+//   previews_2700/ 2700px wide — what previews (PDF/3D) render from instead of the original, so
+//                  picking a background downloads ~380KB rather than several MB. Sized for a 6x9
+//                  cover at 192 DPI: the image is placed with fit "cover", so a landscape photo's
+//                  height is what binds (~1776px), and 1776 x 3:2 ~ 2700. Its path is published
+//                  as BG_PREVIEW_DIR in bookcover-core — keep the two in step
 const src_dir = join(root, 'assets/backgrounds')
-const thumb_dir = join(src_dir, 'thumbnails')
-const preview_dir = join(src_dir, 'previews')
+const outputs = [
+    {dir: join(src_dir, 'thumbnails'), resize: [160, 120, {fit: 'cover', position: 'centre'}],
+        jpeg: {quality: 80}},
+    {dir: join(src_dir, 'previews_800'), resize: [800, null, {withoutEnlargement: true}],
+        jpeg: {quality: 80}},
+    {dir: join(src_dir, 'previews_2700'), resize: [2700, null, {withoutEnlargement: true}],
+        jpeg: {quality: 80, mozjpeg: true}},
+]
 
-console.log('Generating background thumbnails...')
+console.log('Generating background thumbnails and previews...')
 
 // Clear existing output dirs and recreate them
-await rm(thumb_dir, {recursive: true, force: true})
-await rm(preview_dir, {recursive: true, force: true})
-await mkdir(thumb_dir, {recursive: true})
-await mkdir(preview_dir, {recursive: true})
+for (const {dir} of outputs) {
+    await rm(dir, {recursive: true, force: true})
+    await mkdir(dir, {recursive: true})
+}
 
 const files = (await readdir(src_dir)).filter(f => f.endsWith('.jpg'))
 
+// Write every size of each source image
 for (const file of files) {
-    await sharp(join(src_dir, file))
-        .resize(160, 120, {fit: 'cover', position: 'centre'})
-        .jpeg({quality: 80})
-        .toFile(join(thumb_dir, file))
-    await sharp(join(src_dir, file))
-        .resize(800, null, {withoutEnlargement: true})
-        .jpeg({quality: 80})
-        .toFile(join(preview_dir, file))
+    for (const {dir, resize, jpeg} of outputs) {
+        await sharp(join(src_dir, file))
+            .resize(...resize)
+            .jpeg(jpeg)
+            .toFile(join(dir, file))
+    }
     console.log('  ' + file)
 }
-console.log('Done:', files.length, 'thumbnails ->', thumb_dir)
-console.log('Done:', files.length, 'previews ->', preview_dir)
+for (const {dir} of outputs)
+    console.log('Done:', files.length, '->', dir)

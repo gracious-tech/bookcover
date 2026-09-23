@@ -195,6 +195,7 @@ export const FORM_DEFAULTS:FormState = {
     // BACKGROUND — white, no image, no icon, no pattern
 
     bg_image: null,
+    bg_image_builtin: null,
     bg_image_coverage: 'full',
 
     bg_color: null,
