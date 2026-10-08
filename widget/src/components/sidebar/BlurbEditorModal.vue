@@ -165,6 +165,11 @@ onBeforeUnmount(() => {
     color: var(--ui-text)
     transition: border-color 0.1s
 
+/* Each block takes its own direction from its first letter, matching the cover's per-paragraph
+   direction — presentational only, so nothing direction-related lands in the stored JSON */
+.blurb-editor :deep(.ProseMirror) :where(p, h1, h2, h3, h4, h5, h6)
+    unicode-bidi: plaintext
+
 .blurb-editor :deep(.ProseMirror:focus)
     border-color: var(--ui-border-accented)
 

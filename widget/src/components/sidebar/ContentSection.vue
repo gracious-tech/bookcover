@@ -13,6 +13,7 @@ div(class="flex flex-col gap-2")
                 v-model="form[key]"
                 :placeholder="t('content.title_placeholder', {n: i + 1})"
                 class="flex-1"
+                dir="auto"
                 :ui="{base: text_align_class(form.title_alignment)}"
                 @keydown="block_enter"
             )
@@ -41,7 +42,7 @@ div(class="flex flex-col gap-2")
 div(class="flex flex-col gap-1")
     label(class="text-xs font-semibold tracking-[0.02em]") {{ t('content.subtitle_label') }}
     div(class="flex gap-1 items-stretch")
-        UTextarea(v-model="form.subtitle" :rows="2" resize="none" class="flex-1" :ui="{base: text_align_class(form.subtitle_alignment)}" @keydown="limit_subtitle")
+        UTextarea(v-model="form.subtitle" :rows="2" resize="none" class="flex-1" dir="auto" :ui="{base: text_align_class(form.subtitle_alignment)}" @keydown="limit_subtitle")
         UPopover(v-model:open="subtitle_style_open" class="flex" :content="coloris_popover_content")
             UButton(
                 type="button"
@@ -67,7 +68,7 @@ div(class="flex flex-col gap-1")
 div(class="flex flex-col gap-1")
     label(class="text-xs font-semibold tracking-[0.02em]") {{ t('content.author_label') }}
     div(class="flex gap-1 items-stretch")
-        UInput(v-model="form.author" class="flex-1" :ui="{base: text_align_class(form.author_alignment)}")
+        UInput(v-model="form.author" class="flex-1" dir="auto" :ui="{base: text_align_class(form.author_alignment)}")
         UPopover(v-model:open="author_style_open" class="flex" :content="coloris_popover_content")
             UButton(
                 type="button"
@@ -90,6 +91,7 @@ div(class="flex flex-col gap-1")
                 )
 
 //- Back blurb — readonly 4-line preview, click to open WYSIWYG markdown editor; style popover on the right
+//- Each block takes its own direction from its first letter (plaintext bidi), as on the cover
 div(class="flex flex-col gap-1")
     label(class="text-xs font-semibold tracking-[0.02em]") {{ t('common.back_blurb') }}
     div(class="flex gap-1 items-stretch")
@@ -101,7 +103,7 @@ div(class="flex flex-col gap-1")
         )
             div(
                 v-if="form.blurb"
-                class="line-clamp-4 text-default [&_strong]:font-bold [&_em]:italic [&_h1]:text-[15px] [&_h1]:font-bold [&_h2]:text-[14px] [&_h2]:font-bold [&_:where(p,h1,h2,ul,ol,blockquote)]:m-0 [&_ul]:list-disc [&_ol]:list-decimal [&_:where(ul,ol)]:pl-4 [&_blockquote]:pl-2 [&_blockquote]:border-l-2 [&_blockquote]:border-default [&_hr]:my-1"
+                class="line-clamp-4 text-default [&_strong]:font-bold [&_em]:italic [&_h1]:text-[15px] [&_h1]:font-bold [&_h2]:text-[14px] [&_h2]:font-bold [&_:where(p,h1,h2,ul,ol,blockquote)]:m-0 [&_ul]:list-disc [&_ol]:list-decimal [&_:where(ul,ol)]:pl-4 [&_blockquote]:pl-2 [&_blockquote]:border-l-2 [&_blockquote]:border-default [&_hr]:my-1 [&_:where(p,h1,h2)]:[unicode-bidi:plaintext]"
                 v-html="blurb_preview_html"
             )
             div(v-else class="text-dimmed italic") {{ t('content.blurb_empty_placeholder') }}
@@ -173,7 +175,8 @@ const show_title2 = computed(() => !!(form.title1 || form.title2 || form.title3)
 // @ts-ignore TS6133
 const show_title3 = computed(() => !!(form.title2 || form.title3))
 
-// Map alignment to a text-align CSS class (justify → left for inputs)
+// Map alignment to a text-align CSS class (justify → left for inputs). Physical, like the
+// cover's own alignment, so RTL text (dir="auto" on each field) previews where it will print
 function text_align_class(align:string):string {
     if (align === 'right')
         return 'text-right'

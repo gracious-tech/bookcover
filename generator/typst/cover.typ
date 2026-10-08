@@ -284,6 +284,8 @@
     // Title rotated along spine (bottom-to-top reading direction).
     // place() anchors the unrotated bounding box top-left, so we subtract
     // half the unrotated dimensions to keep the visual center on the spine.
+    // The title + author pair runs in the title's direction, so for RTL the title
+    // comes first reading right-to-left (bottom-to-top once rotated).
     place(
         top + left,
         dx: spine_x + spine_width * 0.5 - face_height * 0.4,
@@ -299,9 +301,10 @@
                     // Shrink title + author together as one unit if they overflow the spine length
                     shrink-to-width(
                         stack(
-                            dir: ltr,
+                            dir: spine_dir,
                             spacing: spine_width * 0.3,
                             text(
+                                dir: spine_title_dir,
                                 font: font_spine_title_family,
                                 size: fs_spine_title * spine_title_size_mod,
                                 fill: color_spine_title,
@@ -311,6 +314,7 @@
                             ),
                             if has_author and fs_spine_author > 0mm {
                                 text(
+                                    dir: spine_author_dir,
                                     font: font_spine_author_family,
                                     size: fs_spine_author * spine_author_size_mod,
                                     fill: color_spine_author,
@@ -353,12 +357,13 @@
 #let fs_author = face_height * 0.035 * author_size
 
 // Render a single title line with its per-title styling, shrunk to fit if too wide
-#let render_title(txt, font_family, size_mod, weight, is_italic, color) = {
+#let render_title(txt, font_family, size_mod, weight, is_italic, color, txt_dir) = {
     if txt != "" {
         box(
             width: front_content_w,
             shrink-to-width(
                 align(title_alignment, text(
+                    dir: txt_dir,
                     font: font_family,
                     size: fs_title_base * size_mod,
                     fill: color,
@@ -376,9 +381,9 @@
     dir: ttb,
     spacing: face_height * title_spacing / 100,
     ..(
-        render_title(title1, font_title1_family, title1_size, title1_weight, title1_italic, color_front_title1),
-        render_title(title2, font_title2_family, title2_size, title2_weight, title2_italic, color_front_title2),
-        render_title(title3, font_title3_family, title3_size, title3_weight, title3_italic, color_front_title3),
+        render_title(title1, font_title1_family, title1_size, title1_weight, title1_italic, color_front_title1, title1_dir),
+        render_title(title2, font_title2_family, title2_size, title2_weight, title2_italic, color_front_title2, title2_dir),
+        render_title(title3, font_title3_family, title3_size, title3_weight, title3_italic, color_front_title3, title3_dir),
     ).filter(x => x != none),
 )
 
@@ -396,7 +401,9 @@
             stack(
                 dir: ttb,
                 spacing: face_height * subtitle_spacing / 100,
-                ..subtitle_lines.map(line => align(subtitle_alignment, line)),
+                ..subtitle_lines.zip(subtitle_dirs).map(((line, line_dir)) => align(
+                    subtitle_alignment, text(dir: line_dir, line),
+                )),
             )
         ),
     ),
@@ -407,6 +414,7 @@
     width: front_content_w,
     shrink-to-width(
         align(author_alignment, text(
+            dir: author_dir,
             font: font_author_family,
             size: fs_author,
             fill: color_front_author,

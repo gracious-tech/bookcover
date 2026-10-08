@@ -45,7 +45,7 @@ div(class="flex flex-col gap-1")
                         :class="{'bg-accented': item.value === modelValue}"
                         @mousedown.prevent="select(item.value)"
                     )
-                        div(class="text-2xl truncate leading-tight" :style="{fontFamily: font_css(item.family)}") {{ preview_text || item.family }}
+                        div(class="text-2xl truncate leading-tight" dir="auto" :style="{fontFamily: font_css(item.family)}") {{ preview_text || item.family }}
                         div(class="text-xs text-muted truncate") {{ item.value ? item.family : t('common.auto') }}
 
         //- Upload button

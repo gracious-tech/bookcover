@@ -495,6 +495,15 @@ Full contract in that file's header.
   warning), and `widget/tests/backgrounds.test.ts` fails on one.
 - **Split output**: SVG splits adjust the viewBox; PDF splits inject CropBox arrays into the
   raw PDF bytes; PNG splits use a crop callback (`sharp` on Node, Canvas API on web).
+- **Text direction (RTL)**: derived from content, never stored. `text_dir()` (`generator/src/
+  utils.ts`) applies the Unicode first-strong rule (as HTML `dir="auto"`); `data_file.ts` emits
+  a `*_dir` binding per field (per line for the subtitle) that `cover.typ` passes to `text(dir:)`,
+  and the spine's title+author stack runs in the spine title's direction. The blurb is
+  directional per top-level block: `build_blurb()` in `form_schema.ts` wraps each RTL block in
+  `#[#set text(dir: rtl) …]`. Field alignment stays physical (left means left), except
+  justified, which emits `start` so an RTL paragraph's last line ends flush right. The widget
+  mirrors this with `dir="auto"` on the text inputs and `unicode-bidi: plaintext` on the blurb
+  editor/preview blocks, so nothing direction-related lands in the stored JSON.
 - **Debounced inputs**: Color pickers debounce at 800ms (`ColorPicker.vue`) or 2000ms
   (`BackgroundSection.vue` bg_color, `ColorSwatch.vue`). The main generate loop in `App.vue`
   has its own debounce on top.

@@ -2,12 +2,12 @@
 // Pure functions for building the cover generator schema from form state
 
 import {pm_to_typst} from 'pm-to-typst'
-import type {PmDoc} from 'pm-to-typst'
+import type {PmDoc, PmNode} from 'pm-to-typst'
 import type {FontStyle} from 'typst-fonts'
 import type {EmbedFormState} from './form_state.js'
 import {hex_override_to_hsl} from './colors.js'
 import {find_pattern} from './patterns.js'
-import {warn_unknown} from './utils.js'
+import {warn_unknown, text_dir} from './utils.js'
 
 /** Minimal shape build_schema needs to style custom fonts — typst-fonts' CustomFont is
  *  assignable, so callers can pass their uploaded-font store directly */
@@ -29,14 +29,29 @@ export function curly_quotes(text:string):string {
         .replace(/'/g, '’')
 }
 
+// Collect the raw text of a ProseMirror node and its descendants
+function pm_text(node:PmNode):string {
+    return node.type === 'text' ? node.text ?? '' : (node.content ?? []).map(pm_text).join('')
+}
+
 /**
  * Render the blurb document to Typst markup. pm_to_typst escapes the text and the blurb is
  * emitted as a Typst content block (see data_file.ts), so Typst's own smartquote curls the
  * quotes — no manual curling needed here, unlike the plain-string title fields below.
+ * Each top-level block (paragraph, heading, whole list, quote) takes its base direction from
+ * its own first strong letter, so an RTL paragraph gets RTL punctuation, list markers and
+ * justified last line while its LTR neighbours are untouched. Blocks nested inside a list or
+ * quote follow the enclosing block's direction.
  * Returns undefined when the blurb is empty.
  */
 function build_blurb(doc:PmDoc):string | undefined {
-    const typst = pm_to_typst(doc)
+    const typst = pm_to_typst(doc, {nodes: {
+        doc: (node, ctx) => (node.content ?? []).map(child => {
+            const rendered = ctx.node(child)
+            return text_dir(pm_text(child)) === 'rtl'
+                ? `#[#set text(dir: rtl)\n${rendered}\n]` : rendered
+        }).join('\n\n'),
+    }})
     return typst.trim() ? typst : undefined
 }
 

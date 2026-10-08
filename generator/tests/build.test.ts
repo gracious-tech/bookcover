@@ -250,10 +250,34 @@ describe('build derivations', () => {
         expect(binding(spiral, 'front_content_w')).not.toBe(binding(plain, 'front_content_w'))
     })
 
-    it('flattens a justified blurb into a left alignment plus the justify flag', async () => {
+    it('flattens a justified blurb into a start alignment plus the justify flag', async () => {
         const data = await build_data(make_schema({blurb_alignment: 'justified'}))
-        expect(binding(data, 'blurb_alignment')).toBe('left')
+        // start, not left: the last line of an RTL paragraph must end flush right
+        expect(binding(data, 'blurb_alignment')).toBe('start')
         expect(binding(data, 'blurb_justify')).toBe('true')
+    })
+
+    it('gives each text field its own first-strong base direction', async () => {
+        const data = await build_data(make_schema({
+            title1: 'הספר', title2: 'The Book', title3: '3. فن',
+            subtitle: 'English, then עברית\n"שורה" then English',
+            author: 'אחמד', spine_title: '', spine_author: 'אנה',
+        }))
+        expect(binding(data, 'title1_dir')).toBe('rtl')
+        expect(binding(data, 'title2_dir')).toBe('ltr')
+        expect(binding(data, 'title3_dir')).toBe('rtl')
+        expect(binding(data, 'subtitle_dirs')).toBe('(ltr, rtl, )')
+        expect(binding(data, 'author_dir')).toBe('rtl')
+        // An empty spine title hands the pair's direction to the author
+        expect(binding(data, 'spine_title_dir')).toBe('ltr')
+        expect(binding(data, 'spine_dir')).toBe('rtl')
+    })
+
+    it('lays out the spine pair in the spine title direction', async () => {
+        const data = await build_data(make_schema({spine_title: 'אומנות הקוד', spine_author: 'Ann'}))
+        expect(binding(data, 'spine_title_dir')).toBe('rtl')
+        expect(binding(data, 'spine_author_dir')).toBe('ltr')
+        expect(binding(data, 'spine_dir')).toBe('rtl')
     })
 
     it('marks which text fields actually have content', async () => {

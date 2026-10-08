@@ -1,7 +1,7 @@
 
 // Serialise all computed cover data into a Typst _data.typ file
 
-import {mm_to_typst} from './utils.js'
+import {mm_to_typst, text_dir} from './utils.js'
 import {escape_typst_str} from 'typst-utils'
 import type {CoverSchema} from './schema.js'
 import type {GetDimensionsResult} from 'printing-services'
@@ -41,6 +41,11 @@ function color(name:string, hsl_str:string | null):string {
 /** Helper: emit a Typst #let binding for a content block with pre-built Typst markup */
 function content_raw(name:string, value:string):string {
     return `#let ${name} = [${value}]`
+}
+
+/** Helper: emit a Typst #let binding for a text's base direction (ltr/rtl) */
+function dir(name:string, text:string):string {
+    return `#let ${name} = ${text_dir(text)}`
 }
 
 /** Helper: emit a Typst #let binding for a number */
@@ -129,6 +134,20 @@ export function build_data_file(
     lines.push(bool('has_blurb', !!(schema.blurb)))
     lines.push('')
 
+    // Base text direction per field (first-strong rule), so RTL text gets RTL punctuation and
+    // number placement. The blurb sets its own per paragraph (see form_schema.ts build_blurb).
+    // The spine's title + author pair is laid out in the title's direction (author if no title).
+    lines.push('// Text direction')
+    lines.push(dir('title1_dir', schema.title1 ?? ''))
+    lines.push(dir('title2_dir', schema.title2 ?? ''))
+    lines.push(dir('title3_dir', schema.title3 ?? ''))
+    lines.push(`#let subtitle_dirs = (${subtitle_lines.map(l => `${text_dir(l)}, `).join('')})`)
+    lines.push(dir('author_dir', schema.author ?? ''))
+    lines.push(dir('spine_title_dir', schema.spine_title ?? ''))
+    lines.push(dir('spine_author_dir', schema.spine_author ?? ''))
+    lines.push(dir('spine_dir', schema.spine_title || schema.spine_author || ''))
+    lines.push('')
+
     // Per-text sizing (relative multipliers, default 1.0)
     lines.push('// Per-text sizing')
     lines.push(num('title1_size', schema.title1_size ?? SCHEMA_DEFAULTS.title1_size))
@@ -196,12 +215,13 @@ export function build_data_file(
     lines.push(str('title_position', schema.title_position))
     lines.push(str('subtitle_position', schema.subtitle_position))
     lines.push(str('author_position', schema.author_position))
-    // Alignment emitted as raw Typst values (left/center/right)
+    // Alignment emitted as raw Typst values (left/center/right). Justified text's last line sits
+    // at the logical start, which Typst resolves per paragraph — left for LTR, right for RTL
     lines.push(`#let title_alignment = ${schema.title_alignment ?? SCHEMA_DEFAULTS.title_alignment}`)
     lines.push(`#let subtitle_alignment = ${schema.subtitle_alignment ?? SCHEMA_DEFAULTS.subtitle_alignment}`)
     lines.push(`#let author_alignment = ${schema.author_alignment ?? SCHEMA_DEFAULTS.author_alignment}`)
     const blurb_align = schema.blurb_alignment ?? SCHEMA_DEFAULTS.blurb_alignment
-    lines.push(`#let blurb_alignment = ${blurb_align === 'justified' ? 'left' : blurb_align}`)
+    lines.push(`#let blurb_alignment = ${blurb_align === 'justified' ? 'start' : blurb_align}`)
     lines.push(bool('blurb_justify', blurb_align === 'justified'))
     lines.push('')
 

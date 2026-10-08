@@ -41,6 +41,16 @@ exports[`_data.typ golden snapshots > matches for a cover carrying assets and a 
 #let has_author = true
 #let has_blurb = true
 
+// Text direction
+#let title1_dir = ltr
+#let title2_dir = ltr
+#let title3_dir = ltr
+#let subtitle_dirs = (ltr, )
+#let author_dir = ltr
+#let spine_title_dir = ltr
+#let spine_author_dir = ltr
+#let spine_dir = ltr
+
 // Per-text sizing
 #let title1_size = 1
 #let title2_size = 1
@@ -185,6 +195,16 @@ exports[`_data.typ golden snapshots > matches for a fully styled cover 1`] = `
 #let has_author = true
 #let has_blurb = true
 
+// Text direction
+#let title1_dir = ltr
+#let title2_dir = ltr
+#let title3_dir = ltr
+#let subtitle_dirs = (ltr, ltr, )
+#let author_dir = ltr
+#let spine_title_dir = ltr
+#let spine_author_dir = ltr
+#let spine_dir = ltr
+
 // Per-text sizing
 #let title1_size = 1.4
 #let title2_size = 1
@@ -247,7 +267,7 @@ exports[`_data.typ golden snapshots > matches for a fully styled cover 1`] = `
 #let title_alignment = left
 #let subtitle_alignment = center
 #let author_alignment = right
-#let blurb_alignment = left
+#let blurb_alignment = start
 #let blurb_justify = true
 
 // Panel margins
@@ -328,6 +348,16 @@ exports[`_data.typ golden snapshots > matches for a multilingual cover with per-
 #let has_subtitle = true
 #let has_author = true
 #let has_blurb = true
+
+// Text direction
+#let title1_dir = ltr
+#let title2_dir = ltr
+#let title3_dir = ltr
+#let subtitle_dirs = (rtl, )
+#let author_dir = ltr
+#let spine_title_dir = ltr
+#let spine_author_dir = ltr
+#let spine_dir = ltr
 
 // Per-text sizing
 #let title1_size = 1
@@ -472,6 +502,16 @@ exports[`_data.typ golden snapshots > matches for a plain text-only cover 1`] = 
 #let has_subtitle = true
 #let has_author = true
 #let has_blurb = true
+
+// Text direction
+#let title1_dir = ltr
+#let title2_dir = ltr
+#let title3_dir = ltr
+#let subtitle_dirs = (ltr, )
+#let author_dir = ltr
+#let spine_title_dir = ltr
+#let spine_author_dir = ltr
+#let spine_dir = ltr
 
 // Per-text sizing
 #let title1_size = 1

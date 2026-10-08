@@ -181,6 +181,24 @@ describe('build_schema derivation sentinels', () => {
         expect(schema['author']).toBe('O’Brien')
     })
 
+    it('sets an RTL direction on each top-level blurb block that starts with RTL text', () => {
+        const list = {type: 'bulletList', content: [
+            {type: 'listItem', content: [blurb_doc('פריט').content[0]]},
+        ]}
+        const blurb = {type: 'doc', content: [
+            blurb_doc('English (with עברית).').content[0],
+            blurb_doc('"עברית" with English.').content[0],
+            list,
+            blurb_doc('مرحبا').content[0],
+        ]}
+        expect(build_schema(make_form({blurb}))['blurb']).toBe([
+            'English (with עברית).',
+            '#[#set text(dir: rtl)\n"עברית" with English.\n]',
+            '#[#set text(dir: rtl)\n- פריט\n]',
+            '#[#set text(dir: rtl)\nمرحبا\n]',
+        ].join('\n\n'))
+    })
+
     it('renders the blurb document to Typst markup', () => {
         const schema = build_schema(make_form({blurb: blurb_doc('A blurb.')}))
         expect(schema['blurb']).toBe('A blurb.')

@@ -9,6 +9,7 @@ div(class="flex flex-col gap-1")
             v-model="form.spine_title"
             :placeholder="spine_title_placeholder"
             class="flex-1"
+            dir="auto"
         )
         UPopover(v-model:open="spine_title_style_open" class="flex" :content="coloris_popover_content")
             UButton(
@@ -37,6 +38,7 @@ div(class="flex flex-col gap-1")
             v-model="form.spine_author"
             :placeholder="form.author || t('advanced.author_name_placeholder')"
             class="flex-1"
+            dir="auto"
         )
         UPopover(v-model:open="spine_author_style_open" class="flex" :content="coloris_popover_content")
             UButton(
