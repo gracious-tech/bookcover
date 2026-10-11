@@ -8,3 +8,7 @@ cd "$(dirname "$0")/../typst/typst-fonts"
 rm -rf dist
 
 npx tsc
+
+# The CLI is linked into node_modules/.bin, and npm only sets its executable bit at install time
+# — which clearing dist/ undoes
+chmod +x dist/download/cli.js

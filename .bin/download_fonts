@@ -3,8 +3,12 @@
 # Download this app's fonts into the top-level assets/fonts/ directory (published separately from the
 # app). Noto Serif/Sans + the full per-script Noto fallback system are always included by
 # typst-fonts; font_config.json supplies the additional curated fonts this app wants.
+#
+# --remove-overlaps merges the overlapping glyph contours Google Fonts leaves in its static
+# TTFs, which otherwise print as white gaps on even-odd print RIPs (Lulu's among them). It needs
+# python3 with fonttools + skia-pathops (`pip install fonttools skia-pathops`, or a venv on PATH).
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-npx typst-fonts-download --fonts assets/fonts --config font_config.json
+npx typst-fonts-download --fonts assets/fonts --config font_config.json --remove-overlaps

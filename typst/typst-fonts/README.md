@@ -37,7 +37,7 @@ for either target.
 ## Downloading fonts
 
 ```bash
-npx typst-fonts-download --fonts ./fonts [--config ./fonts.config.json]
+npx typst-fonts-download --fonts ./fonts [--config ./fonts.config.json] [--remove-overlaps]
 ```
 
 Always downloads Noto Serif/Sans plus the full per-script Noto fallback set (from Google Fonts
@@ -56,6 +56,23 @@ fonts on top:
 Output is `<fonts_dir>/manifest.json` (curated fonts) plus `<fonts_dir>/<family>/` and
 `<fonts_dir>/_noto/<family>/` directories of `.ttf` files. Re-running skips families already on
 disk.
+
+### Removing overlaps for print
+
+Google Fonts' static TTFs are instanced from variable fonts and keep their overlapping glyph
+contours. Screens and home printers fill glyphs with the nonzero rule, so the overlaps are
+invisible, but some commercial print RIPs fill even-odd and every overlap prints as a white gap
+(the crossbar of a "4", the bar of a "G"). Typst embeds glyph outlines unchanged, so anything
+sent to a commercial printer is affected.
+
+`--remove-overlaps` (`remove_overlaps: true` in `run_download()`) merges them after
+downloading, using fontTools' `removeOverlaps`. Coverage, advances, kerning and vertical metrics
+are unchanged and outlines move by at most about one font unit, so existing layouts are
+unaffected. Hinting is kept on glyphs that didn't change. It needs `python3` with
+`pip install fonttools skia-pathops` (there's no JS equivalent), hence opt-in. It processes the
+Noto Serif/Sans base and curated files (the `_noto/` fallbacks are upstream CFF builds and
+already clean), runs over files already on disk as well as new ones, leaves clean files
+byte-for-byte untouched, and fails if any overlap survives the merge.
 
 ## Resolving fonts for rendering
 

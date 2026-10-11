@@ -87,8 +87,10 @@ deploy_fonts(){
     aws s3 cp assets/fonts/manifest.json "s3://$BUCKET/fonts/manifest.json" \
         --cache-control 'public, max-age=300'
 
-    # Short-lived but widely fetched, so drop the edge copy rather than waiting it out
-    invalidate '/fonts/manifest.json'
+    # Drop the whole tree from the edge, not just the manifest: a font replaced under the same
+    # name (e.g. re-merged overlaps) would otherwise be served stale for up to a day. Browsers
+    # can still hold their own copy for the max-age above.
+    invalidate '/fonts/*'
 }
 
 # Deploy the typst.ts WASM version dirs, one new version at a time — nothing is ever deleted

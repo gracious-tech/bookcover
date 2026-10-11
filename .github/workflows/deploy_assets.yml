@@ -51,6 +51,18 @@ jobs:
                   role-to-assume: ${{ vars.AWS_DEPLOY_ROLE }}
                   aws-region: ${{ env.AWS_REGION }}
 
+            # download_fonts merges overlapping glyph contours via fontTools, which is Python.
+            # Pinned so a rebuild merges outlines exactly as the last one did.
+            - name: Setup Python
+              if: inputs.section == 'fonts'
+              uses: actions/setup-python@v7
+              with:
+                  python-version: '3.13'
+
+            - name: Install font tools
+              if: inputs.section == 'fonts'
+              run: pip install fonttools==4.66.1 skia-pathops==0.9.2
+
             # Repopulates assets/fonts/ from font_config.json — a ~173MB download, which is
             # exactly why this isn't on the push path
             - name: Download fonts

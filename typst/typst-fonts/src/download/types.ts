@@ -19,4 +19,7 @@ export interface DownloadOptions {
     // Directory to download font binaries + write manifest.json into
     fonts_dir:string
     config?:FontsConfig
+    // Merge overlapping glyph contours in the Google Fonts files (Noto Serif/Sans + curated), so
+    // they print without gaps on even-odd RIPs. Needs Python with fonttools + skia-pathops.
+    remove_overlaps?:boolean
 }

@@ -5,9 +5,11 @@
 // curated fonts. Not every consumer needs to run this — the library can also be pointed at
 // manifest data produced some other way (e.g. an existing hosted font collection).
 //
-// Usage: typst-fonts-download --fonts <dir> [--config <config.json>]
-//   --fonts <dir>     Directory to download font binaries + write manifest.json into
-//   --config <path>   JSON file: {noto_group?, curated?: [{family, group, style}]}
+// Usage: typst-fonts-download --fonts <dir> [--config <config.json>] [--remove-overlaps]
+//   --fonts <dir>        Directory to download font binaries + write manifest.json into
+//   --config <path>      JSON file: {noto_group?, curated?: [{family, group, style}]}
+//   --remove-overlaps    Merge overlapping glyph contours (needs python3 with fonttools and
+//                        skia-pathops) so the fonts print without gaps on even-odd RIPs
 
 import {readFile} from 'node:fs/promises'
 import {run_download} from './run.js'
@@ -20,10 +22,13 @@ function read_arg(flag:string):string | undefined {
 
 // Print usage and exit when asked
 if (process.argv.includes('--help') || process.argv.includes('-h')) {
-    console.log('Usage: typst-fonts-download --fonts <dir> [--config <config.json>]\n'
-        + '  --fonts <dir>     Directory to download fonts + write manifest.json into'
+    console.log('Usage: typst-fonts-download --fonts <dir> [--config <config.json>]'
+        + ' [--remove-overlaps]\n'
+        + '  --fonts <dir>        Directory to download fonts + write manifest.json into'
         + ' (default ./fonts)\n'
-        + '  --config <path>   JSON file: {noto_group?, curated?: [{family, group, style}]}')
+        + '  --config <path>      JSON file: {noto_group?, curated?: [{family, group, style}]}\n'
+        + '  --remove-overlaps    Merge overlapping glyph contours for print (needs python3 with'
+        + ' fonttools + skia-pathops)')
     process.exit(0)
 }
 
@@ -32,5 +37,6 @@ const config_path = read_arg('--config')
 const config:FontsConfig | undefined = config_path
     ? JSON.parse(await readFile(config_path, 'utf8'))
     : undefined
+const remove_overlaps = process.argv.includes('--remove-overlaps')
 
-await run_download({fonts_dir, config})
+await run_download({fonts_dir, config, remove_overlaps})

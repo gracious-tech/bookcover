@@ -59,7 +59,10 @@ repo root. Build in dependency order using the `.bin/` scripts:
 
 The fonts collection (curated fonts + Noto fallback set + `manifest.json`) is managed by this
 repo but NOT committed: `font_config.json` names the curated families, `.bin/download_fonts`
-populates `assets/fonts/` (gitignored) via the `typst-fonts-download` CLI, and
+populates `assets/fonts/` (gitignored) via the `typst-fonts-download` CLI with
+`--remove-overlaps` (merges the overlapping contours Google's static TTFs keep, which print as
+white gaps on even-odd RIPs like Lulu's; needs python3 + `pip install fonttools skia-pathops`,
+pinned in `deploy_assets.yml`), and
 `.bin/deploy_assets fonts` syncs that tree to the public assets bucket at
 `https://assets.paper.bible/fonts`. Font manifests are runtime-loaded, not baked into the
 build, so `typst-fonts`'s `init_fonts()`/`load_fonts_dir()`/`load_fonts_prefix()` need real
@@ -216,8 +219,9 @@ drift 404s at generate time for real users, so it's a build failure instead.
 Cache lifetimes are set at upload and honoured end to end (the distributions use the managed
 CachingOptimized policy, which follows origin `Cache-Control` rather than applying a heuristic
 of its own): immutable for `backgrounds/`/`frames/`/`3d/` and the typst version dirs, one day
-for fonts (their filenames carry no version, so bytes can change under a name — content-
-addressing them is the clean fix), 300s for `fonts/manifest.json`, and `no-cache` on the
+for fonts (their filenames carry no version, so bytes can change under a name — `deploy_assets
+fonts` invalidates `/fonts/*` at the edge, but browsers can keep a copy for that day;
+content-addressing them is the clean fix), 300s for `fonts/manifest.json`, and `no-cache` on the
 site's and widget's `index.html` with immutable on the hashed bundles beside them. Neither
 `deploy_widget` nor `deploy_site` passes `--delete`: both apps lazy-load chunks, so removing
 the previous build's files would break anyone mid-session.
@@ -559,7 +563,7 @@ consumers, but note that embeds every source into the maps (bookcover-core: 213 
 | `test` | Run every package's vitest suite in dependency order |
 | `test_examples` | Generate test covers (PDF/SVG/PNG) for visual inspection |
 | `setup_typst` | Download latest typst binary to .bin/ |
-| `download_fonts` | Populate assets/fonts/ from font_config.json (typst-fonts-download) |
+| `download_fonts` | Populate assets/fonts/ from font_config.json (typst-fonts-download, overlaps merged — needs Python fonttools + skia-pathops) |
 | `add_typst_version` | Vendor a typst.ts npm version's wasm into assets/typst/<version>/ |
 | `deploy_aws` | Provision/update the CloudFormation stack in infra/ (buckets, CDN, CI role) |
 | `deploy_widget` | Build (via build_web + build_widget), then upload widget/dist/ to the UI bucket + invalidate the entry point |
