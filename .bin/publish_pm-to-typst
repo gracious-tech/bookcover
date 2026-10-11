@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+# Build, test and publish pm-to-typst to npm at the version in typst/pm-to-typst/package.json —
+# bump it there first, since npm refuses to republish an existing version. It depends on
+# typst-utils, so publish that first (.bin/publish_typst-utils) if this relies on unreleased
+# changes there.
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+.bin/build_pm-to-typst
+
+# Never ship a build whose own suite fails
+(cd typst/pm-to-typst && npx vitest run)
+
+npm publish --workspace=typst/pm-to-typst

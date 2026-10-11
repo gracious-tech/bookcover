@@ -558,6 +558,7 @@ consumers, but note that embeds every source into the maps (bookcover-core: 213 
 | `build_site` | `vite build` in site/ |
 | `build_deploy` | npm ci all + full build incl. widget and site (for CI) |
 | `publish_modules` | Version-bump + build + npm publish the four cover packages |
+| `publish_typst-utils` / `publish_typst-fonts` / `publish_pm-to-typst` | Build + test + npm publish one typst helper at its package.json version (bump it by hand first; typst-utils before pm-to-typst) |
 | `serve_widget` | `vite` dev server in widget/ |
 | `serve_site` | `vite` dev server in site/ |
 | `test` | Run every package's vitest suite in dependency order |

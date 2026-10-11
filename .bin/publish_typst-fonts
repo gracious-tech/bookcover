@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+# Build, test and publish typst-fonts to npm at the version in typst/typst-fonts/package.json —
+# bump it there first, since npm refuses to republish an existing version. Keep the bump within
+# the bookcover packages' ^0.x ranges, or they stop linking the workspace (see
+# generator/package.json et al).
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+.bin/build_typst-fonts
+
+# Never ship a build whose own suite fails (the overlaps suite skips itself without Python)
+(cd typst/typst-fonts && npx vitest run)
+
+npm publish --workspace=typst/typst-fonts
