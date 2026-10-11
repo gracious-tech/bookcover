@@ -1,6 +1,6 @@
 {
     "name": "typst-fonts",
-    "version": "0.1.2",
+    "version": "0.1.3",
     "license": "MIT-0",
     "description": "Font manifest, Noto script-fallback resolution, and a download CLI for Typst-based apps",
     "type": "module",
