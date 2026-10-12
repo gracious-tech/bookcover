@@ -11,4 +11,14 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-npx typst-fonts-download --fonts assets/fonts --config font_config.json --remove-overlaps
+# Runs the local typst-fonts workspace's CLI directly (build it first: .bin/build_typst-fonts).
+# Not via npx: npm only links a workspace bin whose file exists at install time, which on a
+# fresh checkout it doesn't (dist/ isn't in git), and npx then looks the name up on the npm
+# registry instead — where anyone could publish a package by that name.
+CLI=typst/typst-fonts/dist/download/cli.js
+if [ ! -f "$CLI" ]; then
+    echo "typst-fonts isn't built — run .bin/build_typst-fonts first" >&2
+    exit 1
+fi
+
+node "$CLI" --fonts assets/fonts --config font_config.json --remove-overlaps

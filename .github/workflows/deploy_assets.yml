@@ -51,6 +51,16 @@ jobs:
                   role-to-assume: ${{ vars.AWS_DEPLOY_ROLE }}
                   aws-region: ${{ env.AWS_REGION }}
 
+            # download_fonts runs this repo's own typst-fonts workspace CLI, which only exists
+            # once the workspaces are installed and typst-fonts is built (dist/ isn't in git)
+            - name: Install dependencies
+              if: inputs.section == 'fonts'
+              run: npm ci
+
+            - name: Build typst-fonts
+              if: inputs.section == 'fonts'
+              run: .bin/build_typst-fonts
+
             # download_fonts merges overlapping glyph contours via fontTools, which is Python.
             # Pinned so a rebuild merges outlines exactly as the last one did.
             - name: Setup Python
