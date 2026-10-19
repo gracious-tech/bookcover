@@ -23,8 +23,13 @@ import type {EmbedFormState} from 'bookcover-core'
 import type {CustomFont} from 'typst-fonts'
 
 /** Locales the widget UI supports. Lives in this published package, so adding a widget
- *  locale requires a bookcover-web release. */
-export type AppLocale = 'eng' | 'vie'
+ *  locale requires a bookcover-web release. Codes are ISO 639-3, plus an ISO 15924 script
+ *  suffix where one language is written in more than one script (zho_hans = Simplified
+ *  Chinese). An unrecognised locale sent by a host falls back to the widget's own detection
+ *  rather than failing, so a host may send a code newer than the widget it embeds. */
+export type AppLocale =
+    | 'eng' | 'ara' | 'ben' | 'deu' | 'fas' | 'fra' | 'hin' | 'ind' | 'ita' | 'jpn' | 'kor'
+    | 'mar' | 'por' | 'rus' | 'spa' | 'tam' | 'tel' | 'tha' | 'tur' | 'urd' | 'vie' | 'zho_hans'
 
 /** One candidate background the host offers alongside the widget's own built-ins — typically an
  *  image the user already used on another of their covers, which the widget would otherwise make
@@ -102,6 +107,7 @@ export interface InitMessage {
     // empty leaves the background picker exactly as it is by default. Expect a short list
     // (the number of covers one user has made); entries that aren't {id, url} are dropped
     bg_suggestions?: BgSuggestion[]
+    // UI language; absent (or unrecognised) uses the user's stored choice, then the browser's
     locale?: AppLocale
 }
 

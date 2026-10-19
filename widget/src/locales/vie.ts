@@ -1,7 +1,12 @@
 
-// Vietnamese message catalog — translated with each key's source component/UI context in
-// mind (see eng.ts for the same catalog with context comments). Typed against eng.ts's shape
-// so tsc fails on any missing/extra key or renamed interpolation placeholder.
+// Vietnamese catalog — AI-translated from eng.ts (see TRANSLATING.md). Native review: none yet.
+//
+// Style: neutral-polite UI voice, addressing the user as "bạn"; straight double quotes.
+// Glossary: cover = bìa sách · front/back cover = bìa trước/bìa sau (panels: mặt trước/mặt sau)
+// · spine = gáy sách · blurb = mô tả bìa sau · trim size = kích thước xén · bleed = tràn lề
+// · binding = kiểu đóng sách · perfect bound = đóng keo gáy · saddle stitch = đóng ghim giữa
+// · hardcover/paperback = bìa cứng/bìa mềm · interior = ruột sách · printing service = dịch vụ in
+// · mockup = mô phỏng · pattern = họa tiết · icon = biểu tượng · font = phông chữ
 
 import type {Messages} from './eng'
 
@@ -26,6 +31,7 @@ const vie:Messages = {
         why_must_be_correct: 'Vì sao các mục này phải chính xác?',
         mobile_loading_preview: 'Đang tải bản xem trước...',
         switch_language_aria: 'Đổi ngôn ngữ',
+        version: 'Phiên bản {hash}',
     },
     content: {
         title_label: 'Tiêu đề',
@@ -41,12 +47,13 @@ const vie:Messages = {
     },
     background: {
         image_label: 'Ảnh nền',
+        current_image_alt: 'Ảnh nền hiện tại',
         choose_suggested_aria: 'Chọn ảnh nền gợi ý',
         recent_label: 'Ảnh gần đây',
         suggestion_failed: 'Không thể tải ảnh đó',
         photos_label: 'Ảnh chụp',
-        designs_label: 'Hình nền',
-        vector_color_note: 'Hình nền vector sử dụng màu nền bạn đã chọn',
+        designs_label: 'Hình minh họa',
+        vector_color_note: 'Hình minh họa vector sử dụng màu nền bạn đã chọn',
         image_dialog_title: 'Chọn ảnh nền',
         upload_button: 'Tải lên',
         paste_button: 'Dán',
@@ -55,8 +62,8 @@ const vie:Messages = {
         dpi_short_low: 'Độ phân giải thấp - có thể bị mờ',
         position_label: 'Vị trí nền',
         coverage_full: 'Toàn bộ',
-        coverage_front: 'Mặt trước',
-        coverage_front_partial: 'Mặt trước 2/3',
+        coverage_front: 'Trước',
+        coverage_front_partial: 'Trước 2/3',
         coverage_feature: 'Nổi bật',
         coverage_painted: 'Vẽ tay',
         color_label: 'Màu nền',
@@ -113,6 +120,104 @@ const vie:Messages = {
         ink_type_label: 'Loại mực',
         paper_type_label: 'Loại giấy',
     },
+    units: {
+        mm: 'mm',
+        inch: 'inch',
+    },
+    print_sizes: {
+        pocket_book: 'Sách bỏ túi',
+        novella: 'Novella',
+        digest: 'Digest',
+        a5: 'A5',
+        us_trade: 'US Trade',
+        royal: 'Royal',
+        executive: 'Executive',
+        crown_quarto: 'Crown Quarto',
+        small_square: 'Vuông nhỏ',
+        a4: 'A4',
+        square: 'Vuông',
+        us_letter: 'US Letter',
+        small_landscape: 'Ngang nhỏ',
+        us_letter_landscape: 'US Letter ngang',
+        a4_landscape: 'A4 ngang',
+        b_format: 'B-Format',
+        a5_landscape: 'A5 ngang',
+    },
+    print_options: {
+        lulu: {
+            binding: {
+                paperback: 'Bìa mềm đóng keo gáy',
+                paperback_stitch: 'Bìa mềm đóng ghim giữa',
+                paperback_coil: 'Bìa mềm đóng lò xo',
+                hardcover: 'Bìa cứng in trực tiếp',
+                hardcover_jacket: 'Bìa cứng bọc vải lanh',
+            },
+            ink: {
+                bw: 'Đen trắng tiêu chuẩn',
+                bw_premium: 'Đen trắng cao cấp',
+                color: 'Màu tiêu chuẩn',
+                color_premium: 'Màu cao cấp',
+            },
+            paper: {
+                cream: 'Màu kem - Không tráng phủ 60#',
+                white: 'Trắng - Không tráng phủ 60#',
+                white_coated: 'Trắng - Tráng phủ 80#',
+            },
+        },
+        kdp: {
+            binding: {
+                paperback: 'Bìa mềm',
+                hardcover: 'Bìa cứng',
+            },
+            ink: {
+                bw: 'Ruột sách đen trắng',
+                color: 'Ruột sách màu tiêu chuẩn',
+                color_premium: 'Ruột sách màu cao cấp',
+            },
+            paper: {
+                white: 'Giấy trắng',
+                cream: 'Giấy màu kem',
+            },
+        },
+        officeworks: {
+            binding: {
+                paperback_stitch: 'Sách mỏng cao cấp',
+            },
+            ink: {
+                color: 'Màu',
+            },
+            paper: {
+                white: 'Trắng',
+            },
+        },
+        vistaprint_au: {
+            binding: {
+                paperback_stitch: 'Sách mỏng',
+            },
+            ink: {
+                color: 'Màu',
+            },
+            paper: {
+                white: 'Trắng',
+            },
+        },
+        ctrlprint: {
+            binding: {
+                paperback_stitch: 'Đóng ghim giữa',
+                paperback_wire: 'Đóng gáy xoắn kép',
+                paperback_coil: 'Đóng lò xo',
+                paperback: 'Đóng keo gáy',
+            },
+            ink: {
+                color: 'Màu',
+            },
+            paper: {
+                white: '80gsm Supreme Laser',
+                white_coated_denser: '150gsm Sovereign Silk',
+                white_coated: '128gsm Sovereign Silk',
+            },
+        },
+    },
     advanced: {
         spine_title_label: 'Tiêu đề gáy sách',
         spine_title_style_aria: 'Kiểu chữ tiêu đề gáy sách',
@@ -144,7 +249,7 @@ const vie:Messages = {
         subtitle_margins_label: 'Lề phụ đề',
         author_margins_label: 'Lề tác giả',
         margin_pad: 'Đệm',
-        margin_width: 'Chiều rộng',
+        margin_width: 'Rộng',
         reset_all_button: 'Đặt lại tất cả',
         reset_confirm_title: 'Đặt lại về trống?',
         reset_confirm_body: 'Thao tác này sẽ xóa toàn bộ văn bản và kiểu định dạng — đưa bìa sách về trạng thái trắng trơn. Không thể hoàn tác.',
@@ -154,6 +259,11 @@ const vie:Messages = {
         uploaded_header: 'Đã tải lên',
         more_button: 'Thêm',
         upload_title: 'Tải lên phông chữ tùy chỉnh',
+    },
+    font_groups: {
+        styles: 'Phong cách',
+        book_interior: 'Thường dùng trong ruột sách',
+        noto: 'Tương thích với hầu hết ngôn ngữ',
     },
     font_style: {
         size_label: 'Cỡ chữ',
@@ -268,6 +378,9 @@ const vie:Messages = {
     app: {
         fab_show_preview_aria: 'Xem bản xem trước',
         fab_show_sidebar_aria: 'Xem biểu mẫu',
+        error_fonts_server: 'Máy chủ phông chữ không hoạt động — không trả về danh sách phông chữ tại {url}, nên không thể tạo bìa sách.',
+        error_init_failed: 'Không thể khởi động trình tạo bìa sách. Hãy xem bảng điều khiển (console) của trình duyệt để biết chi tiết.',
+        error_wasm_failed: 'Không thể khởi động trình tạo bìa sách. Không tải được Typst wasm.',
     },
     dpi_warning: {
         title_very_low: 'Ảnh có độ phân giải rất thấp',
@@ -275,6 +388,18 @@ const vie:Messages = {
         body_very_low: 'Ảnh này quá nhỏ so với vị trí của nó trên bìa sách. Ảnh sẽ trông kém chất lượng khi in.',
         body_low: 'Ảnh này nhỏ hơn mức khuyến nghị cho vị trí của nó trên bìa sách. Ảnh có thể trông hơi mờ khi in.',
         body_front_suffix: ' Ảnh có thể phù hợp để hiển thị chỉ trên mặt trước.',
+    },
+    color_picker: {
+        open_aria: 'Mở bảng chọn màu',
+        close_aria: 'Đóng bảng chọn màu',
+        clear_aria: 'Xóa màu đã chọn',
+        marker_aria: 'Độ bão hòa: {s}. Độ sáng: {v}.',
+        hue_slider_aria: 'Thanh trượt sắc độ',
+        alpha_slider_aria: 'Thanh trượt độ mờ đục',
+        input_aria: 'Ô giá trị màu',
+        format_aria: 'Định dạng màu',
+        swatch_aria: 'Mẫu màu',
+        instruction_aria: 'Bộ chọn độ bão hòa và độ sáng. Dùng các phím mũi tên lên, xuống, trái, phải để chọn.',
     },
     errors: {
         icon_invalid_format: 'ID iconify "{id}" không hợp lệ — cần có dạng "collection:name"',

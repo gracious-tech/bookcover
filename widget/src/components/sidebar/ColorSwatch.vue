@@ -24,7 +24,7 @@ div(class="relative shrink-0")
     button(
         v-if="clearable && modelValue"
         type="button"
-        class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-inverted text-inverted border border-default flex items-center justify-center cursor-pointer z-10"
+        class="absolute -top-1.5 -inset-e-1.5 w-4 h-4 rounded-full bg-inverted text-inverted border border-default flex items-center justify-center cursor-pointer z-10"
         :aria-label="t('common.clear_color_aria')"
         @click.stop="emit('update:modelValue', null)"
     )

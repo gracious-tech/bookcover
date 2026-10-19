@@ -14,7 +14,7 @@ div(class="p-3 flex flex-col gap-4 w-100")
                 class="flex-1"
                 @update:modelValue="$emit('update:size', $event)"
             )
-            span(class="text-xs w-8 text-right shrink-0") {{ size.toFixed(1) }}x
+            span(class="text-xs w-8 text-end shrink-0") {{ size.toFixed(1) }}x
     FontChooser(
         :modelValue="font"
         :label="t('font_style.font_label')"

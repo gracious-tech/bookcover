@@ -16,7 +16,7 @@ div(:class="['absolute inset-0 overflow-auto p-6 flex items-start', is_mobile ? 
             img(
                 :src="svg_data_url(panel.svg)"
                 :class="['shadow-lg', is_mobile ? 'max-w-full' : '']"
-                :alt="panel.face"
+                :alt="t(`preview_split.face_${panel.face}`)"
             )
             span(class="text-xs font-mono uppercase tracking-widest text-muted") {{ t(`preview_split.face_${panel.face}`) }}
 

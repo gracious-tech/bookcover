@@ -16,13 +16,13 @@ div(class="flex flex-col gap-1")
         div(v-if="is_custom" class="flex gap-1")
             UButton(
                 v-for="u in unit_items"
-                :key="u"
+                :key="u.value"
                 type="button"
                 size="sm"
-                :color="form.custom_unit === u ? 'primary' : 'neutral'"
-                :variant="form.custom_unit === u ? 'solid' : 'outline'"
-                @click="set_unit(u)"
-            ) {{ u }}
+                :color="form.custom_unit === u.value ? 'primary' : 'neutral'"
+                :variant="form.custom_unit === u.value ? 'solid' : 'outline'"
+                @click="set_unit(u.value)"
+            ) {{ u.label }}
     //- Preset size: dropdown when > 5 options, buttons otherwise
     div(v-if="size_items.length > 5" class="flex flex-col")
         USelect(
@@ -31,7 +31,7 @@ div(class="flex flex-col gap-1")
             @update:model-value="v => v === '__custom__' ? select_custom() : select_size(v)"
         )
             template(v-slot:item-trailing="{ item }")
-                span(v-if="item_dims(item)" class="text-xs text-muted ml-4") {{ item_dims(item) }}
+                span(v-if="item_dims(item)" class="text-xs text-muted ms-4") {{ item_dims(item) }}
     div(v-else class="flex flex-wrap gap-1.25")
         UButton(
             v-for="s in size_items"
@@ -142,6 +142,7 @@ import {useI18n} from 'vue-i18n'
 import {list_services, get_service, get_common_sizes} from 'printing-services'
 import type {ServicePublic, BindingTypeId, SizeId, InkTypeId} from 'printing-services'
 import {FORM_KEY} from '../../form_state'
+import {print_option_label, size_label, unit_label} from '../../option_labels'
 import CustomServiceFields from './CustomServiceFields.vue'
 
 // Inject the shared form state
@@ -149,8 +150,8 @@ const form = inject(FORM_KEY)!
 
 const {t} = useI18n()
 
-// Unit select items for regular service custom sizes
-const unit_items = ['mm', 'inch']
+// Unit choices for custom sizes — a select in regular service mode, a toggle in custom mode
+const unit_items = computed(() => ['mm', 'inch'].map(u => ({label: unit_label(u), value: u})))
 
 // Build service dropdown: real services + "Custom..." at the end
 const service_items = computed(() => [
@@ -177,14 +178,16 @@ function format_dims(width:unknown, height:unknown, unit:string):string {
         const n = Number(v)
         return unit === 'mm' ? String(Math.round(n)) : (n % 1 === 0 ? String(n) : n.toFixed(2).replace(/0+$/, ''))
     }
-    return `${fmt(width)} × ${fmt(height)} ${unit}`
+    return `${fmt(width)} × ${fmt(height)} ${unit_label(unit)}`
 }
 
 // Available sizes: common sizes for custom service, service sizes otherwise
 const size_items = computed(() =>
-    is_custom.value
-        ? get_common_sizes().map(s => ({id: s.id, name: s.name, dims: format_dims(s.width, s.height, s.unit)}))
-        : service.value!.get_sizes().map(s => ({id: s.id, name: s.name, dims: format_dims(s.width, s.height, s.unit)})),
+    (is_custom.value ? get_common_sizes() : service.value!.get_sizes()).map(s => ({
+        id: s.id,
+        name: size_label(s.id, s.name),
+        dims: format_dims(s.width, s.height, s.unit),
+    })),
 )
 
 // All binding types with valid prop (regular service only)
@@ -193,7 +196,9 @@ const binding_items = computed(() =>
         all: true,
         size: (form.size_mode === 'preset' ? form.size_id : undefined) as SizeId | undefined,
         pages: form.page_count,
-    }).map(b => ({label: b.name, value: b.id, valid: b.valid})) ?? [],
+    }).map(b => ({
+        label: print_option_label(form.service_id, 'binding', b.id, b.name), value: b.id, valid: b.valid,
+    })) ?? [],
 )
 
 // All ink types with valid prop (regular service only)
@@ -201,7 +206,9 @@ const ink_items = computed(() =>
     service.value?.get_ink_types({
         all: true,
         binding_type: (form.binding_type || undefined) as BindingTypeId | undefined,
-    }).map(i => ({label: i.name, value: i.id, valid: i.valid})) ?? [],
+    }).map(i => ({
+        label: print_option_label(form.service_id, 'ink', i.id, i.name), value: i.id, valid: i.valid,
+    })) ?? [],
 )
 
 // All paper types with valid prop (regular service only)
@@ -210,7 +217,9 @@ const paper_items = computed(() =>
         all: true,
         binding_type: (form.binding_type || undefined) as BindingTypeId | undefined,
         ink_type: (form.ink_type || undefined) as InkTypeId | undefined,
-    }).map(p => ({label: p.name, value: p.id, valid: p.valid})) ?? [],
+    }).map(p => ({
+        label: print_option_label(form.service_id, 'paper', p.id, p.name), value: p.id, valid: p.valid,
+    })) ?? [],
 )
 
 // Whether the service needs ink/paper type for cover dimension calculations

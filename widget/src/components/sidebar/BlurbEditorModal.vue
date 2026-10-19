@@ -200,12 +200,12 @@ onBeforeUnmount(() => {
 /* List styles */
 .blurb-editor :deep(.ProseMirror ul)
     list-style: disc
-    padding-left: 1.4em
+    padding-inline-start: 1.4em
     margin: 0 0 0.65em
 
 .blurb-editor :deep(.ProseMirror ol)
     list-style: decimal
-    padding-left: 1.4em
+    padding-inline-start: 1.4em
     margin: 0 0 0.65em
 
 /* Blockquote style */

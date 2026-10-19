@@ -87,10 +87,10 @@ div
 div(class="flex flex-col gap-2")
     label(class="text-xs font-semibold tracking-[0.02em]") {{ t('advanced.page_margins_label') }}
     div(class="flex items-center gap-2")
-        span(class="text-[11px] text-muted w-10 shrink-0") {{ t('advanced.margin_front') }}
+        span(class="text-[11px] text-muted w-14 shrink-0") {{ t('advanced.margin_front') }}
         LogSlider(v-model="form.margin_front" :min="0" :max="20" :step="1" suffix="%" class="flex-1")
     div(class="flex items-center gap-2")
-        span(class="text-[11px] text-muted w-10 shrink-0") {{ t('advanced.margin_back') }}
+        span(class="text-[11px] text-muted w-14 shrink-0") {{ t('advanced.margin_back') }}
         LogSlider(v-model="form.margin_back" :min="0" :max="20" :step="1" suffix="%" class="flex-1")
 
 //- White margin with rounded corners for home inkjet printers that can't print edge-to-edge
@@ -101,49 +101,49 @@ div(class="flex items-center gap-2")
 div(class="flex flex-col gap-2")
     label(class="text-xs font-semibold tracking-[0.02em]") {{ t('advanced.title_margins_label') }}
     div(class="flex items-center gap-2")
-        span(class="text-[11px] text-muted w-10 shrink-0") {{ t('advanced.margin_top') }}
+        span(class="text-[11px] text-muted w-14 shrink-0") {{ t('advanced.margin_top') }}
         LogSlider(v-model="form.title_margin_top" :min="0" :max="30" :step="1" suffix="%" class="flex-1")
     div(class="flex items-center gap-2")
-        span(class="text-[11px] text-muted w-10 shrink-0") {{ t('advanced.margin_bottom') }}
+        span(class="text-[11px] text-muted w-14 shrink-0") {{ t('advanced.margin_bottom') }}
         LogSlider(v-model="form.title_margin_bottom" :min="0" :max="30" :step="1" suffix="%" class="flex-1")
     div(class="flex items-center gap-2")
-        span(class="text-[11px] text-muted w-10 shrink-0") {{ t('advanced.margin_lines') }}
+        span(class="text-[11px] text-muted w-14 shrink-0") {{ t('advanced.margin_lines') }}
         LogSlider(v-model="form.title_spacing" :min="0" :max="15" :step="0.5" suffix="%" class="flex-1")
 
 //- Subtitle margins
 div(class="flex flex-col gap-2")
     label(class="text-xs font-semibold tracking-[0.02em]") {{ t('advanced.subtitle_margins_label') }}
     div(class="flex items-center gap-2")
-        span(class="text-[11px] text-muted w-10 shrink-0") {{ t('advanced.margin_top') }}
+        span(class="text-[11px] text-muted w-14 shrink-0") {{ t('advanced.margin_top') }}
         LogSlider(v-model="form.subtitle_margin_top" :min="0" :max="30" :step="1" suffix="%" class="flex-1")
     div(class="flex items-center gap-2")
-        span(class="text-[11px] text-muted w-10 shrink-0") {{ t('advanced.margin_bottom') }}
+        span(class="text-[11px] text-muted w-14 shrink-0") {{ t('advanced.margin_bottom') }}
         LogSlider(v-model="form.subtitle_margin_bottom" :min="0" :max="30" :step="1" suffix="%" class="flex-1")
     div(class="flex items-center gap-2")
-        span(class="text-[11px] text-muted w-10 shrink-0") {{ t('advanced.margin_lines') }}
+        span(class="text-[11px] text-muted w-14 shrink-0") {{ t('advanced.margin_lines') }}
         LogSlider(v-model="form.subtitle_spacing" :min="0" :max="15" :step="0.5" suffix="%" class="flex-1")
 
 //- Author margins
 div(class="flex flex-col gap-2")
     label(class="text-xs font-semibold tracking-[0.02em]") {{ t('advanced.author_margins_label') }}
     div(class="flex items-center gap-2")
-        span(class="text-[11px] text-muted w-10 shrink-0") {{ t('advanced.margin_top') }}
+        span(class="text-[11px] text-muted w-14 shrink-0") {{ t('advanced.margin_top') }}
         LogSlider(v-model="form.author_margin_top" :min="0" :max="30" :step="1" suffix="%" class="flex-1")
     div(class="flex items-center gap-2")
-        span(class="text-[11px] text-muted w-10 shrink-0") {{ t('advanced.margin_bottom') }}
+        span(class="text-[11px] text-muted w-14 shrink-0") {{ t('advanced.margin_bottom') }}
         LogSlider(v-model="form.author_margin_bottom" :min="0" :max="30" :step="1" suffix="%" class="flex-1")
 
 //- Blurb sizing
 div(class="flex flex-col gap-2")
     label(class="text-xs font-semibold tracking-[0.02em]") {{ t('common.back_blurb') }}
     div(class="flex items-center gap-2")
-        span(class="text-[11px] text-muted w-10 shrink-0") {{ t('advanced.margin_pad') }}
+        span(class="text-[11px] text-muted w-14 shrink-0") {{ t('advanced.margin_pad') }}
         LogSlider(v-model="form.blurb_padding" :min="0" :max="10" :step='0.1' suffix="%" class="flex-1")
     div(class="flex items-center gap-2")
-        span(class="text-[11px] text-muted w-10 shrink-0") {{ t('advanced.margin_width') }}
+        span(class="text-[11px] text-muted w-14 shrink-0") {{ t('advanced.margin_width') }}
         LogSlider(v-model="form.blurb_width" :min="30" :max="100" :step="1" suffix="%" class="flex-1")
     div(class="flex items-center gap-2")
-        span(class="text-[11px] text-muted w-10 shrink-0") {{ t('advanced.margin_lines') }}
+        span(class="text-[11px] text-muted w-14 shrink-0") {{ t('advanced.margin_lines') }}
         LogSlider(v-model="form.blurb_spacing" :min="0.5" :max="3" :step="0.05" suffix="x" class="flex-1")
 
 

@@ -18,7 +18,7 @@ div(class="flex flex-col gap-1")
                 img(
                     v-if="bg_image_url"
                     :src="bg_image_url"
-                    alt="Current background"
+                    :alt="t('background.current_image_alt')"
                     class="w-12 h-12 object-cover block"
                 )
                 div(
@@ -50,7 +50,7 @@ div(class="flex flex-col gap-1")
             variant="ghost"
             size="md"
             icon="material-symbols:close"
-            class="ml-2"
+            class="ms-2"
             :aria-label="t('background.remove_image_aria')"
             @click="clear_background()"
         )
@@ -59,7 +59,7 @@ div(class="flex flex-col gap-1")
     button(
         v-if="bg_dpi_warning"
         type="button"
-        class="text-sm flex items-center gap-1 cursor-pointer hover:underline w-fit ml-1 mt-1"
+        class="text-sm flex items-center gap-1 cursor-pointer hover:underline w-fit ms-1 mt-1"
         :class="dpi_warning_class"
         @click="low_res_dialog_open = true"
     )
@@ -187,7 +187,7 @@ div(class="flex flex-col gap-1")
                     color="neutral"
                     :variant="form.bg_image_coverage === 'full' ? 'solid' : 'outline'"
                     size="sm"
-                    class="rounded-r-none w-[50px] justify-center"
+                    class="rounded-e-none min-w-12.5 justify-center"
                     @click="form.bg_image_coverage = 'full'"
                 ) {{ t('background.coverage_full') }}
                 UButton(
@@ -195,8 +195,8 @@ div(class="flex flex-col gap-1")
                     color="neutral"
                     :variant="form.bg_image_coverage === 'front' ? 'solid' : 'outline'"
                     size="sm"
-                    class="w-[50px] justify-center"
-                    :class="has_bg_image ? 'rounded-none' : 'rounded-l-none'"
+                    class="min-w-12.5 justify-center"
+                    :class="has_bg_image ? 'rounded-none' : 'rounded-s-none'"
                     @click="form.bg_image_coverage = 'front'"
                 ) {{ t('background.coverage_front') }}
                 template(v-if="has_bg_image")
@@ -221,7 +221,7 @@ div(class="flex flex-col gap-1")
                         color="neutral"
                         :variant="form.bg_image_coverage === 'painted' ? 'solid' : 'outline'"
                         size="sm"
-                        class="rounded-l-none"
+                        class="rounded-s-none"
                         @click="form.bg_image_coverage = 'painted'"
                     ) {{ t('background.coverage_painted') }}
 
@@ -242,7 +242,7 @@ div(v-if='has_bg_image' class="flex flex-col gap-1")
             color="neutral"
             :variant="form.bg_image_coverage === 'full' ? 'solid' : 'outline'"
             size="sm"
-            class="rounded-r-none w-[50px] justify-center"
+            class="rounded-e-none min-w-12.5 justify-center"
             @click="form.bg_image_coverage = 'full'"
         ) {{ t('background.coverage_full') }}
         UButton(
@@ -250,8 +250,8 @@ div(v-if='has_bg_image' class="flex flex-col gap-1")
             color="neutral"
             :variant="form.bg_image_coverage === 'front' ? 'solid' : 'outline'"
             size="sm"
-            class="w-[50px] justify-center"
-            :class="has_bg_image ? 'rounded-none' : 'rounded-l-none'"
+            class="min-w-12.5 justify-center"
+            :class="has_bg_image ? 'rounded-none' : 'rounded-s-none'"
             @click="form.bg_image_coverage = 'front'"
         ) {{ t('background.coverage_front') }}
         template(v-if="has_bg_image")
@@ -276,7 +276,7 @@ div(v-if='has_bg_image' class="flex flex-col gap-1")
                 color="neutral"
                 :variant="form.bg_image_coverage === 'painted' ? 'solid' : 'outline'"
                 size="sm"
-                class="rounded-l-none"
+                class="rounded-s-none"
                 @click="form.bg_image_coverage = 'painted'"
             ) {{ t('background.coverage_painted') }}
 
@@ -366,7 +366,7 @@ div(class="flex flex-col gap-1")
                     class="w-10 h-10 shrink-0"
                     :style="{backgroundColor: effective_bg_color, backgroundImage: get_preview_url(pat, pattern_preview_fill), backgroundSize: get_preview_size(pat)}"
                 )
-            span(class="text-sm text-muted pl-2") {{ t('background.choose_pattern_placeholder') }}
+            span(class="text-sm text-muted ps-2") {{ t('background.choose_pattern_placeholder') }}
 
         //- Picker dialog: grid of all patterns
         SidebarPickerDialog(v-model:open="pattern_picker_open" :title="t('background.pattern_dialog_title')")
@@ -498,7 +498,7 @@ div(class="flex flex-col gap-1")
                         li
                             | {{ t('iconify_help.step2') }}
                         li
-                            | {{ t('iconify_help.step3_prefix') }}&nbsp;
+                            | {{ t('iconify_help.step3_prefix') }}{{ t('iconify_help.step3_prefix') ? ' ' : '' }}
                             code(class="font-mono bg-(--ui-bg-elevated) px-1 rounded text-xs") collection:icon-name
                             | {{ t('iconify_help.step3_suffix') }}
                         li
@@ -572,7 +572,7 @@ div(v-if="form.icon_id" class="flex flex-col gap-2")
             :variant="form.icon_mode === m.value ? 'solid' : 'outline'"
             size="sm"
             class="flex-1"
-            :class="m.value === 'center' ? 'rounded-r-none' : m.value === 'echo' ? 'rounded-l-none' : 'rounded-none'"
+            :class="m.value === 'center' ? 'rounded-e-none' : m.value === 'echo' ? 'rounded-s-none' : 'rounded-none'"
             @click="form.icon_mode = m.value"
         ) {{ t(`background.icon_mode_${m.value}`) }}
 

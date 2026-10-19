@@ -103,7 +103,7 @@ div(class="flex flex-col gap-1")
         )
             div(
                 v-if="form.blurb"
-                class="line-clamp-4 text-default [&_strong]:font-bold [&_em]:italic [&_h1]:text-[15px] [&_h1]:font-bold [&_h2]:text-[14px] [&_h2]:font-bold [&_:where(p,h1,h2,ul,ol,blockquote)]:m-0 [&_ul]:list-disc [&_ol]:list-decimal [&_:where(ul,ol)]:pl-4 [&_blockquote]:pl-2 [&_blockquote]:border-l-2 [&_blockquote]:border-default [&_hr]:my-1 [&_:where(p,h1,h2)]:[unicode-bidi:plaintext]"
+                class="line-clamp-4 text-default [&_strong]:font-bold [&_em]:italic [&_h1]:text-[15px] [&_h1]:font-bold [&_h2]:text-[14px] [&_h2]:font-bold [&_:where(p,h1,h2,ul,ol,blockquote)]:m-0 [&_ul]:list-disc [&_ol]:list-decimal [&_:where(ul,ol)]:ps-4 [&_blockquote]:ps-2 [&_blockquote]:border-s-2 [&_blockquote]:border-default [&_hr]:my-1 [&_:where(p,h1,h2)]:[unicode-bidi:plaintext]"
                 v-html="blurb_preview_html"
             )
             div(v-else class="text-dimmed italic") {{ t('content.blurb_empty_placeholder') }}

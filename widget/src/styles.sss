@@ -9,6 +9,13 @@ body
     overflow: hidden
 
 
+/* Letter-spacing pulls joined scripts apart (Arabic-script letters stop connecting) and spreads
+   stacked Indic/Thai marks, so the decorative tracking on headings and labels is dropped for
+   those languages (i18n.ts sets <html lang>) */
+:root:is(:lang(ar), :lang(fa), :lang(ur), :lang(hi), :lang(mr), :lang(bn), :lang(ta), :lang(te), :lang(th)) [class*="tracking-"]
+    letter-spacing: normal !important
+
+
 /* Global app shell — full-height horizontal flex container */
 #app
     display: flex
@@ -67,7 +74,7 @@ input[type="color"]::-moz-color-swatch
         width: 100% !important
         max-width: 100% !important
         height: 100%
-        border-right: none !important
+        border-inline-end: none !important
 
     .preview-panel
         height: 100%

@@ -11,7 +11,7 @@ div(class="flex flex-col gap-1")
             button(
                 ref="trigger_ref"
                 type="button"
-                class="w-full text-left pl-2.5 pr-1.5 py-1.5 text-sm bg-default border border-default rounded-[calc(var(--ui-radius)*1.5)] flex items-center gap-1 cursor-pointer"
+                class="w-full text-start ps-2.5 pe-1.5 py-1.5 text-sm bg-default border border-default rounded-[calc(var(--ui-radius)*1.5)] flex items-center gap-1 cursor-pointer"
                 @click="open = !open"
                 @blur="open = false"
             )
@@ -41,7 +41,7 @@ div(class="flex flex-col gap-1")
                     button(
                         v-else
                         type="button"
-                        class="w-full text-left px-3 py-1.5 hover:bg-accented cursor-pointer"
+                        class="w-full text-start px-3 py-1.5 hover:bg-accented cursor-pointer"
                         :class="{'bg-accented': item.value === modelValue}"
                         @mousedown.prevent="select(item.value)"
                     )
@@ -69,6 +69,7 @@ import {useI18n} from 'vue-i18n'
 import {get_fonts} from 'bookcover-web'
 import {register_preview_fonts} from 'typst-fonts/web'
 import {custom_font_families, fonts_prefix} from '../../fonts'
+import {font_group_label} from '../../option_labels'
 import FontUploadModal from './FontUploadModal.vue'
 
 const props = defineProps<{
@@ -119,7 +120,7 @@ const font_list = computed(():FontListItem[] => {
     for (const f of bundled) {
         if (f.group !== last_group) {
             last_group = f.group
-            items.push({type: 'header', label: f.group})
+            items.push({type: 'header', label: font_group_label(f.group)})
         }
         items.push({type: 'font', family: f.family, value: f.family})
     }

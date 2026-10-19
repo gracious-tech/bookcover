@@ -30,6 +30,21 @@ export interface ColorisOptions {
     closeButton?:boolean
     closeLabel?:string
     onChange?:(color:string, input:HTMLInputElement | undefined) => void
+    a11y?:Partial<ColorisA11y>
+}
+
+/** Screen-reader labels; `marker` has {s}/{v} slots that Coloris fills itself */
+export interface ColorisA11y {
+    open:string
+    close:string
+    clear:string
+    marker:string
+    hueSlider:string
+    alphaSlider:string
+    input:string
+    format:string
+    swatch:string
+    instruction:string
 }
 
 interface ColorisFn {

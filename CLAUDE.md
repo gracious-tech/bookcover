@@ -508,6 +508,18 @@ Full contract in that file's header.
   justified, which emits `start` so an RTL paragraph's last line ends flush right. The widget
   mirrors this with `dir="auto"` on the text inputs and `unicode-bidi: plaintext` on the blurb
   editor/preview blocks, so nothing direction-related lands in the stored JSON.
+- **UI translations (widget)**: entirely AI-translated. `widget/src/locales/` holds one catalog
+  per language (`AVAILABLE_LOCALES` in `i18n.ts`), `eng.ts` is the source of truth, and
+  `locales/TRANSLATING.md` is the brief (workflow, rules, glossary). Changing an English string
+  means re-translating it in every catalog in the same change — keys don't change, so nothing
+  flags a stale translation. Catalogs load lazily (vue-i18n's documented pattern), so adding a
+  language costs the initial bundle nothing. Display names that come from data (printing-services
+  options, `font_config.json` groups) translate through `option_labels.ts`, with the source's
+  English as fallback; `tests/locales.test.ts` fails when one has no `eng.ts` entry, or when a
+  catalog breaks keys, placeholders or vue-i18n syntax. `<html dir>` follows the language, so UI
+  chrome uses logical classes (`ms-`/`pe-`/`text-start`/`rounded-s`/`border-e`); physical
+  left/right is only for things that describe the printed cover (text alignment). Adding a
+  locale extends the published `AppLocale` union, so it needs a bookcover-web release.
 - **Debounced inputs**: Color pickers debounce at 800ms (`ColorPicker.vue`) or 2000ms
   (`BackgroundSection.vue` bg_color, `ColorSwatch.vue`). The main generate loop in `App.vue`
   has its own debounce on top.

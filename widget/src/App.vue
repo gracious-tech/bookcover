@@ -87,8 +87,8 @@ provide(INIT_ERROR_KEY, init_error)
 void load_fonts_prefix(fonts_prefix).catch((err:unknown) => {
     console.error(err)
     init_error.value = err instanceof FontsServerError
-        ? `The fonts server is not working — it didn't return the font list expected at ${fonts_prefix}/manifest.json, so covers can't be generated.`
-        : 'The cover generator failed to start. Check the browser console for details.'
+        ? t('app.error_fonts_server', {url: `${fonts_prefix}/manifest.json`})
+        : t('app.error_init_failed')
 })
 
 // Initialise the WASM compiler in a Web Worker (non-blocking — preview waits on it, and
@@ -105,7 +105,7 @@ client.init(assets_prefix, fonts_prefix).then(async () => {
     console.error('WASM init failed:', err)
     // The worker fetches the same manifest — don't overwrite a more specific fonts error
     if (!init_error.value) {
-        init_error.value = 'The cover generator failed to start. Typst wasm failed to load.'
+        init_error.value = t('app.error_wasm_failed')
     }
 })
 
@@ -124,7 +124,7 @@ client.init(assets_prefix, fonts_prefix).then(async () => {
         justify-content: center
         position: fixed
         bottom: 20px
-        right: 20px
+        inset-inline-end: 20px
         z-index: 40
         width: 56px
         height: 56px

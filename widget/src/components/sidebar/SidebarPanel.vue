@@ -3,7 +3,7 @@
 
 //- Sidebar with all form sections
 
-aside.sidebar-panel(class="relative flex flex-col w-100 shrink-0 bg-(--ui-bg-elevated) border-r border-(--ui-border) overflow-hidden")
+aside.sidebar-panel(class="relative flex flex-col w-100 shrink-0 bg-(--ui-bg-elevated) border-e border-(--ui-border) overflow-hidden")
     div(class="flex-1 overflow-y-auto flex flex-col pb-50")
         div(class="flex items-center justify-between gap-2 text-sm font-bold tracking-[0.08em] uppercase bg-(--section-primary-header) border-b border-(--ui-border) px-4 py-[14px]")
             span {{ t('sidebar.section_cover_text') }}
@@ -59,7 +59,7 @@ aside.sidebar-panel(class="relative flex flex-col w-100 shrink-0 bg-(--ui-bg-ele
                     :aria-label="t('sidebar.switch_language_aria')"
                 )
 
-        div(v-if="show_advanced" class="text-center text-[10px] text-dimmed pb-2") Version {{ git_hash }}
+        div(v-if="show_advanced" class="text-center text-[10px] text-dimmed pb-2") {{ t('sidebar.version', {hash: git_hash}) }}
 
     //- Mobile-only print SVG thumbnail pinned at bottom of sidebar
     template(v-if="is_mobile")
@@ -118,7 +118,7 @@ const locale_menu_items = computed(() => AVAILABLE_LOCALES.map(l => ({
     label: l.name,
     type: 'checkbox' as const,
     checked: locale.value === l.code,
-    onSelect: () => set_locale(l.code),
+    onSelect: () => void set_locale(l.code),
 })))
 
 </script>

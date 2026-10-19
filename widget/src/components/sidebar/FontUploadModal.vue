@@ -14,15 +14,17 @@ UModal(:open="open_model" @update:open="open_model = $event" :ui="{content: 'max
             div(class="flex flex-col gap-2")
                 p(class="font-semibold") {{ t('font_upload.instructions_heading') }}
                 ol(class="flex flex-col gap-1.5 list-decimal list-inside text-muted")
+                    //- Sentence wrapped around the link; a language's word order may leave either
+                    //- half empty, so each half brings its own space only when it has text
                     li
-                        | {{ t('font_upload.step1_prefix') }}&nbsp;
+                        | {{ t('font_upload.step1_prefix') }}{{ t('font_upload.step1_prefix') ? ' ' : '' }}
                         a(
                             href="https://fonts.google.com"
                             target="_blank"
                             rel="noopener"
                             class="text-highlighted underline"
                         ) fonts.google.com
-                        | &nbsp;{{ t('font_upload.step1_suffix') }}
+                        | {{ t('font_upload.step1_suffix') ? ' ' : '' }}{{ t('font_upload.step1_suffix') }}
                     li {{ t('font_upload.step2') }}
                     li {{ t('font_upload.step3') }}
 

@@ -15,10 +15,26 @@ import {current_cover_colors} from './color_palette'
 export function init_coloris():void {
     const {t} = useI18n()
 
-    const apply_swatches = () => Coloris({swatchGroups: [
-        {label: t('common.chosen'), colors: current_cover_colors.value.chosen},
-        {label: t('common.auto'), colors: current_cover_colors.value.auto},
-    ]})
+    // Re-run at every open, which also keeps the picker's own labels in the current language.
+    // Coloris fills {s}/{v} in its marker label itself, so they're passed through verbatim.
+    const apply_swatches = () => Coloris({
+        swatchGroups: [
+            {label: t('common.chosen'), colors: current_cover_colors.value.chosen},
+            {label: t('common.auto'), colors: current_cover_colors.value.auto},
+        ],
+        a11y: {
+            open: t('color_picker.open_aria'),
+            close: t('color_picker.close_aria'),
+            clear: t('color_picker.clear_aria'),
+            marker: t('color_picker.marker_aria', {s: '{s}', v: '{v}'}),
+            hueSlider: t('color_picker.hue_slider_aria'),
+            alphaSlider: t('color_picker.alpha_slider_aria'),
+            input: t('color_picker.input_aria'),
+            format: t('color_picker.format_aria'),
+            swatch: t('color_picker.swatch_aria'),
+            instruction: t('color_picker.instruction_aria'),
+        },
+    })
 
     Coloris({
         el: '[data-coloris]',

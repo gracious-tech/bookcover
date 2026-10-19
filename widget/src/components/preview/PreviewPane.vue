@@ -63,7 +63,7 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
                     :variant="view_mode === m.id ? 'solid' : 'outline'"
                     color="neutral"
                     size="xl"
-                    :class="['cursor-pointer rounded-none! -ml-px first:ml-0', i === 0 ? 'rounded-l-md!' : '', i === VIEW_MODES.length - 1 ? 'rounded-r-md!' : '', view_mode === m.id ? 'z-1' : '']"
+                    :class="['cursor-pointer rounded-none! -ms-px first:ms-0', i === 0 ? 'rounded-s-md!' : '', i === VIEW_MODES.length - 1 ? 'rounded-e-md!' : '', view_mode === m.id ? 'z-1' : '']"
                     @click="view_mode = m.id"
                 )
 
@@ -211,6 +211,7 @@ import {image_regions} from '../../image_regions_cache'
 import {compute_cover_dims} from '../../dimensions'
 import {debounce} from '../../svg_utils'
 import {modal_open_count} from '../../modal_state'
+import {print_option_label} from '../../option_labels'
 
 import LogSlider from '../LogSlider.vue'
 import CoverActions from '../CoverActions.vue'
@@ -428,7 +429,10 @@ async function run_generate():Promise<void> {
                 pages: form.page_count,
             })
             if (!valid_bindings.some(b => b.id === form.binding_type)) {
-                const binding_name = svc.get_binding_types().find(b => b.id === form.binding_type)?.name ?? form.binding_type
+                const binding = svc.get_binding_types().find(b => b.id === form.binding_type)
+                const binding_name = binding
+                    ? print_option_label(form.service_id, 'binding', binding.id, binding.name)
+                    : form.binding_type
                 if (valid_bindings.length === 0) {
                     preview_error.value = t('preview.no_binding_supports_pages', {pages: form.page_count})
                 } else {

@@ -12,7 +12,7 @@ div(:class="is_vertical ? 'flex flex-col items-center gap-2' : 'flex items-cente
         :class="is_vertical ? '' : 'flex-1'"
         @update:modelValue="on_slide"
     )
-    span(v-if="suffix || format" :class="is_vertical ? 'text-xs shrink-0' : 'text-xs w-8 text-right shrink-0'") {{ formatted_value }}
+    span(v-if="suffix || format" :class="is_vertical ? 'text-xs shrink-0' : 'text-xs w-8 text-end shrink-0'") {{ formatted_value }}
 
 </template>
 
