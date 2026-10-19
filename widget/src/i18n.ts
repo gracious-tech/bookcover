@@ -16,7 +16,9 @@ export type LocaleInfo = {
     // Native name, shown in the switcher in its own language rather than the active one
     name:string
     // BCP 47 tag, set as <html lang> (which picks CJK glyph variants and makes CSS uppercase
-    // locale-aware) and matched against the browser's preferred languages
+    // locale-aware) and matched against the browser's preferred languages. Chinese is tagged by
+    // script (zh-Hans/zh-Hant), not region (zh-CN/zh-TW): the catalogs differ in script, and
+    // each serves several regions.
     tag:string
     dir:'ltr' | 'rtl'
 }
@@ -30,6 +32,7 @@ export const AVAILABLE_LOCALES:LocaleInfo[] = [
     {code: 'ara', name: 'العربية', tag: 'ar', dir: 'rtl'},
     {code: 'ben', name: 'বাংলা', tag: 'bn', dir: 'ltr'},
     {code: 'zho_hans', name: '简体中文', tag: 'zh-Hans', dir: 'ltr'},
+    {code: 'zho_hant', name: '繁體中文', tag: 'zh-Hant', dir: 'ltr'},
     {code: 'fra', name: 'Français', tag: 'fr', dir: 'ltr'},
     {code: 'deu', name: 'Deutsch', tag: 'de', dir: 'ltr'},
     {code: 'hin', name: 'हिन्दी', tag: 'hi', dir: 'ltr'},
@@ -93,17 +96,39 @@ function write_stored_locale(locale:AppLocale):void {
     }
 }
 
-/** First of the browser's preferred languages that we support, matched on the primary language
- *  subtag (so pt-PT gets Brazilian Portuguese and zh-TW gets Simplified Chinese, which beat the
- *  English fallback for those readers) */
-function match_browser_locale():AppLocale | null {
-    for (const preferred of navigator.languages ?? [navigator.language]) {
-        const primary = preferred.toLowerCase().split('-')[0]
-        const match = AVAILABLE_LOCALES.find(l => l.tag.toLowerCase().split('-')[0] === primary)
+/** A BCP 47 tag with its likely script and region filled in (CLDR likely subtags, so zh-TW and
+ *  zh-HK become zh-Hant-*, bare zh becomes zh-Hans-CN), or null for a malformed tag */
+function maximize_tag(tag:string):Intl.Locale | null {
+    try {
+        return new Intl.Locale(tag).maximize()
+    }
+    catch {
+        return null
+    }
+}
+
+// Registry tags, maximized once for matching
+const MAXIMIZED_TAGS = AVAILABLE_LOCALES.map(l => ({code: l.code, locale: maximize_tag(l.tag)}))
+
+/** First of the given preferred languages that we support. Language and script must both match
+ *  where possible, so zh-TW gets Traditional and zh-SG Simplified; failing that, the language
+ *  alone (pt-PT gets Brazilian Portuguese, which beats the English fallback for those readers) */
+export function match_locale(preferred:readonly string[]):AppLocale | null {
+    for (const tag of preferred) {
+        const wanted = maximize_tag(tag)
+        if (!wanted)
+            continue
+        const same_language = MAXIMIZED_TAGS.filter(m => m.locale?.language === wanted.language)
+        const match = same_language.find(m => m.locale?.script === wanted.script) ?? same_language[0]
         if (match)
             return match.code
     }
     return null
+}
+
+/** First of the browser's preferred languages that we support */
+function match_browser_locale():AppLocale | null {
+    return match_locale(navigator.languages ?? [navigator.language])
 }
 
 /** Make sure a locale's catalog is registered with vue-i18n, fetching its chunk if needed */

@@ -9,7 +9,10 @@ with `eng.ts` open: its comments are the context for each string.
 - `eng.ts` — the source of truth. Context comments sit above ambiguous keys, and `[max N]` marks
   a label in a tight space (aim for N characters or fewer; a CJK character counts as two).
 - `<code>.ts` — one catalog per language, typed `const x:Messages` so `tsc` rejects a missing or
-  extra key. Codes are ISO 639-3, plus a script suffix where a language has two (`zho_hans`).
+  extra key. Codes are ISO 639-3, plus an ISO 15924 script suffix where a language has two
+  (`zho_hans`/`zho_hant`), and the BCP 47 tag in `AVAILABLE_LOCALES` names the script the same
+  way (`zh-Hans`/`zh-Hant`). Write a script variant as its own translation in its own
+  region's vocabulary, never as a character conversion of its sibling.
 - Each catalog's header comment holds that language's own decisions: formality, punctuation
   and its glossary of fixed terms. Follow them so the whole catalog reads as one voice, and
   record any new decision there rather than making it silently.

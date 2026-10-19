@@ -5,7 +5,7 @@ import {join, dirname} from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {list_services, get_service, get_common_sizes} from 'printing-services'
 
-import {AVAILABLE_LOCALES} from '../src/i18n'
+import {AVAILABLE_LOCALES, match_locale} from '../src/i18n'
 import {FONT_GROUP_KEYS} from '../src/option_labels'
 import eng from '../src/locales/eng'
 
@@ -51,6 +51,34 @@ describe('locale registry', () => {
     it('has unique codes and BCP 47 tags', () => {
         expect(new Set(AVAILABLE_LOCALES.map(l => l.code)).size).toBe(AVAILABLE_LOCALES.length)
         expect(new Set(AVAILABLE_LOCALES.map(l => l.tag)).size).toBe(AVAILABLE_LOCALES.length)
+    })
+})
+
+describe('browser locale matching', () => {
+
+    // Script beats region: each Chinese catalog serves every region written in its script
+    it.each([
+        ['zh-TW', 'zho_hant'],
+        ['zh-HK', 'zho_hant'],
+        ['zh-MO', 'zho_hant'],
+        ['zh-Hant', 'zho_hant'],
+        ['zh-Hant-CN', 'zho_hant'],
+        ['zh', 'zho_hans'],
+        ['zh-CN', 'zho_hans'],
+        ['zh-SG', 'zho_hans'],
+        ['zh-Hans-HK', 'zho_hans'],
+    ])('matches %s to %s', (tag, code) => {
+        expect(match_locale([tag])).toBe(code)
+    })
+
+    it('falls back to the language alone when no region or script matches', () => {
+        expect(match_locale(['pt-PT'])).toBe('por')
+        expect(match_locale(['en-GB'])).toBe('eng')
+    })
+
+    it('takes the first supported preference and skips malformed tags', () => {
+        expect(match_locale(['not a tag', 'xx', 'de-AT', 'fr'])).toBe('deu')
+        expect(match_locale(['xx'])).toBe(null)
     })
 })
 
