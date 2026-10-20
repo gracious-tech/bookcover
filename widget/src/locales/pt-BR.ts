@@ -1,5 +1,5 @@
 
-// Brazilian Portuguese catalog — AI-translated from eng.ts (see TRANSLATING.md). Native review: none yet.
+// Brazilian Portuguese catalog — AI-translated from en.ts (see TRANSLATING.md). Native review: none yet.
 //
 // Style: Brazilian Portuguese addressing the user as você; buttons in the infinitive
 // ("Salvar"); straight double quotes. Portuguese speakers elsewhere also get this catalog.
@@ -10,9 +10,9 @@
 // · interior = miolo · printing service = serviço de impressão · mockup = mockup
 // · pattern = padrão · icon = ícone · font = fonte
 
-import type {Messages} from './eng'
+import type {Messages} from './en'
 
-const por:Messages = {
+const pt_br:Messages = {
     common: {
         auto: 'Auto',
         chosen: 'Escolhidas',
@@ -411,4 +411,4 @@ const por:Messages = {
     },
 }
 
-export default por
+export default pt_br

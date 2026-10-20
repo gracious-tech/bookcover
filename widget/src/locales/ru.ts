@@ -1,5 +1,5 @@
 
-// Russian catalog — AI-translated from eng.ts (see TRANSLATING.md). Native review: none yet.
+// Russian catalog — AI-translated from en.ts (see TRANSLATING.md). Native review: none yet.
 //
 // Style: polite вы (lowercase), buttons in the infinitive ("Сохранить"); «» quotes; ё written
 // out; gender-neutral phrasing ("Понятно", not "Понял").
@@ -10,9 +10,9 @@
 // · interior = внутренний блок · printing service = сервис печати · mockup = мокап
 // · pattern = узор · icon = иконка · font = шрифт
 
-import type {Messages} from './eng'
+import type {Messages} from './en'
 
-const rus:Messages = {
+const ru:Messages = {
     common: {
         auto: 'Авто',
         chosen: 'Выбранные',
@@ -411,4 +411,4 @@ const rus:Messages = {
     },
 }
 
-export default rus
+export default ru

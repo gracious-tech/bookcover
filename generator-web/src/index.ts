@@ -39,8 +39,7 @@ export {resolve_dimensions} from 'bookcover-core'
 export type {GetDimensionsResult, DimensionInputs} from 'bookcover-core'
 
 // Embed protocol types for iframing the widget
-export type {InitMessage, HostMessage, WidgetMessage, BgSuggestion, AppLocale}
-    from './embed_types.js'
+export type {InitMessage, HostMessage, WidgetMessage, BgSuggestion} from './embed_types.js'
 
 const decoder = new TextDecoder()
 

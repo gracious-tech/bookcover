@@ -1,5 +1,5 @@
 
-// German catalog — AI-translated from eng.ts (see TRANSLATING.md). Native review: none yet.
+// German catalog — AI-translated from en.ts (see TRANSLATING.md). Native review: none yet.
 //
 // Style: formal Sie; buttons in the infinitive ("Speichern"); „“ quotes; decimal comma in
 // running text. Long compounds are kept out of the [max N] labels.
@@ -10,9 +10,9 @@
 // · printing service = Druckdienstleister · mockup = Mockup · pattern = Muster · icon = Symbol
 // · font = Schriftart
 
-import type {Messages} from './eng'
+import type {Messages} from './en'
 
-const deu:Messages = {
+const de:Messages = {
     common: {
         auto: 'Auto',
         chosen: 'Gewählt',
@@ -411,4 +411,4 @@ const deu:Messages = {
     },
 }
 
-export default deu
+export default de

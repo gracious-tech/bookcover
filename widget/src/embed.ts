@@ -8,7 +8,7 @@
 
 import {ref, watch, toRaw} from 'vue'
 import {warn_unknown} from 'bookcover-web'
-import type {EmbedFormState, HostMessage, WidgetMessage, BgSuggestion, AppLocale} from 'bookcover-web'
+import type {EmbedFormState, HostMessage, WidgetMessage, BgSuggestion} from 'bookcover-web'
 import type {CustomFont} from 'typst-fonts'
 import type {FormState} from './form_state'
 import {add_custom_fonts, custom_font_families} from './fonts'
@@ -23,7 +23,7 @@ export const hide_size_section = ref(false)
 
 // Parent-provided locale override, captured from the 'init' message — read by main.ts before
 // the app mounts, via resolve_initial_locale()
-export const embed_locale = ref<AppLocale | null>(null)
+export const embed_locale = ref<string | null>(null)
 
 // True when the parent's init message seeded the form (preset and/or explicit bg image) —
 // read by App.vue so the standalone demo background never fires over a seeded form, where an

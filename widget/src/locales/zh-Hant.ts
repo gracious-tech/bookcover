@@ -1,19 +1,19 @@
 
-// Traditional Chinese catalog — AI-translated from eng.ts (see TRANSLATING.md). Native review: none yet.
+// Traditional Chinese catalog — AI-translated from en.ts (see TRANSLATING.md). Native review: none yet.
 //
 // Style: Taiwan software voice (the zh-Hant reference; Hong Kong and Macau readers get this
 // catalog too), concise, addressing the user as 你; full-width punctuation (，。：？（）) and
 // 「」 quotes (『』 nested); a space between CJK and Latin/digits ("第 {n} 行"). Taiwan vocabulary,
-// not a character conversion of zho_hans: 檔案, 字型, 圖示, 預設, 自訂, 儲存, 匯出, 解析度, 伺服器.
+// not a character conversion of zh-Hans: 檔案, 字型, 圖示, 預設, 自訂, 儲存, 匯出, 解析度, 伺服器.
 // Glossary: cover = 封面 · front/back cover = 封面/封底 · spine = 書背 · blurb = 封底文案
 // · trim size = 完成尺寸 · bleed = 出血 · binding = 裝訂方式 · perfect bound = 膠裝
 // · saddle stitch = 騎馬釘 · hardcover/paperback = 精裝/平裝 · interior = 內頁
 // · ink type = 印刷色彩 · printing service = 印刷服務 · mockup = 情境圖 · pattern = 圖樣
 // · icon = 圖示 · font = 字型 · margin = 邊界 · inch = 英吋 · landscape = 橫式
 
-import type {Messages} from './eng'
+import type {Messages} from './en'
 
-const zho_hant:Messages = {
+const zh_hant:Messages = {
     common: {
         auto: '自動',
         chosen: '已選',
@@ -412,4 +412,4 @@ const zho_hant:Messages = {
     },
 }
 
-export default zho_hant
+export default zh_hant

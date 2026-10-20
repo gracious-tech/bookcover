@@ -1,5 +1,5 @@
 
-// Italian catalog — AI-translated from eng.ts (see TRANSLATING.md). Native review: none yet.
+// Italian catalog — AI-translated from en.ts (see TRANSLATING.md). Native review: none yet.
 //
 // Style: addresses the user as tu; buttons and commands in the imperative ("Salva",
 // "Chiudi"), as Italian UIs do; typographic apostrophe ’; straight double quotes.
@@ -10,9 +10,9 @@
 // · interior = interno · printing service = servizio di stampa · mockup = mockup
 // · pattern = motivo · icon = icona · font = font
 
-import type {Messages} from './eng'
+import type {Messages} from './en'
 
-const ita:Messages = {
+const it:Messages = {
     common: {
         auto: 'Auto',
         chosen: 'Scelti',
@@ -411,4 +411,4 @@ const ita:Messages = {
     },
 }
 
-export default ita
+export default it

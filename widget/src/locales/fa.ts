@@ -1,5 +1,5 @@
 
-// Persian catalog — AI-translated from eng.ts (see TRANSLATING.md). Native review: none yet.
+// Persian catalog — AI-translated from en.ts (see TRANSLATING.md). Native review: none yet.
 //
 // Style: Iranian Persian; short buttons as bare verbs or verbal nouns ("ذخیره"، "لغو"),
 // instructions in the polite plural ("کلیک کنید"); ZWNJ (نیم‌فاصله) wherever standard spelling
@@ -10,9 +10,9 @@
 // · interior = صفحات داخلی · printing service = سرویس چاپ · mockup = ماکاپ
 // · background = پس‌زمینه · pattern = الگو · icon = آیکون · font = فونت
 
-import type {Messages} from './eng'
+import type {Messages} from './en'
 
-const fas:Messages = {
+const fa:Messages = {
     common: {
         auto: 'خودکار',
         chosen: 'انتخاب‌شده',
@@ -411,4 +411,4 @@ const fas:Messages = {
     },
 }
 
-export default fas
+export default fa

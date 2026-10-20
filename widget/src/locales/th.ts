@@ -1,5 +1,5 @@
 
-// Thai catalog — AI-translated from eng.ts (see TRANSLATING.md). Native review: none yet.
+// Thai catalog — AI-translated from en.ts (see TRANSLATING.md). Native review: none yet.
 //
 // Style: neutral polite UI Thai without ครับ/ค่ะ particles; no spaces between words, a space
 // between phrases and sentences, and around Latin text and numbers; straight double quotes.
@@ -9,9 +9,9 @@
 // · interior = เนื้อใน · printing service = บริการพิมพ์ · mockup = ม็อกอัป · pattern = ลวดลาย
 // · icon = ไอคอน · font = ฟอนต์
 
-import type {Messages} from './eng'
+import type {Messages} from './en'
 
-const tha:Messages = {
+const th:Messages = {
     common: {
         auto: 'อัตโนมัติ',
         chosen: 'ที่เลือก',
@@ -410,4 +410,4 @@ const tha:Messages = {
     },
 }
 
-export default tha
+export default th

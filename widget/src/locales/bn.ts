@@ -1,5 +1,5 @@
 
-// Bengali catalog — AI-translated from eng.ts (see TRANSLATING.md). Native review: none yet.
+// Bengali catalog — AI-translated from en.ts (see TRANSLATING.md). Native review: none yet.
 //
 // Style: standard written Bangla (shared by Bangladesh and India), addressing the user as আপনি;
 // common English tech/print loanwords in Bangla script where users say them (ফন্ট, আইকন,
@@ -11,9 +11,9 @@
 // · printing service = প্রিন্টিং সার্ভিস · mockup = মকআপ · pattern = প্যাটার্ন · icon = আইকন
 // · font = ফন্ট
 
-import type {Messages} from './eng'
+import type {Messages} from './en'
 
-const ben:Messages = {
+const bn:Messages = {
     common: {
         auto: 'অটো',
         chosen: 'বাছাই করা',
@@ -412,4 +412,4 @@ const ben:Messages = {
     },
 }
 
-export default ben
+export default bn

@@ -1,5 +1,5 @@
 
-// Hindi catalog — AI-translated from eng.ts (see TRANSLATING.md). Native review: none yet.
+// Hindi catalog — AI-translated from en.ts (see TRANSLATING.md). Native review: none yet.
 //
 // Style: everyday modern Hindi as used in Indian app UIs, addressing the user as आप; common
 // English tech/print loanwords in Devanagari (फ़ॉन्ट, आइकन, बाइंडिंग) where they're what users
@@ -11,9 +11,9 @@
 // · printing service = प्रिंटिंग सेवा · mockup = मॉकअप · background = पृष्ठभूमि
 // · pattern = पैटर्न · icon = आइकन · font = फ़ॉन्ट
 
-import type {Messages} from './eng'
+import type {Messages} from './en'
 
-const hin:Messages = {
+const hi:Messages = {
     common: {
         auto: 'ऑटो',
         chosen: 'चुने गए',
@@ -412,4 +412,4 @@ const hin:Messages = {
     },
 }
 
-export default hin
+export default hi

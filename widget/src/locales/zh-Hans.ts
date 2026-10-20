@@ -1,5 +1,5 @@
 
-// Simplified Chinese catalog — AI-translated from eng.ts (see TRANSLATING.md). Native review: none yet.
+// Simplified Chinese catalog — AI-translated from en.ts (see TRANSLATING.md). Native review: none yet.
 //
 // Style: mainland software voice, concise, addressing the user as 你; full-width punctuation
 // (，。：？（）) and “” quotes; a space between CJK and Latin/digits ("第 {n} 行").
@@ -9,9 +9,9 @@
 // · ink type = 印刷色彩 · printing service = 印刷服务 · mockup = 样机 · pattern = 图案
 // · icon = 图标 · font = 字体
 
-import type {Messages} from './eng'
+import type {Messages} from './en'
 
-const zho_hans:Messages = {
+const zh_hans:Messages = {
     common: {
         auto: '自动',
         chosen: '已选',
@@ -410,4 +410,4 @@ const zho_hans:Messages = {
     },
 }
 
-export default zho_hans
+export default zh_hans

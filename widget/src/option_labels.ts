@@ -12,7 +12,7 @@ export type PrintOptionKind = 'binding' | 'ink' | 'paper'
 
 /** Translate via a catalog key when English has it, else show the source's own name */
 function label_or_fallback(key:string, fallback:string):string {
-    return te(key, 'eng') ? t(key) : fallback
+    return te(key, 'en') ? t(key) : fallback
 }
 
 /** A printing service's binding/ink/paper option name. Keyed per service because services

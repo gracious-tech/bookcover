@@ -9,7 +9,7 @@
 // components. [max N] marks a label in a tight space: aim for N characters or fewer (CJK
 // characters count double), or it will wrap or overflow.
 
-const eng = {
+const en = {
     common: {
         // generic "use the automatically-derived value" toggle (font picker, blurb background) [max 8]
         auto: 'Auto',
@@ -538,5 +538,5 @@ const eng = {
     },
 }
 
-export default eng
-export type Messages = typeof eng
+export default en
+export type Messages = typeof en

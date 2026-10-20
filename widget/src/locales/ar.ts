@@ -1,5 +1,5 @@
 
-// Arabic catalog — AI-translated from eng.ts (see TRANSLATING.md). Native review: none yet.
+// Arabic catalog — AI-translated from en.ts (see TRANSLATING.md). Native review: none yet.
 //
 // Style: Modern Standard Arabic; buttons and commands as verbal nouns (حفظ، إلغاء) so they
 // don't take a gendered imperative; longer instructions use the masculine-singular imperative
@@ -11,9 +11,9 @@
 // · printing service = خدمة الطباعة · mockup = نموذج عرض · pattern = نقش · icon = أيقونة
 // · font = خط
 
-import type {Messages} from './eng'
+import type {Messages} from './en'
 
-const ara:Messages = {
+const ar:Messages = {
     common: {
         auto: 'تلقائي',
         chosen: 'المختارة',
@@ -412,4 +412,4 @@ const ara:Messages = {
     },
 }
 
-export default ara
+export default ar

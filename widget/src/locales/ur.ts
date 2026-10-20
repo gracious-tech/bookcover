@@ -1,5 +1,5 @@
 
-// Urdu catalog — AI-translated from eng.ts (see TRANSLATING.md). Native review: none yet.
+// Urdu catalog — AI-translated from en.ts (see TRANSLATING.md). Native review: none yet.
 //
 // Style: standard Urdu as in Pakistani app UIs, addressing the user as آپ; common English
 // tech/print loanwords in Urdu script where users say them (فونٹ، آئیکن، پرنٹ); Urdu
@@ -11,9 +11,9 @@
 // · printing service = پرنٹنگ سروس · mockup = ماک اپ · background = پس منظر
 // · pattern = پیٹرن · icon = آئیکن · font = فونٹ
 
-import type {Messages} from './eng'
+import type {Messages} from './en'
 
-const urd:Messages = {
+const ur:Messages = {
     common: {
         auto: 'خودکار',
         chosen: 'منتخب',
@@ -412,4 +412,4 @@ const urd:Messages = {
     },
 }
 
-export default urd
+export default ur

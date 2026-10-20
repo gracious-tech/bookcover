@@ -509,17 +509,23 @@ Full contract in that file's header.
   mirrors this with `dir="auto"` on the text inputs and `unicode-bidi: plaintext` on the blurb
   editor/preview blocks, so nothing direction-related lands in the stored JSON.
 - **UI translations (widget)**: entirely AI-translated. `widget/src/locales/` holds one catalog
-  per language (`AVAILABLE_LOCALES` in `i18n.ts`), `eng.ts` is the source of truth, and
+  per language (`AVAILABLE_LOCALES` in `i18n.ts`), `en.ts` is the source of truth, and
   `locales/TRANSLATING.md` is the brief (workflow, rules, glossary). Changing an English string
   means re-translating it in every catalog in the same change — keys don't change, so nothing
   flags a stale translation. Catalogs load lazily (vue-i18n's documented pattern), so adding a
   language costs the initial bundle nothing. Display names that come from data (printing-services
   options, `font_config.json` groups) translate through `option_labels.ts`, with the source's
-  English as fallback; `tests/locales.test.ts` fails when one has no `eng.ts` entry, or when a
+  English as fallback; `tests/locales.test.ts` fails when one has no `en.ts` entry, or when a
   catalog breaks keys, placeholders or vue-i18n syntax. `<html dir>` follows the language, so UI
   chrome uses logical classes (`ms-`/`pe-`/`text-start`/`rounded-s`/`border-e`); physical
-  left/right is only for things that describe the printed cover (text alignment). Adding a
-  locale extends the published `AppLocale` union, so it needs a bookcover-web release.
+  left/right is only for things that describe the printed cover (text alignment). Locale codes
+  are BCP 47 tags, as browsers use (`en`, `zh-Hant`, `pt-BR`) — the widget is pure UI with no
+  content, so it follows the browser convention, and a host using other codes (paper.bible has
+  fetch(bible)'s ISO 639-3 ones) converts on its side. A host's `InitMessage.locale` is matched
+  exactly like a browser preference (`match_locale()` in `i18n.ts`: zh-TW → zh-Hant, pt-PT →
+  pt-BR). It's typed as a plain `string` on purpose — the widget's own `AppLocale` union is
+  derived from `AVAILABLE_LOCALES` — so adding a locale needs no bookcover-web release, and an
+  unsupported one gets English.
 - **Debounced inputs**: Color pickers debounce at 800ms (`ColorPicker.vue`) or 2000ms
   (`BackgroundSection.vue` bg_color, `ColorSwatch.vue`). The main generate loop in `App.vue`
   has its own debounce on top.

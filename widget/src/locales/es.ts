@@ -1,5 +1,5 @@
 
-// Spanish catalog — AI-translated from eng.ts (see TRANSLATING.md). Native review: none yet.
+// Spanish catalog — AI-translated from en.ts (see TRANSLATING.md). Native review: none yet.
 //
 // Style: neutral international Spanish (no regionalisms), addressing the user as tú; buttons
 // in the infinitive ("Guardar"); straight double quotes; opening ¿ on questions.
@@ -10,9 +10,9 @@
 // · interior = interior · printing service = servicio de impresión · mockup = maqueta
 // · pattern = patrón · icon = icono · font = fuente
 
-import type {Messages} from './eng'
+import type {Messages} from './en'
 
-const spa:Messages = {
+const es:Messages = {
     common: {
         auto: 'Auto',
         chosen: 'Elegidos',
@@ -411,4 +411,4 @@ const spa:Messages = {
     },
 }
 
-export default spa
+export default es

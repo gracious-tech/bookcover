@@ -1,18 +1,19 @@
 
 # Translating the widget
 
-Every catalog except `eng.ts` is written by AI, and this file is the brief. Read it, then work
-with `eng.ts` open: its comments are the context for each string.
+Every catalog except `en.ts` is written by AI, and this file is the brief. Read it, then work
+with `en.ts` open: its comments are the context for each string.
 
 ## Files
 
-- `eng.ts` — the source of truth. Context comments sit above ambiguous keys, and `[max N]` marks
+- `en.ts` — the source of truth. Context comments sit above ambiguous keys, and `[max N]` marks
   a label in a tight space (aim for N characters or fewer; a CJK character counts as two).
 - `<code>.ts` — one catalog per language, typed `const x:Messages` so `tsc` rejects a missing or
-  extra key. Codes are ISO 639-3, plus an ISO 15924 script suffix where a language has two
-  (`zho_hans`/`zho_hant`), and the BCP 47 tag in `AVAILABLE_LOCALES` names the script the same
-  way (`zh-Hans`/`zh-Hant`). Write a script variant as its own translation in its own
-  region's vocabulary, never as a character conversion of its sibling.
+  extra key. Codes are canonical BCP 47 tags, as browsers use: just the language (`fr`, `ar`),
+  plus a subtag only where it tells catalogs apart — a script for Chinese (`zh-Hans`/`zh-Hant`,
+  since each serves several regions) or a region where that's what differs (`pt-BR`). Write a
+  script variant as its own translation in its own region's vocabulary, never as a character
+  conversion of its sibling.
 - Each catalog's header comment holds that language's own decisions: formality, punctuation
   and its glossary of fixed terms. Follow them so the whole catalog reads as one voice, and
   record any new decision there rather than making it silently.
@@ -23,11 +24,11 @@ with `eng.ts` open: its comments are the context for each string.
 
 **Changing English.** Update every catalog in the same change. A changed meaning needs a fresh
 translation everywhere, and nothing detects that automatically, because the keys stay the
-same. Use `git diff src/locales/eng.ts` to see what to redo.
+same. Use `git diff src/locales/en.ts` to see what to redo.
 
-**Adding a language.** Add an entry to `AVAILABLE_LOCALES` in `../i18n.ts`; extend the `AppLocale` union in `generator-web/src/embed_types.ts`, which
-is published, so it ships in the next bookcover-web release. Then write `<code>.ts`, header
-first. For an RTL language set `dir: 'rtl'`; for a script that joins letters or stacks marks,
+**Adding a language.** Add an entry to `AVAILABLE_LOCALES` in `../i18n.ts`, then write
+`<code>.ts`, header first. No package release is needed: embed hosts send the code as a plain
+string, so it works for them as soon as the widget deploys. For an RTL language set `dir: 'rtl'`; for a script that joins letters or stacks marks,
 add its tag to the letter-spacing rule in `../styles.sss`.
 
 **Verify.** From `widget/`:
@@ -37,7 +38,7 @@ npx tsc --noEmit && npx vitest run tests/locales.test.ts
 ```
 
 The test checks catalog/registry agreement, keys, placeholders, message syntax, and that
-`eng.ts` still matches printing-services and `font_config.json` (so an upstream rename or a new
+`en.ts` still matches printing-services and `font_config.json` (so an upstream rename or a new
 option fails here and gets translated, instead of quietly showing English).
 
 ## Rules

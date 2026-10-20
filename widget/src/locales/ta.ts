@@ -1,5 +1,5 @@
 
-// Tamil catalog — AI-translated from eng.ts (see TRANSLATING.md). Native review: none yet.
+// Tamil catalog — AI-translated from en.ts (see TRANSLATING.md). Native review: none yet.
 //
 // Style: standard written Tamil as in app UIs: short buttons in the bare imperative ("சேமி"),
 // instructions and aria-labels in the polite -கவும் ("தேர்ந்தெடுக்கவும்");
@@ -12,9 +12,9 @@
 // · printing service = அச்சு சேவை · mockup = மாக்கப் · background = பின்னணி
 // · pattern = வடிவம் · icon = ஐகான் · font = எழுத்துரு
 
-import type {Messages} from './eng'
+import type {Messages} from './en'
 
-const tam:Messages = {
+const ta:Messages = {
     common: {
         auto: 'தானியங்கி',
         chosen: 'தேர்ந்தவை',
@@ -413,4 +413,4 @@ const tam:Messages = {
     },
 }
 
-export default tam
+export default ta

@@ -7,12 +7,12 @@ import {list_services, get_service, get_common_sizes} from 'printing-services'
 
 import {AVAILABLE_LOCALES, match_locale} from '../src/i18n'
 import {FONT_GROUP_KEYS} from '../src/option_labels'
-import eng from '../src/locales/eng'
+import en from '../src/locales/en'
 
 // Every catalog, keyed by locale code — eager here, though the app loads all but English lazily
 const catalogs = Object.fromEntries(Object.entries(
     import.meta.glob<Record<string, unknown>>('../src/locales/*.ts', {eager: true, import: 'default'}),
-).map(([path, messages]) => [path.match(/\/(\w+)\.ts$/)![1], messages]))
+).map(([path, messages]) => [path.match(/\/([\w-]+)\.ts$/)![1], messages]))
 
 // Keys that are halves of a sentence wrapped around a link or code sample, which a language's
 // word order may leave empty
@@ -40,7 +40,7 @@ function placeholders(message:string):string[] {
     return [...message.matchAll(/\{(\w+)\}/g)].map(m => m[1]!).sort()
 }
 
-const eng_flat = flatten(eng)
+const en_flat = flatten(en)
 
 describe('locale registry', () => {
 
@@ -48,49 +48,62 @@ describe('locale registry', () => {
         expect(Object.keys(catalogs).sort()).toEqual(AVAILABLE_LOCALES.map(l => l.code).sort())
     })
 
-    it('has unique codes and BCP 47 tags', () => {
+    it('has unique codes', () => {
         expect(new Set(AVAILABLE_LOCALES.map(l => l.code)).size).toBe(AVAILABLE_LOCALES.length)
-        expect(new Set(AVAILABLE_LOCALES.map(l => l.tag)).size).toBe(AVAILABLE_LOCALES.length)
+    })
+
+    // Codes are set as <html lang>, so each must already be in canonical BCP 47 form
+    it('uses canonical BCP 47 tags as codes', () => {
+        for (const {code} of AVAILABLE_LOCALES)
+            expect(Intl.getCanonicalLocales(code)[0]).toBe(code)
+    })
+
+    // Every catalog must be reachable by matching its own code
+    it('matches each code to itself', () => {
+        for (const {code} of AVAILABLE_LOCALES)
+            expect(match_locale([code])).toBe(code)
     })
 })
 
-describe('browser locale matching', () => {
+describe('locale matching (browser preferences and embed hosts)', () => {
 
     // Script beats region: each Chinese catalog serves every region written in its script
     it.each([
-        ['zh-TW', 'zho_hant'],
-        ['zh-HK', 'zho_hant'],
-        ['zh-MO', 'zho_hant'],
-        ['zh-Hant', 'zho_hant'],
-        ['zh-Hant-CN', 'zho_hant'],
-        ['zh', 'zho_hans'],
-        ['zh-CN', 'zho_hans'],
-        ['zh-SG', 'zho_hans'],
-        ['zh-Hans-HK', 'zho_hans'],
+        ['zh-TW', 'zh-Hant'],
+        ['zh-HK', 'zh-Hant'],
+        ['zh-MO', 'zh-Hant'],
+        ['zh-Hant-CN', 'zh-Hant'],
+        ['zh', 'zh-Hans'],
+        ['zh-CN', 'zh-Hans'],
+        ['zh-SG', 'zh-Hans'],
+        ['zh-Hans-HK', 'zh-Hans'],
+        ['ar-EG', 'ar'],
+        ['fa-IR', 'fa'],
     ])('matches %s to %s', (tag, code) => {
         expect(match_locale([tag])).toBe(code)
     })
 
     it('falls back to the language alone when no region or script matches', () => {
-        expect(match_locale(['pt-PT'])).toBe('por')
-        expect(match_locale(['en-GB'])).toBe('eng')
+        expect(match_locale(['pt-PT'])).toBe('pt-BR')
+        expect(match_locale(['en-GB'])).toBe('en')
     })
 
-    it('takes the first supported preference and skips malformed tags', () => {
-        expect(match_locale(['not a tag', 'xx', 'de-AT', 'fr'])).toBe('deu')
+    it('takes the first supported preference and skips malformed or non-string tags', () => {
+        expect(match_locale(['not a tag', 42, 'xx', 'de-AT', 'fr'])).toBe('de')
         expect(match_locale(['xx'])).toBe(null)
+        expect(match_locale([''])).toBe(null)
     })
 })
 
-describe.each(Object.keys(catalogs).filter(code => code !== 'eng'))('catalog %s', code => {
+describe.each(Object.keys(catalogs).filter(code => code !== 'en'))('catalog %s', code => {
     const flat = flatten(catalogs[code]!)
 
     it('has the same keys as English', () => {
-        expect([...flat.keys()].sort()).toEqual([...eng_flat.keys()].sort())
+        expect([...flat.keys()].sort()).toEqual([...en_flat.keys()].sort())
     })
 
     it('keeps every placeholder exactly', () => {
-        const wrong = [...eng_flat].filter(([key, source]) =>
+        const wrong = [...en_flat].filter(([key, source]) =>
             flat.has(key) && placeholders(flat.get(key)!).join() !== placeholders(source).join())
         expect(wrong.map(([key]) => `${key}: ${flat.get(key)}`)).toEqual([])
     })
@@ -129,7 +142,7 @@ describe.each(Object.keys(catalogs))('message syntax %s', code => {
 })
 
 describe('English covers names that come from data', () => {
-    const catalog_options = eng.print_options as Record<string, Record<string, Record<string, string>>>
+    const catalog_options = en.print_options as Record<string, Record<string, Record<string, string>>>
 
     it('names every printing-services option exactly as the library does', () => {
         const library:Record<string, Record<string, Record<string, string>>> = {}
@@ -150,7 +163,7 @@ describe('English covers names that come from data', () => {
         for (const size of sizes)
             if (!DIMENSIONS_ONLY.test(size.name))
                 library[size.id] = size.name
-        expect(eng.print_sizes).toEqual(library)
+        expect(en.print_sizes).toEqual(library)
     })
 
     it('has a heading for every font group in font_config.json', () => {
@@ -161,7 +174,7 @@ describe('English covers names that come from data', () => {
         for (const group of groups) {
             const key = FONT_GROUP_KEYS[group]
             expect(key, `font group "${group}"`).toBeDefined()
-            expect(eng_flat.get(key!)).toBe(group)
+            expect(en_flat.get(key!)).toBe(group)
         }
     })
 })

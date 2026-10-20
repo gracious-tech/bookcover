@@ -1,5 +1,5 @@
 
-// Marathi catalog — AI-translated from eng.ts (see TRANSLATING.md). Native review: none yet.
+// Marathi catalog — AI-translated from en.ts (see TRANSLATING.md). Native review: none yet.
 //
 // Style: standard Marathi as in Indian app UIs, polite plural imperative ("जतन करा"); English
 // tech loanwords in Devanagari where users say them (फॉन्ट, आयकॉन, प्रिव्ह्यू); sentences end
@@ -11,9 +11,9 @@
 // · printing service = छपाई सेवा · mockup = मॉकअप · background = पार्श्वभूमी
 // · pattern = नक्षी · icon = आयकॉन · font = फॉन्ट
 
-import type {Messages} from './eng'
+import type {Messages} from './en'
 
-const mar:Messages = {
+const mr:Messages = {
     common: {
         auto: 'ऑटो',
         chosen: 'निवडलेले',
@@ -412,4 +412,4 @@ const mar:Messages = {
     },
 }
 
-export default mar
+export default mr

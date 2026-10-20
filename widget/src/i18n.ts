@@ -4,54 +4,52 @@
 // Translation workflow and rules: locales/TRANSLATING.md
 
 import {createI18n} from 'vue-i18n'
-import type {AppLocale} from 'bookcover-web'
-import eng, {type Messages} from './locales/eng'
-
-// The locale union is part of the published embed protocol (bookcover-web's embed_types.ts)
-// — re-exported here so widget importers keep working unchanged
-export type {AppLocale}
+import en, {type Messages} from './locales/en'
 
 export type LocaleInfo = {
-    code:AppLocale
+    // BCP 47 tag, as browsers use: the catalog's filename, the value embed hosts send, and
+    // <html lang> (which picks CJK glyph variants and makes CSS uppercase locale-aware). A
+    // region or script subtag only where it tells catalogs apart: Chinese is tagged by script
+    // (zh-Hans/zh-Hant), not region (zh-CN/zh-TW), since each script serves several regions.
+    code:string
     // Native name, shown in the switcher in its own language rather than the active one
     name:string
-    // BCP 47 tag, set as <html lang> (which picks CJK glyph variants and makes CSS uppercase
-    // locale-aware) and matched against the browser's preferred languages. Chinese is tagged by
-    // script (zh-Hans/zh-Hant), not region (zh-CN/zh-TW): the catalogs differ in script, and
-    // each serves several regions.
-    tag:string
     dir:'ltr' | 'rtl'
 }
 
 // Registry of selectable locales: English first, then alphabetical by English name. Adding one
-// means an entry here, a locales/<code>.ts catalog and the AppLocale union in bookcover-web —
-// tests/locales.test.ts fails until they agree. Nuxt UI's own built-in strings stay English. The
-// switcher in SidebarPanel.vue reads this list directly, so it needs no change.
-export const AVAILABLE_LOCALES:LocaleInfo[] = [
-    {code: 'eng', name: 'English', tag: 'en', dir: 'ltr'},
-    {code: 'ara', name: 'العربية', tag: 'ar', dir: 'rtl'},
-    {code: 'ben', name: 'বাংলা', tag: 'bn', dir: 'ltr'},
-    {code: 'zho_hans', name: '简体中文', tag: 'zh-Hans', dir: 'ltr'},
-    {code: 'zho_hant', name: '繁體中文', tag: 'zh-Hant', dir: 'ltr'},
-    {code: 'fra', name: 'Français', tag: 'fr', dir: 'ltr'},
-    {code: 'deu', name: 'Deutsch', tag: 'de', dir: 'ltr'},
-    {code: 'hin', name: 'हिन्दी', tag: 'hi', dir: 'ltr'},
-    {code: 'ind', name: 'Bahasa Indonesia', tag: 'id', dir: 'ltr'},
-    {code: 'ita', name: 'Italiano', tag: 'it', dir: 'ltr'},
-    {code: 'jpn', name: '日本語', tag: 'ja', dir: 'ltr'},
-    {code: 'kor', name: '한국어', tag: 'ko', dir: 'ltr'},
-    {code: 'mar', name: 'मराठी', tag: 'mr', dir: 'ltr'},
-    {code: 'fas', name: 'فارسی', tag: 'fa', dir: 'rtl'},
-    {code: 'por', name: 'Português (Brasil)', tag: 'pt-BR', dir: 'ltr'},
-    {code: 'rus', name: 'Русский', tag: 'ru', dir: 'ltr'},
-    {code: 'spa', name: 'Español', tag: 'es', dir: 'ltr'},
-    {code: 'tam', name: 'தமிழ்', tag: 'ta', dir: 'ltr'},
-    {code: 'tel', name: 'తెలుగు', tag: 'te', dir: 'ltr'},
-    {code: 'tha', name: 'ไทย', tag: 'th', dir: 'ltr'},
-    {code: 'tur', name: 'Türkçe', tag: 'tr', dir: 'ltr'},
-    {code: 'urd', name: 'اردو', tag: 'ur', dir: 'rtl'},
-    {code: 'vie', name: 'Tiếng Việt', tag: 'vi', dir: 'ltr'},
-]
+// means an entry here and a locales/<code>.ts catalog — tests/locales.test.ts fails until they
+// agree. Nuxt UI's own built-in strings stay English. The switcher in SidebarPanel.vue reads
+// this list directly, so it needs no change. Embed hosts send the locale as a plain string, so
+// a new language needs no bookcover-web release.
+export const AVAILABLE_LOCALES = [
+    {code: 'en', name: 'English', dir: 'ltr'},
+    {code: 'ar', name: 'العربية', dir: 'rtl'},
+    {code: 'bn', name: 'বাংলা', dir: 'ltr'},
+    {code: 'zh-Hans', name: '简体中文', dir: 'ltr'},
+    {code: 'zh-Hant', name: '繁體中文', dir: 'ltr'},
+    {code: 'fr', name: 'Français', dir: 'ltr'},
+    {code: 'de', name: 'Deutsch', dir: 'ltr'},
+    {code: 'hi', name: 'हिन्दी', dir: 'ltr'},
+    {code: 'id', name: 'Bahasa Indonesia', dir: 'ltr'},
+    {code: 'it', name: 'Italiano', dir: 'ltr'},
+    {code: 'ja', name: '日本語', dir: 'ltr'},
+    {code: 'ko', name: '한국어', dir: 'ltr'},
+    {code: 'mr', name: 'मराठी', dir: 'ltr'},
+    {code: 'fa', name: 'فارسی', dir: 'rtl'},
+    {code: 'pt-BR', name: 'Português (Brasil)', dir: 'ltr'},
+    {code: 'ru', name: 'Русский', dir: 'ltr'},
+    {code: 'es', name: 'Español', dir: 'ltr'},
+    {code: 'ta', name: 'தமிழ்', dir: 'ltr'},
+    {code: 'te', name: 'తెలుగు', dir: 'ltr'},
+    {code: 'th', name: 'ไทย', dir: 'ltr'},
+    {code: 'tr', name: 'Türkçe', dir: 'ltr'},
+    {code: 'ur', name: 'اردو', dir: 'rtl'},
+    {code: 'vi', name: 'Tiếng Việt', dir: 'ltr'},
+] as const satisfies readonly LocaleInfo[]
+
+// A supported locale code, derived from the registry so it can't drift from it
+export type AppLocale = typeof AVAILABLE_LOCALES[number]['code']
 
 const STORAGE_KEY = 'bookcover_locale'
 
@@ -59,18 +57,18 @@ const STORAGE_KEY = 'bookcover_locale'
 // pattern), so supporting another language costs the initial bundle nothing. English stays
 // eager as the fallback for any key a catalog lacks.
 const CATALOG_LOADERS = import.meta.glob<Messages>(
-    ['./locales/*.ts', '!./locales/eng.ts'], {import: 'default'},
+    ['./locales/*.ts', '!./locales/en.ts'], {import: 'default'},
 )
 
 export const i18n = createI18n({
     legacy: false,
-    locale: 'eng',
-    fallbackLocale: 'eng',
-    messages: {eng} as Record<AppLocale, Messages>,
+    locale: 'en',
+    fallbackLocale: 'en',
+    messages: {en} as Record<AppLocale, Messages>,
 })
 
-/** Whether an untrusted value (host message, localStorage) names a supported locale */
-export function is_app_locale(value:unknown):value is AppLocale {
+/** Whether a value is exactly one of our locale codes */
+function is_app_locale(value:unknown):value is AppLocale {
     return AVAILABLE_LOCALES.some(l => l.code === value)
 }
 
@@ -107,18 +105,18 @@ function maximize_tag(tag:string):Intl.Locale | null {
     }
 }
 
-// Registry tags, maximized once for matching
-const MAXIMIZED_TAGS = AVAILABLE_LOCALES.map(l => ({code: l.code, locale: maximize_tag(l.tag)}))
+// Registry codes, maximized once for matching
+const MAXIMIZED_CODES = AVAILABLE_LOCALES.map(l => ({code: l.code, locale: maximize_tag(l.code)}))
 
-/** First of the given preferred languages that we support. Language and script must both match
- *  where possible, so zh-TW gets Traditional and zh-SG Simplified; failing that, the language
- *  alone (pt-PT gets Brazilian Portuguese, which beats the English fallback for those readers) */
-export function match_locale(preferred:readonly string[]):AppLocale | null {
+/** First of the given preferred BCP 47 tags that we support. Language and script must both
+ *  match where possible, so zh-TW gets Traditional and zh-SG Simplified; failing that, the
+ *  language alone (pt-PT gets Brazilian Portuguese, which beats English for those readers) */
+export function match_locale(preferred:readonly unknown[]):AppLocale | null {
     for (const tag of preferred) {
-        const wanted = maximize_tag(tag)
+        const wanted = typeof tag === 'string' ? maximize_tag(tag) : null
         if (!wanted)
             continue
-        const same_language = MAXIMIZED_TAGS.filter(m => m.locale?.language === wanted.language)
+        const same_language = MAXIMIZED_CODES.filter(m => m.locale?.language === wanted.language)
         const match = same_language.find(m => m.locale?.script === wanted.script) ?? same_language[0]
         if (match)
             return match.code
@@ -133,7 +131,7 @@ function match_browser_locale():AppLocale | null {
 
 /** Make sure a locale's catalog is registered with vue-i18n, fetching its chunk if needed */
 async function load_catalog(locale:AppLocale):Promise<void> {
-    if (locale === 'eng' || i18n.global.availableLocales.includes(locale))
+    if (locale === 'en' || i18n.global.availableLocales.includes(locale))
         return
     const loader = CATALOG_LOADERS[`./locales/${locale}.ts`]
     if (!loader)
@@ -154,7 +152,7 @@ export async function set_locale(locale:AppLocale, persist = true):Promise<void>
             return
         const info = AVAILABLE_LOCALES.find(l => l.code === locale)!
         i18n.global.locale.value = locale
-        document.documentElement.lang = info.tag
+        document.documentElement.lang = info.code
         document.documentElement.dir = info.dir
         if (persist)
             write_stored_locale(locale)
@@ -165,10 +163,15 @@ export async function set_locale(locale:AppLocale, persist = true):Promise<void>
 }
 
 /** Resolve and load the initial locale: embed override > stored preference > browser > English.
- *  Await before mount. An embed-provided locale is applied but not persisted, since it reflects
- *  the parent site's language rather than the user's own standalone choice. */
+ *  Await before mount. An embed-provided locale is matched like a browser preference (so zh-TW
+ *  or pt-PT work) and applied but not persisted, since it reflects the parent site's language
+ *  rather than the user's own standalone choice. One we don't support gets English: the host
+ *  chose a language, so it overrides the user's own settings. */
 export async function resolve_initial_locale(embed_locale?:string):Promise<void> {
-    const locale = (is_app_locale(embed_locale) ? embed_locale : null)
-        ?? read_stored_locale() ?? match_browser_locale() ?? 'eng'
+    let locale:AppLocale
+    if (embed_locale !== undefined)
+        locale = match_locale([embed_locale]) ?? 'en'
+    else
+        locale = read_stored_locale() ?? match_browser_locale() ?? 'en'
     await set_locale(locale, false)
 }

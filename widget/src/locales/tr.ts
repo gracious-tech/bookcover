@@ -1,5 +1,5 @@
 
-// Turkish catalog — AI-translated from eng.ts (see TRANSLATING.md). Native review: none yet.
+// Turkish catalog — AI-translated from en.ts (see TRANSLATING.md). Native review: none yet.
 //
 // Style: buttons as the bare imperative ("Kaydet"), sentences in the polite plural
 // ("tıklayın"); the percent sign goes before the number (%50); straight double quotes.
@@ -9,9 +9,9 @@
 // kapak/karton kapak · interior = iç sayfalar · printing service = baskı hizmeti
 // · mockup = mockup · pattern = desen · icon = simge · font = yazı tipi
 
-import type {Messages} from './eng'
+import type {Messages} from './en'
 
-const tur:Messages = {
+const tr:Messages = {
     common: {
         auto: 'Otomatik',
         chosen: 'Seçilenler',
@@ -410,4 +410,4 @@ const tur:Messages = {
     },
 }
 
-export default tur
+export default tr

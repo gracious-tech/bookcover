@@ -1,5 +1,5 @@
 
-// Japanese catalog — AI-translated from eng.ts (see TRANSLATING.md). Native review: none yet.
+// Japanese catalog — AI-translated from en.ts (see TRANSLATING.md). Native review: none yet.
 //
 // Style: です・ます for sentences, nouns for labels, short verbs for buttons (保存、キャンセル);
 // full-width punctuation 。、（）and 「」 quotes; no space between Japanese and Latin text.
@@ -9,9 +9,9 @@
 // · interior = 本文 · printing service = 印刷サービス · mockup = モックアップ
 // · pattern = パターン · icon = アイコン · font = フォント
 
-import type {Messages} from './eng'
+import type {Messages} from './en'
 
-const jpn:Messages = {
+const ja:Messages = {
     common: {
         auto: '自動',
         chosen: '選択中',
@@ -410,4 +410,4 @@ const jpn:Messages = {
     },
 }
 
-export default jpn
+export default ja

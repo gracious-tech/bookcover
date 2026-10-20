@@ -1,5 +1,5 @@
 
-// Indonesian catalog — AI-translated from eng.ts (see TRANSLATING.md). Native review: none yet.
+// Indonesian catalog — AI-translated from en.ts (see TRANSLATING.md). Native review: none yet.
 //
 // Style: standard Bahasa Indonesia as in mainstream app UIs, addressing the user as Anda;
 // buttons as plain verbs ("Simpan"); straight double quotes.
@@ -10,9 +10,9 @@
 // · interior = isi buku · printing service = layanan cetak · mockup = mockup · pattern = pola
 // · icon = ikon · font = font
 
-import type {Messages} from './eng'
+import type {Messages} from './en'
 
-const ind:Messages = {
+const id:Messages = {
     common: {
         auto: 'Otomatis',
         chosen: 'Dipilih',
@@ -411,4 +411,4 @@ const ind:Messages = {
     },
 }
 
-export default ind
+export default id

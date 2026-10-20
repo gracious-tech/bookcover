@@ -1,5 +1,5 @@
 
-// Korean catalog — AI-translated from eng.ts (see TRANSLATING.md). Native review: none yet.
+// Korean catalog — AI-translated from en.ts (see TRANSLATING.md). Native review: none yet.
 //
 // Style: formal-polite 합니다체 for sentences, nouns for labels, short verbs for buttons
 // ("저장", "취소"); straight double quotes; standard spacing (띄어쓰기).
@@ -9,9 +9,9 @@
 // 하드커버/소프트커버 · interior = 내지 · printing service = 인쇄 서비스 · mockup = 목업
 // · pattern = 패턴 · icon = 아이콘 · font = 글꼴
 
-import type {Messages} from './eng'
+import type {Messages} from './en'
 
-const kor:Messages = {
+const ko:Messages = {
     common: {
         auto: '자동',
         chosen: '선택한 색',
@@ -410,4 +410,4 @@ const kor:Messages = {
     },
 }
 
-export default kor
+export default ko

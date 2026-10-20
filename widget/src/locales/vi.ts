@@ -1,5 +1,5 @@
 
-// Vietnamese catalog — AI-translated from eng.ts (see TRANSLATING.md). Native review: none yet.
+// Vietnamese catalog — AI-translated from en.ts (see TRANSLATING.md). Native review: none yet.
 //
 // Style: neutral-polite UI voice, addressing the user as "bạn"; straight double quotes.
 // Glossary: cover = bìa sách · front/back cover = bìa trước/bìa sau (panels: mặt trước/mặt sau)
@@ -8,9 +8,9 @@
 // · hardcover/paperback = bìa cứng/bìa mềm · interior = ruột sách · printing service = dịch vụ in
 // · mockup = mô phỏng · pattern = họa tiết · icon = biểu tượng · font = phông chữ
 
-import type {Messages} from './eng'
+import type {Messages} from './en'
 
-const vie:Messages = {
+const vi:Messages = {
     common: {
         auto: 'Tự động',
         chosen: 'Đã chọn',
@@ -409,4 +409,4 @@ const vie:Messages = {
     },
 }
 
-export default vie
+export default vi

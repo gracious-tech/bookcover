@@ -1,5 +1,5 @@
 
-// French catalog — AI-translated from eng.ts (see TRANSLATING.md). Native review: none yet.
+// French catalog — AI-translated from en.ts (see TRANSLATING.md). Native review: none yet.
 //
 // Style: addresses the user as vous; buttons in the infinitive ("Enregistrer"); typographic
 // apostrophe ’ throughout; « » quotes; a plain space before : ? ! and %, as French requires.
@@ -11,9 +11,9 @@
 // · printing service = service d’impression · mockup = mockup · pattern = motif
 // · icon = icône · font = police
 
-import type {Messages} from './eng'
+import type {Messages} from './en'
 
-const fra:Messages = {
+const fr:Messages = {
     common: {
         auto: 'Auto',
         chosen: 'Choisies',
@@ -412,4 +412,4 @@ const fra:Messages = {
     },
 }
 
-export default fra
+export default fr

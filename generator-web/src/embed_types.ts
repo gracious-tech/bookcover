@@ -22,17 +22,6 @@
 import type {EmbedFormState} from 'bookcover-core'
 import type {CustomFont} from 'typst-fonts'
 
-/** Locales the widget UI supports. Lives in this published package, so adding a widget
- *  locale requires a bookcover-web release. Codes are ISO 639-3, plus an ISO 15924 script
- *  suffix where one language is written in more than one script (zho_hans = Simplified
- *  Chinese, zho_hant = Traditional Chinese). An unrecognised locale sent by a host falls back
- *  to the widget's own detection rather than failing, so a host may send a code newer than the
- *  widget it embeds. */
-export type AppLocale =
-    | 'eng' | 'ara' | 'ben' | 'deu' | 'fas' | 'fra' | 'hin' | 'ind' | 'ita' | 'jpn' | 'kor'
-    | 'mar' | 'por' | 'rus' | 'spa' | 'tam' | 'tel' | 'tha' | 'tur' | 'urd' | 'vie' | 'zho_hans'
-    | 'zho_hant'
-
 /** One candidate background the host offers alongside the widget's own built-ins — typically an
  *  image the user already used on another of their covers, which the widget would otherwise make
  *  them find on disk and upload again.
@@ -109,8 +98,12 @@ export interface InitMessage {
     // empty leaves the background picker exactly as it is by default. Expect a short list
     // (the number of covers one user has made); entries that aren't {id, url} are dropped
     bg_suggestions?: BgSuggestion[]
-    // UI language; absent (or unrecognised) uses the user's stored choice, then the browser's
-    locale?: AppLocale
+    // UI language as a BCP 47 tag, the way browsers give it ('fr', 'zh-TW', 'pt-PT'). Matched
+    // like a browser preference: script first (zh-TW and zh-Hant both get Traditional Chinese),
+    // then the language alone (pt-PT gets Brazilian Portuguese). A plain string, not a union,
+    // so the widget can add languages without a release of this package; an unsupported
+    // language shows English. Absent uses the user's stored choice, then the browser's
+    locale?: string
 }
 
 /** Host -> widget. InitMessage is the first and must arrive before any other; later messages are

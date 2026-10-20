@@ -1,5 +1,5 @@
 
-// Telugu catalog — AI-translated from eng.ts (see TRANSLATING.md). Native review: none yet.
+// Telugu catalog — AI-translated from en.ts (see TRANSLATING.md). Native review: none yet.
 //
 // Style: standard Telugu as in Indian app UIs, polite imperative ("సేవ్ చేయండి"); English
 // tech loanwords in Telugu script where users say them (ఫాంట్, ఐకాన్, ప్రివ్యూ), with ZWNJ
@@ -11,9 +11,9 @@
 // · printing service = ప్రింటింగ్ సేవ · mockup = మాకప్ · background = నేపథ్యం
 // · pattern = నమూనా · icon = ఐకాన్ · font = ఫాంట్
 
-import type {Messages} from './eng'
+import type {Messages} from './en'
 
-const tel:Messages = {
+const te:Messages = {
     common: {
         auto: 'ఆటో',
         chosen: 'ఎంచుకున్నవి',
@@ -412,4 +412,4 @@ const tel:Messages = {
     },
 }
 
-export default tel
+export default te
