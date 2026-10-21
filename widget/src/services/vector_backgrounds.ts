@@ -35,7 +35,6 @@ const DESIGN_ORDER:string[] = [
     'teardrop-cluster',
     'constellation',
     'star-scatter',
-    'plus-marks-scatter',
     'pebble-stack',
     // Humanity
     'arch-doorway',
