@@ -281,54 +281,60 @@
 // ============================================================
 
 #if has_spine and has_spine_text and fs_spine_title > 0mm {
+    // Each spine item only when it has text, so an empty one leaves no stack spacing gap
+    // pushing the other off-center
+    let spine_items = (
+        if spine_title != "" {
+            text(
+                dir: spine_title_dir,
+                font: font_spine_title_family,
+                size: fs_spine_title * spine_title_size_mod,
+                fill: color_spine_title,
+                weight: spine_title_weight,
+                style: if spine_title_italic { "italic" } else { "normal" },
+                spine_title,
+            )
+        },
+        if spine_author != "" and fs_spine_author > 0mm {
+            text(
+                dir: spine_author_dir,
+                font: font_spine_author_family,
+                size: fs_spine_author * spine_author_size_mod,
+                fill: color_spine_author,
+                weight: spine_author_weight,
+                style: if spine_author_italic { "italic" } else { "normal" },
+                spine_author,
+            )
+        },
+    ).filter(x => x != none)
+
     // Title rotated along spine (bottom-to-top reading direction).
     // place() anchors the unrotated bounding box top-left, so we subtract
     // half the unrotated dimensions to keep the visual center on the spine.
     // The title + author pair runs in the title's direction, so for RTL the title
     // comes first reading right-to-left (bottom-to-top once rotated).
-    place(
-        top + left,
-        dx: spine_x + spine_width * 0.5 - face_height * 0.4,
-        dy: bleed + face_height * 0.5 - spine_width * 0.5,
-        rotate(
-            90deg,
-            origin: center,
-            box(
-                width: face_height * 0.8,
-                height: spine_width,
-                align(
-                    center + horizon,
-                    // Shrink title + author together as one unit if they overflow the spine length
-                    shrink-to-width(
-                        stack(
-                            dir: spine_dir,
-                            spacing: spine_width * 0.3,
-                            text(
-                                dir: spine_title_dir,
-                                font: font_spine_title_family,
-                                size: fs_spine_title * spine_title_size_mod,
-                                fill: color_spine_title,
-                                weight: spine_title_weight,
-                                style: if spine_title_italic { "italic" } else { "normal" },
-                                spine_title,
-                            ),
-                            if has_author and fs_spine_author > 0mm {
-                                text(
-                                    dir: spine_author_dir,
-                                    font: font_spine_author_family,
-                                    size: fs_spine_author * spine_author_size_mod,
-                                    fill: color_spine_author,
-                                    weight: spine_author_weight,
-                                    style: if spine_author_italic { "italic" } else { "normal" },
-                                    spine_author,
-                                )
-                            },
+    if spine_items.len() > 0 {
+        place(
+            top + left,
+            dx: spine_x + spine_width * 0.5 - face_height * 0.4,
+            dy: bleed + face_height * 0.5 - spine_width * 0.5,
+            rotate(
+                90deg,
+                origin: center,
+                box(
+                    width: face_height * 0.8,
+                    height: spine_width,
+                    align(
+                        center + horizon,
+                        // Shrink title + author together as one unit if they overflow the spine length
+                        shrink-to-width(
+                            stack(dir: spine_dir, spacing: spine_width * 0.3, ..spine_items),
                         ),
                     ),
                 ),
             ),
-        ),
-    )
+        )
+    }
 }
 
 // Small icon at the bottom of the spine (when spine is wide enough for text)
