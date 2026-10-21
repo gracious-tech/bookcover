@@ -11,7 +11,10 @@
     let min-ratio = effective-min / text.size
     let contentsize = measure(it)
     layout(size => {
-        if contentsize.width > 0mm {
+        // Content with no area has nothing to fit, and would divide by zero below. Zero height
+        // with a nonzero width happens when a stack's spacing surrounds empty text whose font
+        // isn't loaded (the web compiler only loads fonts for non-empty fields)
+        if contentsize.width > 0mm and contentsize.height > 0mm {
             let ratio = calc.min(size.width / contentsize.width, size.height / contentsize.height)
             let clamped = calc.max(calc.min(ratio, max-ratio), min-ratio)
             if clamped != 1.0 {
