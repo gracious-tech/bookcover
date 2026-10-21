@@ -107,9 +107,12 @@ out the same size or larger, since they're already near that quality or 4:2:0.
 `generator/vector_bg_images/*.svg` (committed) are the editable source for the built-in vector
 background designs in `generator/src/vector_backgrounds.ts` — open one directly in an SVG editor
 (Inkscape, Illustrator, Figma) and edit freely; each uses `#6e79ac`/`#be89b3`/`#76538e` as
-placeholder colors for the c1/c2/c3 slots, swapped for a real generated palette by
+placeholder colors for the c1/c2/c3 slots, plus optionally a dark and light variant of each
+(nine placeholders in all, listed in `PLACEHOLDER_COLORS`; the variants are derived from the
+real palette by `slot_tones()`), swapped for a real generated palette by
 `recolor_svg()` at generate time (a plain case-insensitive text substitution, so it survives an
-editor moving a color into a `<style>`/class instead of an inline attribute). These live outside
+editor moving a color into a `<style>`/class instead of an inline attribute).
+`generator/tests/vector_backgrounds.test.ts` fails on any other color in a design. These live outside
 the top-level `assets/` tree — that tree is reserved for statically-served runtime assets (see
 above) — and, like the fonts/typst-wasm assets, are baked into the build rather than
 runtime-loaded: `.bin/gen_vector_bg_images` bundles them into the gitignored

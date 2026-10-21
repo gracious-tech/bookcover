@@ -3,13 +3,15 @@
 // from a palette derived from the user's chosen background color (see design.ts's
 // generate_palette, scheme 'accent_tones'). Source SVGs live in generator/vector_bg_images/ (open
 // any one directly in an SVG editor — Inkscape, Illustrator, Figma — and edit freely; they use
-// #6e79ac/#be89b3/#76538e as placeholder colors for c1/c2/c3, swapped for the real palette by
-// recolor_svg() below) and are bundled into generated/vector_bg_images_data.ts by
+// #6e79ac/#be89b3/#76538e as placeholder colors for c1/c2/c3, plus an optional dark and light
+// variant of each (see PLACEHOLDER_COLORS), swapped for the real palette by recolor_svg()
+// below) and are bundled into generated/vector_bg_images_data.ts by
 // .bin/gen_vector_bg_images at build time, so no filesystem/network access is needed at generate
 // time. Authored against a 1275x900 full-wrap viewBox (back cover 0-600, spine 600-675, front
 // cover 675-1275); Typst stretches the result to the real trim size, so the exact ratio only
 // needs to be roughly right.
 
+import chroma from 'chroma-js'
 import type {PaletteScheme} from './design.js'
 import {VECTOR_BG_IMAGE_SVGS} from './generated/vector_bg_images_data.js'
 
@@ -22,10 +24,28 @@ export interface VectorBackgroundDef {
     render(colors:string[]):string
 }
 
-// Placeholder colors used in the source SVGs (generator/vector_bg_images/*.svg) for c1/c2/c3
-const PLACEHOLDER_COLORS = ['#6e79ac', '#be89b3', '#76538e']
+// How far each slot's dark/light variant sits from its base (chroma-js darken/brighten steps)
+const VARIANT_DARKEN = 0.9
+const VARIANT_BRIGHTEN = 0.8
 
-/** Swap each placeholder color for its resolved palette color. A plain case-insensitive text
+/** A slot's [base, dark, light] tones, in PLACEHOLDER_COLORS order. The base passes through
+ *  unchanged, so designs using only the three bases render exactly as they did before variants */
+export function slot_tones(base:string):string[] {
+    const color = chroma(base)
+    return [base, color.darken(VARIANT_DARKEN).hex(), color.brighten(VARIANT_BRIGHTEN).hex()]
+}
+
+// Placeholder colors used in the source SVGs (generator/vector_bg_images/*.svg): for each of
+// c1/c2/c3, its base then a dark and light variant. The variants are slot_tones() of the
+// bases, written out so an SVG author can copy them; a design may use any subset
+export const PLACEHOLDER_COLORS = [
+    '#6e79ac', '#455281', '#949ed4', // c1 base, dark, light
+    '#be89b3', '#926088', '#e7b0db', // c2 base, dark, light
+    '#76538e', '#4d2d65', '#9c77b5', // c3 base, dark, light
+]
+const TONES_PER_SLOT = 3
+
+/** Swap each placeholder color for its resolved palette tone. A plain case-insensitive text
  *  substitution rather than DOM parsing, so it still works if an SVG editor moves a color into
  *  a <style> block or CSS class instead of leaving it as an inline fill/stroke attribute.
  *  All placeholders are swapped in ONE pass: a palette color can itself be a placeholder value
@@ -33,12 +53,13 @@ const PLACEHOLDER_COLORS = ['#6e79ac', '#be89b3', '#76538e']
  *  a time would let a later pass re-replace an earlier pass's output, collapsing two slots onto
  *  the same color. */
 function recolor_svg(svg:string, colors:string[]):string {
+    const tones = colors.flatMap(slot_tones)
         // Negative lookahead guards against an editor re-exporting with an 8-digit alpha hex
         // (e.g. #ff0000aa), which would otherwise partial-match on the 6-digit placeholder
     const pattern = new RegExp(`(?:${PLACEHOLDER_COLORS.join('|')})(?![0-9a-f])`, 'gi')
     return svg.replace(pattern, match => {
         const i = PLACEHOLDER_COLORS.indexOf(match.toLowerCase())
-        return (i >= 0 && i < colors.length) ? colors[i] : match
+        return (i >= 0 && i < colors.length * TONES_PER_SLOT) ? tones[i] : match
     })
 }
 
