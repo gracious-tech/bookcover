@@ -10,6 +10,10 @@
 // time. Authored against a 1275x900 full-wrap viewBox (back cover 0-600, spine 600-675, front
 // cover 675-1275); Typst stretches the result to the real trim size, so the exact ratio only
 // needs to be roughly right.
+// A released design is never edited in place, since a stored cover names it by id: a changed
+// design is a new file with the next version suffix (`arc-rings` -> `arc-rings-v2` ->
+// `arc-rings-v3`) beside the untouched old one. Only the newest version of each design is
+// listed for pickers; find_vector_background() still resolves every version.
 
 import chroma from 'chroma-js'
 import type {PaletteScheme} from './design.js'
@@ -73,15 +77,25 @@ function render_bg_image(id:string):(colors:string[]) => string {
 const DEFAULT_COLOR_COUNT = 3
 const DEFAULT_SCHEME:PaletteScheme = 'accent_tones'
 
-/** Turn a design id ('big-leaf-cluster') into a display name ('Big Leaf Cluster') */
+// A design id's trailing version suffix ('-v2'); an id without one is version 1
+const VERSION_RE = /-v(\d+)$/
+
+/** A design id split into its base name and version ('arc-rings-v2' -> ['arc-rings', 2]) */
+function parse_id(id:string):[string, number] {
+    const match = VERSION_RE.exec(id)
+    return match ? [id.slice(0, match.index), Number(match[1])] : [id, 1]
+}
+
+/** Turn a design id ('big-leaf-cluster-v2') into a display name ('Big Leaf Cluster'), dropping
+ *  its version suffix */
 function humanize(id:string):string {
-    return id.split('-').map(word => word[0].toUpperCase() + word.slice(1)).join(' ')
+    return parse_id(id)[0].split('-').map(word => word[0].toUpperCase() + word.slice(1)).join(' ')
 }
 
 // Derived from the bundled SVGs (generator/vector_bg_images/*.svg via
 // generated/vector_bg_images_data.ts) — adding a design is just dropping a new source SVG in,
 // no list entry needed here
-const VECTOR_BACKGROUNDS:VectorBackgroundDef[] = Object.keys(VECTOR_BG_IMAGE_SVGS).sort().map(id => ({
+const ALL_VECTOR_BACKGROUNDS:VectorBackgroundDef[] = Object.keys(VECTOR_BG_IMAGE_SVGS).sort().map(id => ({
     id,
     name: humanize(id),
     color_count: DEFAULT_COLOR_COUNT,
@@ -89,10 +103,27 @@ const VECTOR_BACKGROUNDS:VectorBackgroundDef[] = Object.keys(VECTOR_BG_IMAGE_SVG
     render: render_bg_image(id),
 }))
 
+// Designs dropped from pickers with no replacement. Their files stay, so stored covers naming
+// them still render; deleting one instead would break those covers
+export const RETIRED_VECTOR_BACKGROUNDS = ['plus-marks-scatter', 'broken-frame', 'grid-dots', 'feathers']
+
+// Each design's newest version, keyed by base name, retired designs left out
+const newest = new Map<string, string>()
+for (const id of Object.keys(VECTOR_BG_IMAGE_SVGS)) {
+    if (RETIRED_VECTOR_BACKGROUNDS.includes(id)) continue
+    const [base, version] = parse_id(id)
+    const held = newest.get(base)
+    if (held === undefined || parse_id(held)[1] < version) newest.set(base, id)
+}
+const CURRENT_IDS = new Set(newest.values())
+
+/** Every design's newest version, for pickers (superseded versions and retired designs are
+ *  left out) */
 export function list_vector_backgrounds():VectorBackgroundDef[] {
-    return VECTOR_BACKGROUNDS.map(v => ({...v}))
+    return ALL_VECTOR_BACKGROUNDS.filter(v => CURRENT_IDS.has(v.id)).map(v => ({...v}))
 }
 
+/** Look up a design by id, superseded versions included (stored covers still name them) */
 export function find_vector_background(id:string):VectorBackgroundDef | undefined {
-    return VECTOR_BACKGROUNDS.find(v => v.id === id)
+    return ALL_VECTOR_BACKGROUNDS.find(v => v.id === id)
 }

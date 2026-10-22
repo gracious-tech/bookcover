@@ -6,6 +6,12 @@ export function svg_data_url(svg:string):string {
     return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)))
 }
 
+/** Convert an SVG string to a CSS `url('…')` value for background-image. encodeURIComponent()
+ *  leaves `'` alone, and one (e.g. an apostrophe in an SVG comment) would end the quoted string */
+export function svg_css_url(svg:string):string {
+    return 'url(\'data:image/svg+xml,' + encodeURIComponent(svg).replace(/'/g, '%27') + '\')'
+}
+
 /** White or black, whichever contrasts more against a hex color (ITU-R BT.601) — a cheap
  *  perceptual-luma check for UI swatch labels, not the WCAG-based math bookcover-core uses for
  *  actual cover print colors (see is_dark_color there) */

@@ -1,0 +1,35 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`superseded vector backgrounds > are never edited, retired ones included (a deliberate change is a new version) 1`] = `
+{
+  "arc-rings": "a0f52b457d623a8c",
+  "arch-doorway": "d2d42fc0f217b9b6",
+  "aurora-ribbons": "d326a07bf33ed1fe",
+  "bethlehem-star": "e8bf242c373bf6d9",
+  "big-leaf-cluster": "871f34f22b99b32f",
+  "broken-frame": "70a845e4c075df2c",
+  "calvary-hill": "1ffb89348b99630c",
+  "church": "891c10c7b4aec925",
+  "cloud-drift": "8f5fcb4e2b0438de",
+  "coin-stacks": "76b21997fab70404",
+  "confetti-triangles": "9f2ca25ff806d360",
+  "constellation": "6c38a0f92a5baf59",
+  "cross": "f757738e15635160",
+  "crown-of-thorns": "446c8f6bde0df182",
+  "feathers": "d196277fd9eba826",
+  "grid-dots": "679a7b27077a04c2",
+  "kite-trio": "be4f9f774b237739",
+  "labyrinth-lines": "65c3e3f19f814f57",
+  "lighthouse-beacon": "a22374e12854ccc0",
+  "mountain-ridge": "278a0d15b636adfa",
+  "mountain-valley": "b4957774c51754cb",
+  "orbit-rings": "01d736860aec2907",
+  "pebble-stack": "5d75b3fc3baa1970",
+  "plus-marks-scatter": "8ab1a0563b6eeaed",
+  "sailboat-silhouette": "09cc6f8ef47fa50a",
+  "stacked-bars": "50f32aea6aa834be",
+  "staircase": "5d5111052f502911",
+  "star-scatter": "8a19acd24f1772bb",
+  "teardrop-cluster": "8d516e5f54dcdaa3",
+}
+`;

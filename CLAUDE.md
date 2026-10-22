@@ -112,13 +112,29 @@ placeholder colors for the c1/c2/c3 slots, plus optionally a dark and light vari
 real palette by `slot_tones()`), swapped for a real generated palette by
 `recolor_svg()` at generate time (a plain case-insensitive text substitution, so it survives an
 editor moving a color into a `<style>`/class instead of an inline attribute).
-`generator/tests/vector_backgrounds.test.ts` fails on any other color in a design. These live outside
+Pure white (`#ffffff`) is the one deliberately fixed color a design may use (e.g. a white star
+or light beams); `generator/tests/vector_backgrounds.test.ts` fails on any other color in a
+design. Every shape must also be fully opaque — no `opacity`/`fill-opacity`/`stroke-opacity`
+below 1, alpha colors, masks or blend modes — because professional print RIPs handle
+transparency badly; the same test enforces it. A see-through tint is redrawn as the solid
+tone it should read as. These live outside
 the top-level `assets/` tree — that tree is reserved for statically-served runtime assets (see
 above) — and, like the fonts/typst-wasm assets, are baked into the build rather than
 runtime-loaded: `.bin/gen_vector_bg_images` bundles them into the gitignored
 `generator/src/generated/vector_bg_images_data.ts` (a `Record<id, string>` of raw SVG text) before `tsc`
 runs — `.bin/build_generator` always runs it first, so no manual step is needed, but a design
 edit needs a rebuild (`.bin/build_generator` or `.bin/build_modules`) before it shows up.
+
+"Edit freely" holds only until a design ships, because a stored cover names it by id. A released
+design is never changed in place. A changed design is a new file beside the untouched old one,
+with the next version suffix (`arc-rings` -> `arc-rings-v2` -> `arc-rings-v3`; an id without one
+is version 1, and the display name drops it). `list_vector_backgrounds()` offers only each
+design's newest version, while `find_vector_background()` resolves every version, so superseded
+ones leave the picker but stored covers render exactly as before. Superseding a design this way
+needs no `RENDER_VERSION` bump. The test suite pins each superseded version's hash so it can't be
+edited by accident. To drop a design with no replacement, add its id to
+`RETIRED_VECTOR_BACKGROUNDS` in `vector_backgrounds.ts`: it leaves the picker, it stays
+resolvable and its hash stays pinned. Never delete a design's file.
 
 `generator/typst/cover.typ` and `_helpers.typ` (the Typst templates) follow the same baked-in
 pattern for the same reason: they're tied to a specific compiled template version, so a shared

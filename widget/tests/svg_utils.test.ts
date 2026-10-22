@@ -1,8 +1,9 @@
 
 import {describe, it, expect, vi} from 'vitest'
 
-import {svg_data_url, contrast_color, debounce, make_zoom_wheel_handler,
+import {svg_data_url, svg_css_url, contrast_color, debounce, make_zoom_wheel_handler,
     ZOOM_MIN, ZOOM_MAX, ZOOM_SENS} from '../src/svg_utils'
+import {VECTOR_BACKGROUNDS, get_preview_url} from '../src/services/vector_backgrounds'
 
 
 describe('svg_data_url', () => {
@@ -15,6 +16,25 @@ describe('svg_data_url', () => {
 
     it('survives non-ASCII content', () => {
         expect(() => svg_data_url('<svg><text>日本語</text></svg>')).not.toThrow()
+    })
+})
+
+
+describe('svg_css_url', () => {
+
+    // The value sits inside url('…'), so the only quote allowed is the closing one
+    const body = (url:string) => url.slice('url(\''.length, -'\')'.length)
+
+    it('escapes an apostrophe that would end the quoted url', () => {
+        const url = svg_css_url('<svg><!-- the vine\'s colour --></svg>')
+        expect(body(url)).not.toContain('\'')
+        expect(decodeURIComponent(body(url).split(',')[1])).toBe('<svg><!-- the vine\'s colour --></svg>')
+    })
+
+    it('gives every vector background a thumbnail url with no stray quote', () => {
+        for (const design of VECTOR_BACKGROUNDS) {
+            expect(body(get_preview_url(design, '#336699')), design.id).not.toContain('\'')
+        }
     })
 })
 

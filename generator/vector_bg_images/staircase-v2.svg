@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 119 4608 3253">
+  <!-- Whole design at 90%, scaled about the bottom-centre of the ground line -->
+  <g transform="translate(2305.5 2729) scale(0.9) translate(-2305.5 -2729)">
+    <!-- Each bar nests three tones of one slot: dark (the full bar), base inset 15 from its sides and
+         top, and light inset 15 from the base section's sides and top -->
+    <rect id="bar1" x="228" y="1865" width="254" height="690" fill="#4d2d65" />
+    <rect id="bar1-mid" x="243" y="1880" width="224" height="472" fill="#76538e" />
+    <rect id="bar1-top" x="258" y="1895" width="194" height="274" fill="#9c77b5" />
+    <rect id="bar2" x="616" y="2190" width="254" height="365" fill="#926088" />
+    <rect id="bar2-mid" x="631" y="2205" width="224" height="245" fill="#be89b3" />
+    <rect id="bar2-top" x="646" y="2220" width="194" height="138" fill="#e7b0db" />
+    <rect id="bar3" x="2997" y="2039" width="254" height="516" fill="#926088" />
+    <rect id="bar3-mid" x="3012" y="2054" width="224" height="351" fill="#be89b3" />
+    <rect id="bar3-top" x="3027" y="2069" width="194" height="202" fill="#e7b0db" />
+    <rect id="bar4" x="3384" y="1778" width="254" height="777" fill="#4d2d65" />
+    <rect id="bar4-mid" x="3399" y="1793" width="224" height="533" fill="#76538e" />
+    <rect id="bar4-top" x="3414" y="1808" width="194" height="311" fill="#9c77b5" />
+    <rect id="bar5" x="3771" y="1446" width="254" height="1109" fill="#455281" />
+    <rect id="bar5-mid" x="3786" y="1461" width="224" height="766" fill="#6e79ac" />
+    <rect id="bar5-top" x="3801" y="1476" width="194" height="451" fill="#949ed4" />
+    <rect id="bar6" x="4161" y="1124" width="254" height="1431" fill="#926088" />
+    <rect id="bar6-mid" x="4176" y="1139" width="224" height="991" fill="#be89b3" />
+    <rect id="bar6-top" x="4191" y="1154" width="194" height="586" fill="#e7b0db" />
+    <!-- Ground line, a gap below the bars: three dashed stripes of the c1 tones, light to dark, 30
+         apart, the dashes getting shorter towards the bottom -->
+    <path id="ground-1" d="M98 2630h200v13h-200zM338 2630h200v13h-200zM578 2630h200v13h-200zM818 2630h200v13h-200zM1058 2630h200v13h-200zM1298 2630h200v13h-200zM1538 2630h200v13h-200zM1778 2630h200v13h-200zM2018 2630h200v13h-200zM2258 2630h200v13h-200zM2498 2630h200v13h-200zM2738 2630h200v13h-200zM2978 2630h200v13h-200zM3218 2630h200v13h-200zM3458 2630h200v13h-200zM3698 2630h200v13h-200zM3938 2630h200v13h-200zM4178 2630h200v13h-200zM4418 2630h95v13h-95z" fill="#949ed4" />
+    <path id="ground-2" d="M98 2673h40v13h-40zM178 2673h100v13h-100zM318 2673h100v13h-100zM458 2673h100v13h-100zM598 2673h100v13h-100zM738 2673h100v13h-100zM878 2673h100v13h-100zM1018 2673h100v13h-100zM1158 2673h100v13h-100zM1298 2673h100v13h-100zM1438 2673h100v13h-100zM1578 2673h100v13h-100zM1718 2673h100v13h-100zM1858 2673h100v13h-100zM1998 2673h100v13h-100zM2138 2673h100v13h-100zM2278 2673h100v13h-100zM2418 2673h100v13h-100zM2558 2673h100v13h-100zM2698 2673h100v13h-100zM2838 2673h100v13h-100zM2978 2673h100v13h-100zM3118 2673h100v13h-100zM3258 2673h100v13h-100zM3398 2673h100v13h-100zM3538 2673h100v13h-100zM3678 2673h100v13h-100zM3818 2673h100v13h-100zM3958 2673h100v13h-100zM4098 2673h100v13h-100zM4238 2673h100v13h-100zM4378 2673h100v13h-100z" fill="#6e79ac" />
+    <path id="ground-3" d="M98 2716h20v13h-20zM158 2716h40v13h-40zM238 2716h40v13h-40zM318 2716h40v13h-40zM398 2716h40v13h-40zM478 2716h40v13h-40zM558 2716h40v13h-40zM638 2716h40v13h-40zM718 2716h40v13h-40zM798 2716h40v13h-40zM878 2716h40v13h-40zM958 2716h40v13h-40zM1038 2716h40v13h-40zM1118 2716h40v13h-40zM1198 2716h40v13h-40zM1278 2716h40v13h-40zM1358 2716h40v13h-40zM1438 2716h40v13h-40zM1518 2716h40v13h-40zM1598 2716h40v13h-40zM1678 2716h40v13h-40zM1758 2716h40v13h-40zM1838 2716h40v13h-40zM1918 2716h40v13h-40zM1998 2716h40v13h-40zM2078 2716h40v13h-40zM2158 2716h40v13h-40zM2238 2716h40v13h-40zM2318 2716h40v13h-40zM2398 2716h40v13h-40zM2478 2716h40v13h-40zM2558 2716h40v13h-40zM2638 2716h40v13h-40zM2718 2716h40v13h-40zM2798 2716h40v13h-40zM2878 2716h40v13h-40zM2958 2716h40v13h-40zM3038 2716h40v13h-40zM3118 2716h40v13h-40zM3198 2716h40v13h-40zM3278 2716h40v13h-40zM3358 2716h40v13h-40zM3438 2716h40v13h-40zM3518 2716h40v13h-40zM3598 2716h40v13h-40zM3678 2716h40v13h-40zM3758 2716h40v13h-40zM3838 2716h40v13h-40zM3918 2716h40v13h-40zM3998 2716h40v13h-40zM4078 2716h40v13h-40zM4158 2716h40v13h-40zM4238 2716h40v13h-40zM4318 2716h40v13h-40zM4398 2716h40v13h-40zM4478 2716h35v13h-35z" fill="#455281" />
+  </g>
+</svg>

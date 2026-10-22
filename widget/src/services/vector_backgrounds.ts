@@ -1,7 +1,8 @@
 // Widget-side vector background helpers — built on top of the generator's
 // list_vector_backgrounds()/generate_palette()
 
-import {list_vector_backgrounds, generate_palette} from 'bookcover-web'
+import {list_vector_backgrounds, find_vector_background as find_any_vector_background, generate_palette}
+    from 'bookcover-web'
 import type {VectorBackgroundDef} from 'bookcover-web'
 
 export type {VectorBackgroundDef}
@@ -13,42 +14,39 @@ export type {VectorBackgroundDef}
 // still shows, appended at the end.
 const DESIGN_ORDER:string[] = [
     // Pattern
-    'arc-rings',
-    'aurora-ribbons',
+    'arc-rings-v2',
+    'aurora-ribbons-v2',
     'chevron-stack',
     'facet-corner',
-    'mountain-ridge',
+    'mountain-ridge-v2',
     'checkerboard-diamond',
-    'grid-dots',
-    'labyrinth-lines',
-    'orbit-rings',
-    'stacked-bars',
-    'staircase',
-    'broken-frame',
+    'labyrinth-lines-v2',
+    'orbit-rings-v2',
+    'stacked-bars-v2',
+    'staircase-v2',
     // Nature
-    'big-leaf-cluster',
-    'cloud-drift',
-    'feathers',
+    'big-leaf-cluster-v2',
+    'cloud-drift-v2',
     'seagulls',
     'fish',
-    'mountain-valley',
-    'teardrop-cluster',
-    'constellation',
-    'star-scatter',
-    'pebble-stack',
+    'mountain-valley-v2',
+    'teardrop-cluster-v2',
+    'constellation-v2',
+    'star-scatter-v2',
+    'pebble-stack-v2',
     // Humanity
-    'arch-doorway',
-    'sailboat-silhouette',
-    'lighthouse-beacon',
-    'coin-stacks',
-    'kite-trio',
-    'confetti-triangles',
+    'arch-doorway-v2',
+    'sailboat-silhouette-v2',
+    'lighthouse-beacon-v2',
+    'coin-stacks-v2',
+    'kite-trio-v2',
+    'confetti-triangles-v2',
     // Christian
-    'cross',
-    'calvary-hill',
-    'crown-of-thorns',
-    'church',
-    'bethlehem-star',
+    'cross-v2',
+    'calvary-hill-v2',
+    'crown-of-thorns-v2',
+    'church-v2',
+    'bethlehem-star-v2',
 ]
 
 /** DESIGN_ORDER applied to the generator's designs, with anything unlisted kept on the end */
@@ -62,9 +60,10 @@ function order_designs(designs:VectorBackgroundDef[]):VectorBackgroundDef[] {
 
 export const VECTOR_BACKGROUNDS:VectorBackgroundDef[] = order_designs(list_vector_backgrounds())
 
-/** Look up a vector background by ID */
+/** Look up a vector background by ID, including a superseded design a stored cover still names
+ *  (it never appears in the picker, but keeps its preview and palette suggestions) */
 export function find_vector_background(id:string):VectorBackgroundDef | undefined {
-    return VECTOR_BACKGROUNDS.find(v => v.id === id)
+    return VECTOR_BACKGROUNDS.find(v => v.id === id) ?? find_any_vector_background(id)
 }
 
 /** Generate a CSS background-image data URL for the preview thumbnail, deriving the
