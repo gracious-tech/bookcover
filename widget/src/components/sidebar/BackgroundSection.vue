@@ -960,11 +960,13 @@ const ICON_MODES: {value:FormState['icon_mode']}[] = [
     {value: 'echo'},
 ]
 
-// Preset primary swatches: row 0 = light colors, row 1 = dark colors
-// Hues are shifted off common primaries for visual interest; all are within CMYK gamut
+// Preset primary swatches, weighted light since most covers here are upbeat Christian books.
+// Columns pair by hue: neutral, warm neutral, red, orange, green, teal, blue, purple.
+// Row 0 = light tints; row 1 = muted mid-tones, except near-black and navy (the classic Bible
+// colors). All muted enough to stay within CMYK gamut
 const primary_swatch_rows = [
-    ['#e0a898', '#f0c878', '#e8cc98', '#b8d4a0', '#9ecfbf', '#a8b8e0', '#c8b0d8', '#e8a8b8'],
-    ['#8c3825', '#8c6818', '#786018', '#4a6018', '#1a6b60', '#28386b', '#5c2870', '#7a2858'],
+    ['#ffffff', '#f4eedf', '#f3d9d3', '#f6dcc0', '#dbe6d0', '#d3e6e3', '#d8e2f0', '#e3dbee'],
+    ['#22252a', '#b08860', '#c47f73', '#d4a052', '#86a07c', '#5c9592', '#1f2f50', '#8e7aa6'],
 ]
 
 // Debounce timer for bg_color input — emit only after 2s of no changes
