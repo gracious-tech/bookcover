@@ -159,8 +159,8 @@ div(class="flex flex-col gap-1")
                                 v-for="swatch in row"
                                 :key="swatch.value"
                                 type="button"
-                                class="w-[24px] h-[24px] rounded-full border-2 p-0 cursor-pointer shrink-0 transition-transform duration-100 hover:scale-[1.15] outline-offset-2"
-                                :class="form.bg_color === swatch.value ? 'border-(--ui-text)' : 'border-transparent'"
+                                class="w-[24px] h-[24px] rounded-full border-2 p-0 cursor-pointer shrink-0 transition-transform duration-100 hover:scale-[1.15] outline-offset-2 border-[#666666] dark:border-[#999999]"
+                                :class="form.bg_color === swatch.value ? 'outline-2 outline-solid outline-(--ui-text)' : ''"
                                 :style="{background: swatch.display}"
                                 @click="form.bg_color = swatch.value"
                             )
@@ -314,8 +314,8 @@ div(class="flex flex-col gap-1")
                     v-for="swatch in row"
                     :key="swatch.value"
                     type="button"
-                    class="w-[24px] h-[24px] rounded-full border-2 p-0 cursor-pointer shrink-0 transition-transform duration-100 hover:scale-[1.15] outline-offset-2"
-                    :class="form.bg_color === swatch.value ? 'border-(--ui-text)' : 'border-transparent'"
+                    class="w-[24px] h-[24px] rounded-full border-2 p-0 cursor-pointer shrink-0 transition-transform duration-100 hover:scale-[1.15] outline-offset-2 border-[#666666] dark:border-[#999999]"
+                    :class="form.bg_color === swatch.value ? 'outline-2 outline-solid outline-(--ui-text)' : ''"
                     :style="{background: swatch.display}"
                     @click="form.bg_color = swatch.value"
                 )
