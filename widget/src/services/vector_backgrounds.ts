@@ -20,40 +20,43 @@ export type {VectorBackgroundDef}
 // freely — an id here that no longer exists is skipped, and a design missing from the list
 // still shows, appended at the end.
 const DESIGN_ORDER:string[] = [
-    // Pattern
-    'arc-rings-v2',
-    'aurora-ribbons-v2',
-    'chevron-stack',
-    'facet-corner',
-    'mountain-ridge-v2',
-    'checkerboard-diamond',
-    'labyrinth-lines-v2',
-    'orbit-rings-v2',
-    'stacked-bars-v2',
-    'staircase-v2',
     // Nature
+    'mountain-ridge-v2',
+    'mountain-valley-v2',
     'big-leaf-cluster-v2',
+    'teardrop-cluster-v2',
+    'pebble-stack-v2',
+    // Sky
     'cloud-drift-v2',
+    // Animals
     'seagulls',
     'fish',
-    'mountain-valley-v2',
-    'teardrop-cluster-v2',
-    'constellation-v2',
-    'star-scatter-v2',
-    'pebble-stack-v2',
     // Humanity
-    'arch-doorway-v2',
     'sailboat-silhouette-v2',
     'lighthouse-beacon-v2',
+    'arch-doorway-v2',
     'coin-stacks-v2',
     'kite-trio-v2',
+    // Pattern
+    'chevron-stack',
+    'facet-corner',
+    'checkerboard-diamond',
+    'arc-rings-v2',
+    'orbit-rings-v2',
+    'labyrinth-lines-v2',
+    'stacked-bars-v2',
+    'staircase-v2',
+    // Decorative
+    'aurora-ribbons-v2',
+    'constellation-v2',
+    'star-scatter-v2',
     'confetti-triangles-v2',
     // Christian
     'cross-v2',
     'calvary-hill-v2',
-    'crown-of-thorns-v2',
     'church-v2',
     'bethlehem-star-v2',
+    'crown-of-thorns-v2',
 ]
 
 /** DESIGN_ORDER applied to the generator's designs, with anything unlisted kept on the end */
