@@ -608,7 +608,7 @@ import {useDark} from '@vueuse/core'
 import {useI18n} from 'vue-i18n'
 import {FORM_KEY, IS_MOBILE_KEY} from '../../form_state'
 import type {FormState} from '../../form_state'
-import {suggested_icons, icon_categories, preset_icon_svgs,
+import {suggested_icons, icon_categories, preset_icon_svgs, is_preset_icon,
     load_preset_icon_svgs} from '../../services/icons'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
 import {PATTERNS, PREVIEW_PATTERNS, get_preview_url, get_preview_size,
@@ -646,17 +646,18 @@ load_preset_icon_svgs()
 
 // Resolve an icon id to a displayable image URL. A "builtin:<id>" id renders from an inline
 // data URI (bundled into the app, see bookcover-core's builtin_icons.ts); a curated preset id
-// (see preset_icons.ts) renders from the bundled preset SVG payload once it's loaded; anything
-// else (a custom Iconify id the user typed) fetches from the Iconify API directly
+// (see preset_icons.ts) renders from the bundled preset SVG payload, blank until it's loaded;
+// anything else (a custom Iconify id the user typed) fetches from the Iconify API directly
 function icon_url(id:string): string {
     const [collection, name] = id.split(':')
     if (collection === 'builtin') {
         const svg = find_builtin_icon(name)
         return svg ? `data:image/svg+xml,${encodeURIComponent(svg)}` : ''
     }
-    const preset_svg = preset_icon_svgs.value[id]
-    if (preset_svg)
-        return `data:image/svg+xml,${encodeURIComponent(preset_svg)}`
+    if (is_preset_icon(id)) {
+        const preset_svg = preset_icon_svgs.value[id]
+        return preset_svg ? `data:image/svg+xml,${encodeURIComponent(preset_svg)}` : ''
+    }
     return `https://api.iconify.design/${collection}/${name}.svg`
 }
 
@@ -914,15 +915,15 @@ const icon_id_status_class = computed(() => ({
     'text-red-600 dark:text-red-400': icon_id_status.value === 'invalid',
 }))
 
-/** Check whether a given id resolves to a real icon — a bundled builtin id checks locally,
- *  an Iconify id via image load/error */
+/** Check whether a given id resolves to a real icon — a bundled builtin or curated preset id
+ *  checks locally, any other Iconify id via image load/error */
 function check_icon_id(id:string): void {
     const [collection, name] = id.split(':')
     if (collection === 'builtin') {
         icon_id_status.value = find_builtin_icon(name) ? 'valid' : 'invalid'
         return
     }
-    if (preset_icon_svgs.value[id]) {
+    if (is_preset_icon(id)) {
         icon_id_status.value = 'valid'
         return
     }
