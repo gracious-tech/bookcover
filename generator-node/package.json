@@ -24,7 +24,7 @@
     "dependencies": {
         "bookcover-core": "^0.22.1",
         "sharp": "^0.34.5",
-        "typst-fonts": "^0.1.0"
+        "typst-fonts": "^0.1.4"
     },
     "devDependencies": {
         "vitest": "^5.0.1"

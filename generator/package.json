@@ -43,7 +43,7 @@
         "chroma-js": "^3.2.0",
         "pm-to-typst": "^0.1.2",
         "printing-services": "^1.5.1",
-        "typst-fonts": "^0.1.0",
+        "typst-fonts": "^0.1.4",
         "typst-utils": "^0.2.0",
         "zod": "^4.3.6"
     },

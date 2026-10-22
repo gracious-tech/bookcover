@@ -40,7 +40,7 @@
         "@myriaddreamin/typst-ts-web-compiler": "0.7.0",
         "@myriaddreamin/typst.ts": "0.7.0",
         "bookcover-core": "^0.22.1",
-        "typst-fonts": "^0.1.0"
+        "typst-fonts": "^0.1.4"
     },
     "sideEffects": false
 }
