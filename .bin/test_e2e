@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Run the widget's Playwright browser tests (widget/e2e/) against a fresh production build.
+# Needs network access: a production build loads fonts and the typst wasm from
+# assets.paper.bible. Extra arguments go to `playwright test` (e.g. a test name filter)
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Build what the widget bundles, then the widget itself
+"$ROOT/.bin/build_web"
+"$ROOT/.bin/build_widget"
+
+cd "$ROOT/widget"
+# Fetch the test browser on first use (a no-op once it's installed)
+npx playwright install chromium
+npx playwright test "$@"

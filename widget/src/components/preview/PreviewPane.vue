@@ -96,8 +96,12 @@ div.preview-panel(class="flex-1 flex flex-col overflow-hidden bg-(--ui-color-neu
                 @click="on_photo_bg_click(bg.id)"
             )
 
-    //- Preview area — switches between 3D, split panel, and full SVG views
-    div(class="flex-1 relative overflow-hidden")
+    //- Preview area — switches between 3D, split panel, and full SVG views. data-preview-state
+    //- exposes the render state for the Playwright tests (widget/e2e/)
+    div(
+        class="flex-1 relative overflow-hidden"
+        :data-preview-state="shown_error ? 'error' : is_generating ? 'generating' : has_preview ? 'ready' : 'idle'"
+    )
 
         //- Input error panel: shown instead of preview when startup or generation fails
         div(

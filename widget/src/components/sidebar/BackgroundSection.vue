@@ -174,6 +174,7 @@ div(class="flex flex-col gap-1")
                         :class="form.bg_vector_id === v.id ? 'border-(--ui-text)' : 'border-transparent'"
                         :style="{backgroundColor: effective_bg_color, backgroundImage: get_vector_preview_url(v, effective_bg_color), backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'right center'}"
                         :title="v.name"
+                        :data-vector-id="v.id"
                         @click="select_vector_bg(v.id)"
                     )
 

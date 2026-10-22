@@ -188,6 +188,19 @@ renders with the real `typst` binary and fonts tree and skips itself when either
   don't load the app's Nuxt UI/assets plugins, and it uses the `node` environment — the tests
   cover the plain TS modules, not the Vue components.
 
+`.bin/test_e2e` runs the widget's Playwright browser tests (`widget/e2e/`, config in
+`widget/playwright.config.ts`) — the place for anything that needs the real app in a browser:
+a cover actually generating, what a page load requests (lazy chunks, no Iconify API calls for
+curated icons), and UI behaviour. It builds the modules and the widget, then serves the
+PRODUCTION build with `vite preview`, since bundling problems (chunk splitting, the worker
+format) only show up there; that build loads fonts and the typst wasm from
+`assets.paper.bible`, so it needs network access. It installs Playwright's Chromium on first use.
+Extra arguments pass through to `playwright test` (e.g. `-g thumbnail`); with a build already in
+place, `cd widget && npx playwright test` skips the rebuild. Tests wait for the preview pane's
+`data-preview-state="ready"` rather than timing, and find elements by role/label or a
+`data-*` attribute (e.g. the vector picker's `data-vector-id`). It isn't part of `.bin/test`
+or CI.
+
 `.bin/test_examples` is the separate manual check: it builds `generator` and `generator-node`,
 then generates PDF/SVG/PNG files in the project root from a sample schema for visual
 inspection (needs `assets/fonts/` populated — see Build). It asserts nothing.
@@ -613,6 +626,7 @@ consumers, but note that embeds every source into the maps (bookcover-core: 213 
 | `serve_widget` | `vite` dev server in widget/ |
 | `serve_site` | `vite` dev server in site/ |
 | `test` | Run every package's vitest suite in dependency order |
+| `test_e2e` | Build the widget and run its Playwright browser tests against the production build |
 | `test_examples` | Generate test covers (PDF/SVG/PNG) for visual inspection |
 | `setup_typst` | Download latest typst binary to .bin/ |
 | `download_fonts` | Populate assets/fonts/ from font_config.json (typst-fonts-download, overlaps merged — needs Python fonttools + skia-pathops) |

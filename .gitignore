@@ -10,3 +10,7 @@ dist/
 /assets/typst/
 /generator/src/generated/*
 !/generator/src/generated/builtin_bg_regions.ts
+
+# Playwright output
+/widget/test-results/
+/widget/playwright-report/
