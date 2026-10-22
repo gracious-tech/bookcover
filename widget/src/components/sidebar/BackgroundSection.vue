@@ -965,18 +965,18 @@ const ICON_MODES: {value:FormState['icon_mode']}[] = [
 // Row 0 = light tints; row 1 = muted mid-tones, except near-black and navy (the classic Bible
 // colors). All muted enough to stay within CMYK gamut. `value` is what the cover gets;
 // `display` is what the swatch paints — the light tints are near-invisible against the UI at
-// their true value, so they show a darker, more saturated variant of the same hue (~13% less
+// their true value, so they show a darker, more saturated variant of the same hue (~9% less
 // lightness) and the bg color preview beside them shows the true color once picked
 const primary_swatch_rows:{value:string, display:string}[][] = [
     [
-        {value: '#ffffff', display: '#e4e2de'},
-        {value: '#f4eedf', display: '#e7d6aa'},
-        {value: '#f3d9d3', display: '#eaa99a'},
-        {value: '#f6dcc0', display: '#f5bc7e'},
-        {value: '#dbe6d0', display: '#bad2a2'},
-        {value: '#d3e6e3', display: '#a6d1ca'},
-        {value: '#d8e2f0', display: '#a4bee2'},
-        {value: '#e3dbee', display: '#bfabdc'},
+        {value: '#ffffff', display: '#ebe9e6'},
+        {value: '#f4eedf', display: '#eaddbb'},
+        {value: '#f3d9d3', display: '#ecb8ac'},
+        {value: '#f6dcc0', display: '#f5c693'},
+        {value: '#dbe6d0', display: '#c4d8b0'},
+        {value: '#d3e6e3', display: '#b4d7d1'},
+        {value: '#d8e2f0', display: '#b5c9e5'},
+        {value: '#e3dbee', display: '#cabae1'},
     ],
     ['#22252a', '#b08860', '#c47f73', '#d4a052', '#86a07c', '#5c9592', '#1f2f50', '#8e7aa6']
         .map(value => ({value, display: value})),
