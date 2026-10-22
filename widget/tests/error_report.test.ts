@@ -33,20 +33,28 @@ describe('report_error', () => {
 
     beforeEach(() => { vi.unstubAllGlobals() })
 
-    it('holds reports until the host origin is known, then sends to that origin only', async () => {
-        const {report_error, enable_error_reports} = await load()
-        report_error(error_with_stack('boom', 'at a.js:1'))
+    it("targets '*' until the host origin is known, then that origin", async () => {
+        const {report_error, set_error_report_origin} = await load()
+        report_error(error_with_stack('early', 'at a.js:1'))
+        set_error_report_origin('https://host.example')
+        report_error(error_with_stack('late', 'at a.js:2'))
+        expect(posted).toEqual([
+            {msg: {type: 'error', message: 'Error: early\n\nat a.js:1', build: null}, origin: '*'},
+            {msg: {type: 'error', message: 'Error: late\n\nat a.js:2', build: null},
+                origin: 'https://host.example'},
+        ])
+    })
+
+    it('sends nothing when not embedded', async () => {
+        const {report_error} = await load()
+        const self = window as unknown as {parent:unknown}
+        self.parent = self
+        report_error(new Error('standalone'))
         expect(posted).toEqual([])
-        enable_error_reports('https://host.example')
-        expect(posted).toEqual([{
-            msg: {type: 'error', message: 'Error: boom\n\nat a.js:1', build: null},
-            origin: 'https://host.example',
-        }])
     })
 
     it('formats name, message, stack and context as plain text', async () => {
-        const {report_error, enable_error_reports} = await load()
-        enable_error_reports('https://host.example')
+        const {report_error} = await load()
         const error = error_with_stack('bad', 'stack here')
         error.name = 'TypeError'
         report_error(error, 'Vue: render function')
@@ -60,8 +68,7 @@ describe('report_error', () => {
     })
 
     it('drops aborts and extension errors', async () => {
-        const {report_error, enable_error_reports} = await load()
-        enable_error_reports('https://host.example')
+        const {report_error} = await load()
         report_error(new DOMException('cancelled', 'AbortError'))
         report_error(error_with_stack('x', 'at chrome-extension://abc/inject.js:1'))
         report_error(error_with_stack('x', 'at webkit-masked-url://hidden/:1'))
@@ -69,8 +76,7 @@ describe('report_error', () => {
     })
 
     it('sends each distinct message once, and at most 20 in total', async () => {
-        const {report_error, enable_error_reports} = await load()
-        enable_error_reports('https://host.example')
+        const {report_error} = await load()
         for (let i = 0; i < 30; i++) {
             report_error(error_with_stack('same', 's'))
             report_error(error_with_stack(`n${i}`, 's'))
@@ -80,11 +86,9 @@ describe('report_error', () => {
     })
 
     it('never throws, even when posting fails', async () => {
-        const {report_error, enable_error_reports} = await load()
-        report_error(error_with_stack('held', 's'))
+        const {report_error} = await load()
         window.parent.postMessage = () => { throw new Error('detached') }
-        expect(() => enable_error_reports('https://host.example')).not.toThrow()
-        expect(() => report_error(error_with_stack('later', 's'))).not.toThrow()
+        expect(() => report_error(error_with_stack('posted', 's'))).not.toThrow()
         // A value whose stringification throws
         expect(() => report_error({toJSON(){ throw new Error('no') }})).not.toThrow()
     })
@@ -96,9 +100,8 @@ describe('install_error_reports', () => {
     beforeEach(() => { vi.unstubAllGlobals() })
 
     it('reports uncaught errors and rejections, filtering browser noise', async () => {
-        const {install_error_reports, enable_error_reports} = await load()
+        const {install_error_reports} = await load()
         install_error_reports()
-        enable_error_reports('https://host.example')
         const on_error = listeners.get('error')!
         const on_rejection = listeners.get('unhandledrejection')!
 

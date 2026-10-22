@@ -1,9 +1,9 @@
 
 // Error relay for embedding hosts — a cross-origin host can't observe the iframe's errors, so
 // unexpected failures are posted to it as WidgetMessage 'error' (see embed_types.ts in
-// generator-web). Nothing is sent until embed.ts hands over the host's origin from its 'init'
-// message, so standalone use behaves exactly as it always has. Reporting must never become an
-// error source of its own: every entry point swallows its own failures.
+// generator-web). Targets the parent exactly as embed.ts's other messages do: the 'init'
+// origin once known, '*' before then. Nothing is sent standalone. Reporting must never become
+// an error source of its own: every entry point swallows its own failures.
 
 import type {App} from 'vue'
 import type {WidgetMessage} from 'bookcover-web'
@@ -18,41 +18,25 @@ const MAX_REPORTS = 20
 // Errors raised from browser extensions' injected code, which aren't the widget's to report
 const EXTENSION_URL = /(?:chrome|moz|safari|safari-web)-extension:|webkit-masked-url:/
 
-// Every distinct message sent (or held) this page load — also the running total
+// Every distinct message sent this page load — also the running total
 const reported = new Set<string>()
 
-// The host's origin once its 'init' has been accepted; null holds reports until then
+// The host's origin once its 'init' has been accepted — see embed.ts's post()
 let host_origin:string | null = null
 
-// Reports raised before the host's origin was known, oldest first
-const held:string[] = []
-
-/** Post one report to the host */
-function post(message:string, origin:string):void {
-    const msg:WidgetMessage = {type: 'error', message, build: BUILD}
-    window.parent.postMessage(msg, origin)
-}
-
-/** Queue or send a formatted report, applying the extension filter and volume limits */
+/** Send a formatted report to the parent, applying the extension filter and volume limits */
 function send(message:string):void {
-    if (EXTENSION_URL.test(message) || reported.has(message) || reported.size >= MAX_REPORTS)
+    if (window.parent === window || EXTENSION_URL.test(message) || reported.has(message)
+            || reported.size >= MAX_REPORTS)
         return
     reported.add(message)
-    if (host_origin === null)
-        held.push(message)
-    else
-        post(message, host_origin)
+    const msg:WidgetMessage = {type: 'error', message, build: BUILD}
+    window.parent.postMessage(msg, host_origin ?? '*')
 }
 
-/** Start sending to the host at the origin its 'init' arrived from, flushing anything held.
- *  Called by embed.ts, so it only ever happens when embedded. */
-export function enable_error_reports(origin:string):void {
-    try {
-        host_origin = origin
-        for (const message of held.splice(0))
-            post(message, origin)
-    }
-    catch { /* never report the reporter */ }
+/** Target the origin the host's 'init' arrived from from now on. Called by embed.ts */
+export function set_error_report_origin(origin:string):void {
+    host_origin = origin
 }
 
 /** Plain-text form of a thrown value: "<ErrorType>: <message>\n\n<stack>". Duck-typed rather
@@ -81,8 +65,8 @@ export function report_error(error:unknown, context?:string):void {
 }
 
 /** Listen for uncaught errors and unhandled rejections — call once, as early as possible, so
- *  failures before the host's 'init' arrives are held rather than missed. Purely passive: the
- *  browser still logs them as usual. */
+ *  failures before the host's 'init' arrives aren't missed. Purely passive: the browser still
+ *  logs them as usual. */
 export function install_error_reports():void {
     window.addEventListener('error', (event:ErrorEvent) => {
         try {

@@ -14,7 +14,7 @@ import type {FormState} from './form_state'
 import {add_custom_fonts, custom_font_families} from './fonts'
 import {adopt_bg_image, is_builtin_bg} from './services/backgrounds'
 import {debounce} from './svg_utils'
-import {enable_error_reports} from './error_report'
+import {set_error_report_origin} from './error_report'
 
 // Swaps the primary export button into a "Finished" signal instead of a PDF download
 export const finished_mode = ref(false)
@@ -273,7 +273,7 @@ export function wait_for_embed_init():Promise<void> {
                     return
                 init_received = true
                 parent_origin = event.origin
-                enable_error_reports(event.origin)
+                set_error_report_origin(event.origin)
                 on_init(msg)
                 finish()
                 return

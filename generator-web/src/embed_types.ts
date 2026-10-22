@@ -163,8 +163,8 @@ export type HostMessage =
  *  the widget's short commit hash, suffixed "-dirty" for a build from a modified tree, and null
  *  from a dev server. Noise (cross-origin "Script error.", ResizeObserver loops, cancelled
  *  fetches, browser extensions) is filtered out, each distinct message is sent at most once
- *  per page load, and no more than 20 in total. Errors raised before the host's InitMessage
- *  arrives are held and sent once its origin is known. */
+ *  per page load, and no more than 20 in total. Like 'ready', one raised before the host's
+ *  InitMessage arrives is posted with target origin '*'. */
 export type WidgetMessage =
     | {type: 'ready'}
     | {type: 'data', data: EmbedFormState, bg_image: File | null,
