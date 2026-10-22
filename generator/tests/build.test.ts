@@ -222,8 +222,20 @@ describe('build derivations', () => {
     it('wraps each CJK sentence of the blurb in its own regional font', async () => {
         // The chosen font stays first, then the sentence's own region, then the rest of the chain
         const data = await build_data(make_schema({blurb: '日本語です。这是简体。'}))
-        expect(data).toContain('#text(font: ("Noto Serif", "Noto Serif JP", "Noto Serif SC",))[日本語です。]')
-        expect(data).toContain('#text(font: ("Noto Serif", "Noto Serif SC", "Noto Serif JP",))[这是简体。]')
+        expect(data).toContain('#text(font: ("Noto Serif", "Noto Serif JP", "Noto Serif SC",))[日本語です。];')
+        expect(data).toContain('#text(font: ("Noto Serif", "Noto Serif SC", "Noto Serif JP",))[这是简体。];')
+    })
+
+    it('closes each CJK span so the text after it stays markup', async () => {
+        // Without the `;`, the `(` would become call arguments to the #text span
+        const data = await build_data(make_schema({blurb: '新改訳新約聖書(1965年版)'}))
+        expect(data).toContain('[新改訳新約聖書];(1965#text(')
+        expect(data).toContain('[年版];)')
+    })
+
+    it('leaves CJK inside a code span\'s string literal unwrapped', async () => {
+        const data = await build_data(make_schema({blurb: '前 #raw("日本語");'}))
+        expect(data).toContain(' #raw("日本語");')
     })
 
     it('puts each field\'s own fallback chain in its font list', async () => {

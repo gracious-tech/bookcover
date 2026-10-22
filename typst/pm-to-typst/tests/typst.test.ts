@@ -19,10 +19,17 @@ describe('text and marks', () => {
     it('applies each emphasis mark', () => {
         expect(pm_to_typst(doc(para(text('a', 'bold'))))).toBe('*a*')
         expect(pm_to_typst(doc(para(text('a', 'italic'))))).toBe('_a_')
-        expect(pm_to_typst(doc(para(text('a', 'strike'))))).toBe('#strike[a]')
-        expect(pm_to_typst(doc(para(text('a', 'underline'))))).toBe('#underline[a]')
-        expect(pm_to_typst(doc(para(text('a', 'subscript'))))).toBe('#sub[a]')
-        expect(pm_to_typst(doc(para(text('a', 'superscript'))))).toBe('#super[a]')
+        expect(pm_to_typst(doc(para(text('a', 'strike'))))).toBe('#strike[a];')
+        expect(pm_to_typst(doc(para(text('a', 'underline'))))).toBe('#underline[a];')
+        expect(pm_to_typst(doc(para(text('a', 'subscript'))))).toBe('#sub[a];')
+        expect(pm_to_typst(doc(para(text('a', 'superscript'))))).toBe('#super[a];')
+    })
+
+    it('ends each embedded expression so following text stays markup', () => {
+        // Unterminated, `(` would become call arguments and `.b` a field access
+        const after = (mark:string) => doc(para(text('a', mark), text('(b).c')))
+        expect(pm_to_typst(after('underline'))).toBe('#underline[a];(b).c')
+        expect(pm_to_typst(after('code'))).toBe('#raw("a");(b).c')
     })
 
     it('nests stacked marks inner-out', () => {
@@ -30,7 +37,7 @@ describe('text and marks', () => {
     })
 
     it('renders inline code as Typst raw, unescaped but string-escaped', () => {
-        expect(pm_to_typst(doc(para(text('a "b" \\c', 'code'))))).toBe('#raw("a \\"b\\" \\\\c")')
+        expect(pm_to_typst(doc(para(text('a "b" \\c', 'code'))))).toBe('#raw("a \\"b\\" \\\\c");')
     })
 
     it('collapses a link to its plain text — the cover stays link-free', () => {
@@ -73,24 +80,24 @@ describe('block nodes', () => {
     })
 
     it('wraps a blockquote in a Typst quote block', () => {
-        expect(pm_to_typst(doc(node('blockquote', para(text('quoted')))))).toBe('#quote[quoted]')
+        expect(pm_to_typst(doc(node('blockquote', para(text('quoted')))))).toBe('#quote[quoted];')
     })
 
     it('renders a horizontal rule and a hard break', () => {
-        expect(pm_to_typst(doc(node('horizontalRule')))).toBe('#line(length: 100%)')
+        expect(pm_to_typst(doc(node('horizontalRule')))).toBe('#line(length: 100%);')
         expect(pm_to_typst(doc(para(text('a'), node('hardBreak'), text('b'))))).toBe('a\\\nb')
     })
 
     it('renders a code block raw, taking its text unescaped', () => {
         const block = node('codeBlock', text('let x = [1]'))
-        expect(pm_to_typst(doc(block))).toBe('#raw(block: true, "let x = [1]")')
+        expect(pm_to_typst(doc(block))).toBe('#raw(block: true, "let x = [1]");')
     })
 
     it('aligns blocks that carry a supported textAlign', () => {
         expect(pm_to_typst(doc(node_with('paragraph', {textAlign: 'center'}, text('a')))))
-            .toBe('#align(center)[a]')
+            .toBe('#align(center)[a];')
         expect(pm_to_typst(doc(node_with('heading', {level: 1, textAlign: 'right'}, text('a')))))
-            .toBe('#align(right)[= a]')
+            .toBe('#align(right)[= a];')
     })
 
     it('leaves left and justify unaligned — neither maps onto a Typst #align call', () => {

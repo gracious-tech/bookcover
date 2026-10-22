@@ -12,6 +12,13 @@ function collect_text(node:PmNode):string {
     return (node.content ?? []).map(collect_text).join('')
 }
 
+// Emit an embedded code expression into markup. The trailing `;` ends the expression
+// explicitly (Typst consumes it without printing), so text that follows — `(`, `[` or
+// `.ident` — can't be read as call arguments or a field access continuing it
+function embed(code:string):string {
+    return `#${code};`
+}
+
 // Tiptap textAlign values that map onto a Typst #align call (left is the default and justify is
 // a paragraph setting rather than an alignment, so neither is included)
 const TYPST_ALIGNS = new Set(['center', 'right'])
@@ -21,7 +28,7 @@ function align_typst(content:string, node:PmNode):string {
     const align = node.attrs?.textAlign as string|undefined
     if (!align || !TYPST_ALIGNS.has(align))
         return content
-    return `#align(${align})[${content}]`
+    return embed(`align(${align})[${content}]`)
 }
 
 // Render a list node: one item per line, with wrapped/nested lines indented under the marker
@@ -41,7 +48,7 @@ export const typst_renderer:Renderer = {
     // Inline code renders as Typst raw; everything else is escaped literal text
     text: node => {
         if ((node.marks ?? []).some(mark => mark.type === 'code'))
-            return `#raw("${escape_typst_str(node.text ?? '')}")`
+            return embed(`raw("${escape_typst_str(node.text ?? '')}")`)
         return escape_typst(node.text ?? '')
     },
 
@@ -65,16 +72,16 @@ export const typst_renderer:Renderer = {
         listItem: (_node, ctx) => ctx.children('\n\n'),
 
         // Blockquote wraps its blocks in a Typst quote block
-        blockquote: (_node, ctx) => `#quote[${ctx.children('\n\n')}]`,
+        blockquote: (_node, ctx) => embed(`quote[${ctx.children('\n\n')}]`),
 
         // Thematic break
-        horizontalRule: () => '#line(length: 100%)',
+        horizontalRule: () => embed('line(length: 100%)'),
 
         // Inline hard line break
         hardBreak: () => '\\\n',
 
         // Fenced code block renders as a Typst raw block (content taken unescaped)
-        codeBlock: node => `#raw(block: true, "${escape_typst_str(collect_text(node))}")`,
+        codeBlock: node => embed(`raw(block: true, "${escape_typst_str(collect_text(node))}")`),
     },
 
     // Emphasis marks map onto Typst markup; 'code' is handled in text(), and 'link' is
@@ -82,10 +89,10 @@ export const typst_renderer:Renderer = {
     marks: {
         bold: (_mark, inner) => `*${inner}*`,
         italic: (_mark, inner) => `_${inner}_`,
-        strike: (_mark, inner) => `#strike[${inner}]`,
-        underline: (_mark, inner) => `#underline[${inner}]`,
-        subscript: (_mark, inner) => `#sub[${inner}]`,
-        superscript: (_mark, inner) => `#super[${inner}]`,
+        strike: (_mark, inner) => embed(`strike[${inner}]`),
+        underline: (_mark, inner) => embed(`underline[${inner}]`),
+        subscript: (_mark, inner) => embed(`sub[${inner}]`),
+        superscript: (_mark, inner) => embed(`super[${inner}]`),
     },
 }
 

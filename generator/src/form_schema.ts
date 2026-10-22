@@ -49,7 +49,7 @@ function build_blurb(doc:PmDoc):string | undefined {
         doc: (node, ctx) => (node.content ?? []).map(child => {
             const rendered = ctx.node(child)
             return text_dir(pm_text(child)) === 'rtl'
-                ? `#[#set text(dir: rtl)\n${rendered}\n]` : rendered
+                ? `#[#set text(dir: rtl)\n${rendered}\n];` : rendered
         }).join('\n\n'),
     }})
     return typst.trim() ? typst : undefined

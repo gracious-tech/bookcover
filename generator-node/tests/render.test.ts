@@ -10,9 +10,14 @@ import fs from 'node:fs/promises'
 import fsSync from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import {execFile} from 'node:child_process'
+import {promisify} from 'node:util'
 
 import {generate} from '../src/index.js'
-import {resolve_dimensions, calculate_pixel_crop_regions} from 'bookcover-core'
+import {resolve_dimensions, calculate_pixel_crop_regions, build, build_schema, cover_schema,
+    make_blank_form_values} from 'bookcover-core'
+
+const exec_file = promisify(execFile)
 
 const REPO = path.resolve(import.meta.dirname, '../..')
 const ASSETS_DIR = path.join(REPO, 'assets')
@@ -124,6 +129,85 @@ describe.skipIf(!have_typst || !have_fonts)('rendering a cover', () => {
             schema: {...SCHEMA, title1: 'שלום', title2: '日本語', author: '홍길동'}})
         expect((await fs.stat(result.output_path)).size).toBeGreaterThan(1000)
     })
+})
+
+
+// Flattens the blurb's evaluated content back to plain text, so a test can compare what Typst
+// actually made of the markup against the text the user typed
+const BLURB_TEXT_PROBE = `#import "_data.typ": blurb
+#let plain(it) = {
+    if type(it) == str { it }
+    else if it.func() == [ ].func() { " " }
+    else if it.func() == parbreak { "\\n\\n" }
+    else if it.func() == smartquote { if it.double { "\\"" } else { "'" } }
+    else if it.has("text") { plain(it.text) }
+    else if it.has("children") { it.children.map(plain).sum(default: "") }
+    else if it.has("child") { plain(it.child) }
+    else if it.has("body") { plain(it.body) }
+    else { "" }
+}
+#metadata(plain(blurb)) <blurb_text>
+`
+
+/** A blurb document of one paragraph, from [text, mark?] pieces */
+function blurb_doc(...pieces:[string, string?][]) {
+    const content = pieces.map(([text, mark]) => ({type: 'text', text,
+        ...mark ? {marks: [{type: mark}]} : {}}))
+    return {type: 'doc', content: [{type: 'paragraph', content}]}
+}
+
+/** The schema a host would send for a blurb document, via the stored-form path */
+function schema_with_blurb(blurb:ReturnType<typeof blurb_doc>) {
+    return {...SCHEMA, blurb: build_schema({...make_blank_form_values(), blurb})['blurb']}
+}
+
+/** Run typst over the blurb probe beside a schema's _data.typ and return the blurb's text */
+async function blurb_text(schema:Record<string, unknown>, dir:string):Promise<string> {
+    const {files} = await build(cover_schema.parse(schema))
+    await fs.mkdir(dir, {recursive: true})
+    await fs.writeFile(path.join(dir, '_data.typ'), files.get('_data.typ')!)
+    await fs.writeFile(path.join(dir, 'probe.typ'), BLURB_TEXT_PROBE)
+    const {stdout} = await exec_file(TYPST_PATH, ['query', '--ignore-system-fonts',
+        path.join(dir, 'probe.typ'), '<blurb_text>', '--field', 'value', '--one'])
+    return JSON.parse(stdout) as string
+}
+
+
+describe.skipIf(!have_typst || !have_fonts)('blurb text straight after an embedded expression', () => {
+
+    // Each case puts `(`, `[`, `.ident` or `;` right after a #text CJK span or a #mark[…]/#raw
+    // call — all of which Typst would read as continuing the expression if it weren't ended
+    const CASES:[string, [string, string?][]][] = [
+        ['a CJK run then (', [['新改訳新約聖書(1965年版) — public domain']]],
+        ['a CJK run then [', [['日本語[注]']]],
+        ['a CJK run then .ident', [['日本語.example']]],
+        ['a Korean run then (', [['값없이 받았으니(freely.giving/free)']]],
+        ['a CJK run then a literal ;', [['日本語;続き']]],
+        ['an underline then (', [['see', 'underline'], ['(p.1).end']]],
+        ['inline code then .ident', [['x', 'code'], ['.y']]],
+        ['CJK inside inline code', [['前 '], ['日本語', 'code']]],
+    ]
+
+    for (const [name, pieces] of CASES) {
+        it(`renders ${name}`, {timeout: RENDER_TIMEOUT}, async () => {
+            const schema = schema_with_blurb(blurb_doc(...pieces))
+            const slug = name.replace(/\W+/g, '_')
+            const result = await render(`seam_${slug}.pdf`, {schema})
+            expect((await fs.stat(result.output_path)).size).toBeGreaterThan(1000)
+            const text = await blurb_text(schema, path.join(work_dir, `probe_${slug}`))
+            expect(text).toBe(pieces.map(([piece]) => piece).join(''))
+        })
+    }
+
+    it('renders a CJK run then [ in markup passed straight in', {timeout: RENDER_TIMEOUT},
+        async () => {
+            // The form path escapes `[`, but a CoverSchema blurb is markup and may hold a bare one
+            const schema = {...SCHEMA, blurb: '日本語[注]'}
+            const result = await render('seam_markup_bracket.pdf', {schema})
+            expect((await fs.stat(result.output_path)).size).toBeGreaterThan(1000)
+            expect(await blurb_text(schema, path.join(work_dir, 'probe_markup_bracket')))
+                .toBe('日本語[注]')
+        })
 })
 
 

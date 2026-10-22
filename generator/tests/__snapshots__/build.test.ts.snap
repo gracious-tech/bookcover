@@ -341,7 +341,7 @@ exports[`_data.typ golden snapshots > matches for a multilingual cover with per-
 #let spine_author = "홍길동"
 #let author = "홍길동"
 #let isbn = "978-3-16-148410-0"
-#let blurb = [#text(font: ("Noto Serif", "Noto Serif JP", "Noto Serif SC",))[日本語のテキストです。]#text(font: ("Noto Serif", "Noto Serif SC", "Noto Serif JP",))[这是简体中文。]]
+#let blurb = [#text(font: ("Noto Serif", "Noto Serif JP", "Noto Serif SC",))[日本語のテキストです。];#text(font: ("Noto Serif", "Noto Serif SC", "Noto Serif JP",))[这是简体中文。];]
 #let has_title1 = true
 #let has_title2 = true
 #let has_title3 = false

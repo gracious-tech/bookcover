@@ -85,12 +85,19 @@ export {calculate_crop_regions, calculate_pixel_crop_regions,
 export {resolve_icon} from './icon_cache.js'
 export {frame_image, frame_asset_path} from './frame.js'
 
+// The string literal inside each #raw(…) that pm-to-typst emits for inline code and code
+// blocks (escape_typst leaves no other bare `#` in blurb markup)
+const RAW_STRING_REGEX = /#raw\((?:block: true, )?("(?:[^"\\]|\\.)*")\)/g
+
 /**
  * Wrap each CJK sentence segment of the blurb markup in a #text(font:) span putting that
  * sentence's regional family first, so a blurb mixing e.g. Japanese and Chinese sentences
  * renders each language with its own glyph shapes (per-glyph font fallback alone can't tell
  * shared Han characters apart). Safe on Typst markup: the wrapped ranges contain only CJK
- * characters, which are never Typst syntax.
+ * characters, which are never Typst syntax, and each span ends with `;` so whatever follows
+ * it — `(`, `[` or `.ident`, all of which would otherwise continue the expression — stays
+ * markup. Typst consumes that `;` without printing it. CJK inside a #raw string literal is
+ * left alone, since a span there would be literal text (and its quotes would end the string).
  */
 function wrap_blurb_cjk(
     markup:string,
@@ -102,11 +109,17 @@ function wrap_blurb_cjk(
     if (segments.length === 0) {
         return markup
     }
+    // A CJK run can't contain a `"`, so each segment lies wholly inside or outside a literal
+    const raw_strings = [...markup.matchAll(RAW_STRING_REGEX)].map(match => {
+        const start = match.index + match[0].indexOf('"')
+        return {start, end: start + match[1].length}
+    })
     let out = ''
     let pos = 0
     for (const segment of segments) {
         const family = cjk_family(segment.region, style)
-        if (!family) {
+        const in_raw = raw_strings.some(r => segment.start >= r.start && segment.end <= r.end)
+        if (!family || in_raw) {
             continue
         }
         // The chosen font stays first (it rarely covers CJK, and wins when it does), then
@@ -114,7 +127,7 @@ function wrap_blurb_cjk(
         const fonts = [chain[0], family, ...chain.slice(1).filter(f => f !== family)]
         const font_list = fonts.map(f => `"${escape_typst_str(f)}"`).join(', ')
         out += markup.slice(pos, segment.start)
-        out += `#text(font: (${font_list},))[${markup.slice(segment.start, segment.end)}]`
+        out += `#text(font: (${font_list},))[${markup.slice(segment.start, segment.end)}];`
         pos = segment.end
     }
     return out + markup.slice(pos)

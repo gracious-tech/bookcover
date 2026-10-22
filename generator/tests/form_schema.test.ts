@@ -193,9 +193,9 @@ describe('build_schema derivation sentinels', () => {
         ]}
         expect(build_schema(make_form({blurb}))['blurb']).toBe([
             'English (with עברית).',
-            '#[#set text(dir: rtl)\n"עברית" with English.\n]',
-            '#[#set text(dir: rtl)\n- פריט\n]',
-            '#[#set text(dir: rtl)\nمرحبا\n]',
+            '#[#set text(dir: rtl)\n"עברית" with English.\n];',
+            '#[#set text(dir: rtl)\n- פריט\n];',
+            '#[#set text(dir: rtl)\nمرحبا\n];',
         ].join('\n\n'))
     })
 

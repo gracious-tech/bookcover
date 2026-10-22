@@ -65,24 +65,29 @@ const typst = pm_to_typst(editor.getJSON())
 | `heading` (level N) | `=` repeated N times, then the content (also honours `textAlign`) |
 | `bulletList` / `listItem` | `- ` markers (wrapped/nested lines indented) |
 | `orderedList` / `listItem` | `+ ` markers |
-| `blockquote` | `#quote[...]` |
-| `horizontalRule` | `#line(length: 100%)` |
+| `blockquote` | `#quote[...];` |
+| `horizontalRule` | `#line(length: 100%);` |
 | `hardBreak` | `\` line break |
-| `codeBlock` | `#raw(block: true, "...")` |
+| `codeBlock` | `#raw(block: true, "...");` |
 
 | ProseMirror mark | Typst output |
 |---|---|
 | `bold` | `*...*` |
 | `italic` | `_..._` |
-| `strike` | `#strike[...]` |
-| `underline` | `#underline[...]` |
-| `subscript` | `#sub[...]` |
-| `superscript` | `#super[...]` |
-| `code` | `#raw("...")` |
+| `strike` | `#strike[...];` |
+| `underline` | `#underline[...];` |
+| `subscript` | `#sub[...];` |
+| `superscript` | `#super[...];` |
+| `code` | `#raw("...");` |
 | `link` | collapsed to plain text |
 
 All literal text is escaped for Typst. Unknown nodes render their children; marks with no handler
 render as plain inner text.
+
+Every embedded `#` expression ends with `;`, which Typst consumes without printing. Without it,
+text straight after the expression would continue it: `#underline[a](b)` passes `(b)` as call
+arguments, and `#underline[a].b` reads a field. Custom handlers that emit `#` expressions into
+markup should end them the same way.
 
 
 ## Extending
