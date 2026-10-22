@@ -8,7 +8,7 @@ import {test, expect} from '@playwright/test'
 import type {Page} from '@playwright/test'
 
 // The design the widget's default form selects (bg_vector_id in make_form(), form_state.ts)
-const DEFAULT_DESIGN = 'seagulls'
+const DEFAULT_DESIGN = 'mountain-ridge-v2'
 
 // Every vector background id, from its source SVG's filename
 const DESIGN_IDS = new Set(readdirSync(new URL('../../generator/vector_bg_images/', import.meta.url))

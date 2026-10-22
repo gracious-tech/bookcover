@@ -113,7 +113,7 @@ export function make_form(): FormState {
         title2_size: 2,
 
         // Demo background
-        bg_vector_id: 'seagulls',
+        bg_vector_id: 'mountain-ridge-v2',
         pattern_id: 'morphing-diamonds',
     })
 }
