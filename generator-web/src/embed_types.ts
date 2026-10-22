@@ -152,7 +152,19 @@ export type HostMessage =
  *
  *  'bg_suggestion_selected' asks the host for the bytes behind one of the BgSuggestions it sent
  *  in InitMessage, carrying that suggestion's id verbatim. The host answers with
- *  'bg_suggestion_resolved'. */
+ *  'bg_suggestion_resolved'.
+ *
+ *  'error' relays an unexpected widget failure, since a cross-origin host can't observe the
+ *  iframe's errors itself. It is purely informational — it never stands in for 'cancelled' or
+ *  changes what data/finished mean, and the editor carries on (or not) exactly as it would
+ *  have standalone. `message` is always plain text, never an Error object (structured clone
+ *  drops or mangles those across browsers): "<ErrorType>: <message>\n\n<stack>", plus a
+ *  trailing paragraph of context where the widget has some (e.g. Vue's error info). `build` is
+ *  the widget's short commit hash, suffixed "-dirty" for a build from a modified tree, and null
+ *  from a dev server. Noise (cross-origin "Script error.", ResizeObserver loops, cancelled
+ *  fetches, browser extensions) is filtered out, each distinct message is sent at most once
+ *  per page load, and no more than 20 in total. Errors raised before the host's InitMessage
+ *  arrives are held and sent once its origin is known. */
 export type WidgetMessage =
     | {type: 'ready'}
     | {type: 'data', data: EmbedFormState, bg_image: File | null,
@@ -161,3 +173,4 @@ export type WidgetMessage =
         bg_image_builtin: string | null, custom_fonts: CustomFont[]}
     | {type: 'cancelled'}
     | {type: 'bg_suggestion_selected', id: string}
+    | {type: 'error', message: string, build: string | null}

@@ -211,6 +211,7 @@ import {image_regions} from '../../image_regions_cache'
 import {compute_cover_dims} from '../../dimensions'
 import {debounce} from '../../svg_utils'
 import {modal_open_count} from '../../modal_state'
+import {report_error} from '../../error_report'
 import {print_option_label} from '../../option_labels'
 
 import LogSlider from '../LogSlider.vue'
@@ -509,6 +510,7 @@ async function run_generate():Promise<void> {
             const msg = err instanceof Error ? err.message : String(err)
             preview_error.value = msg
             console.error(err)
+            report_error(err, 'Preview generation failed')
         }
     }
     finally {
@@ -543,6 +545,7 @@ async function export_pdf():Promise<void> {
     catch (err:unknown) {
         export_error.value = err instanceof Error ? err.message : String(err)
         console.error(err)
+        report_error(err, 'PDF export failed')
     }
     finally {
         is_exporting.value = false
@@ -578,6 +581,7 @@ async function export_split_pdfs():Promise<void> {
     catch (err:unknown) {
         export_error.value = err instanceof Error ? err.message : String(err)
         console.error(err)
+        report_error(err, 'Split PDF export failed')
     }
     finally {
         is_exporting.value = false

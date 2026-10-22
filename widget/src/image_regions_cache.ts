@@ -13,6 +13,7 @@ import type {FormState} from './form_state'
 import {compute_cover_dims} from './dimensions'
 import {fetch_bg_preview} from './services/backgrounds'
 import {debounce} from './svg_utils'
+import {report_error} from './error_report'
 
 // null until a background image has been analyzed (or when there isn't one)
 export const image_regions = ref<ImageRegions | null>(null)
@@ -57,6 +58,7 @@ export function init_image_regions_cache(form:FormState):void {
         catch (error) {
             // Preview fetch or decode failed — render without auto colors rather than stale ones
             console.error(error)
+            report_error(error, 'Background color sampling failed')
             if (my_generation === generation)
                 image_regions.value = null
         }

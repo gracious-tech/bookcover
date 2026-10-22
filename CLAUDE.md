@@ -358,6 +358,11 @@ required fonts changes (tracked by `active_fonts` cache key). Renderer is init'd
 - `components/preview/PreviewPane.vue` — Tab bar (Full/Split/3D/Photo/Print) + preview
   components; computes dimensions for display
 - `services/` — Static data for suggested backgrounds, patterns, and icons
+- `error_report.ts` — relays unexpected errors to an embedding host as the `'error'`
+  WidgetMessage (window `error`/`unhandledrejection`, Vue's `errorHandler`, plus explicit
+  `report_error()` calls). A `catch` that logs an UNEXPECTED failure should call
+  `report_error()` beside its `console.error`; expected user-facing ones (a bad font upload, a
+  Zod validation error) shouldn't, since the host files every report it receives
 
 ### 3D renderer (`3d/src/`)
 

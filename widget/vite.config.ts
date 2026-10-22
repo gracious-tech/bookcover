@@ -9,10 +9,18 @@ import {nuxt_ui_icons} from './ui_icons'
 import serve_assets from './vite_plugin_assets'
 
 // Short commit hash baked in at build time, shown in the sidebar to confirm which build
-// is deployed — falls back to 'unknown' outside a git checkout (e.g. a tarball install)
+// is deployed and sent with error reports to embedding hosts — suffixed '-dirty' when tracked
+// files differ from HEAD (as `git describe --dirty` would), and 'unknown' outside a git
+// checkout (e.g. a tarball install)
 let git_hash = 'unknown'
 try {
     git_hash = execSync('git rev-parse --short HEAD').toString().trim()
+    try {
+        execSync('git diff --quiet HEAD')
+    }
+    catch {
+        git_hash += '-dirty'
+    }
 }
 catch { /* not a git checkout */ }
 

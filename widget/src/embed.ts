@@ -14,6 +14,7 @@ import type {FormState} from './form_state'
 import {add_custom_fonts, custom_font_families} from './fonts'
 import {adopt_bg_image, is_builtin_bg} from './services/backgrounds'
 import {debounce} from './svg_utils'
+import {enable_error_reports} from './error_report'
 
 // Swaps the primary export button into a "Finished" signal instead of a PDF download
 export const finished_mode = ref(false)
@@ -31,7 +32,7 @@ export const embed_locale = ref<string | null>(null)
 export const embed_seeded = ref(false)
 
 // True when running inside an iframe — standalone usage no-ops the whole embed API
-const embedded = window.parent !== window
+export const embedded = window.parent !== window
 
 // Trusted parent origin, captured from the first validated 'init' message
 let parent_origin:string | null = null
@@ -272,6 +273,7 @@ export function wait_for_embed_init():Promise<void> {
                     return
                 init_received = true
                 parent_origin = event.origin
+                enable_error_reports(event.origin)
                 on_init(msg)
                 finish()
                 return

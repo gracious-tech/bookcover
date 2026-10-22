@@ -8,6 +8,7 @@
 import {ref} from 'vue'
 import {list_patterns} from 'bookcover-web'
 import type {PatternDef} from 'bookcover-web'
+import {report_error} from '../error_report'
 
 export type {PatternDef}
 
@@ -38,6 +39,7 @@ export function load_pattern_svgs():Promise<void> {
             // Leave the swatches blank rather than breaking the picker — patterns still
             // apply to the cover itself, since the worker resolves the SVG independently
             console.error('Failed to load pattern SVGs:', error)
+            report_error(error, 'Failed to load pattern SVGs')
             svgs_promise = null
         })
     }

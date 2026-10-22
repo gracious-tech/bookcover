@@ -7,6 +7,7 @@
 // that only matters once a blurb exists, so it loads on demand instead — see ContentSection.
 
 import type {PmDoc} from 'pm-to-typst'
+import {report_error} from './error_report'
 
 /**
  * Render a blurb document to HTML, loading Tiptap on first use. Resolves to null if that load
@@ -22,6 +23,7 @@ export async function render_blurb_html(doc:PmDoc):Promise<string | null> {
         return generateHTML(doc, blurb_extensions)
     } catch (error) {
         console.error('Failed to render blurb preview:', error)
+        report_error(error, 'Failed to render blurb preview')
         return null
     }
 }

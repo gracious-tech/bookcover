@@ -9,6 +9,7 @@
 import {ref} from 'vue'
 import {icon_categories, suggested_icons} from 'bookcover-web'
 import type {IconCategory} from 'bookcover-web'
+import {report_error} from '../error_report'
 
 export type {IconCategory}
 export {icon_categories, suggested_icons}
@@ -32,6 +33,7 @@ export function load_preset_icon_svgs():Promise<void> {
             preset_icon_svgs.value = mod.PRESET_ICON_SVGS
         }).catch((error:unknown) => {
             console.error('Failed to load preset icon SVGs:', error)
+            report_error(error, 'Failed to load preset icon SVGs')
             svgs_promise = null
         })
     }

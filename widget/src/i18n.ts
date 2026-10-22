@@ -5,6 +5,7 @@
 
 import {createI18n} from 'vue-i18n'
 import en, {type Messages} from './locales/en'
+import {report_error} from './error_report'
 
 export type LocaleInfo = {
     // BCP 47 tag, as browsers use: the catalog's filename, the value embed hosts send, and
@@ -159,6 +160,7 @@ export async function set_locale(locale:AppLocale, persist = true):Promise<void>
     }
     catch (error) {
         console.error(`Failed to load locale "${locale}"`, error)
+        report_error(error, `Failed to load locale "${locale}"`)
     }
 }
 

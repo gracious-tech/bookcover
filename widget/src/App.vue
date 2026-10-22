@@ -32,6 +32,7 @@ import {GeneratorWorkerClient} from './generator_client'
 import {fonts_prefix, all_custom_font_bytes} from './fonts'
 import {assets_prefix} from './assets'
 import {init_embed, embed_seeded} from './embed'
+import {report_error} from './error_report'
 import {init_image_regions_cache} from './image_regions_cache'
 import {init_color_palette_cache} from './color_palette'
 import {init_coloris} from './coloris'
@@ -86,6 +87,7 @@ provide(INIT_ERROR_KEY, init_error)
 // distinctly since it explains why fonts/covers can't work at all
 void load_fonts_prefix(fonts_prefix).catch((err:unknown) => {
     console.error(err)
+    report_error(err, 'Font manifest load failed')
     init_error.value = err instanceof FontsServerError
         ? t('app.error_fonts_server', {url: `${fonts_prefix}/manifest.json`})
         : t('app.error_init_failed')
@@ -103,6 +105,7 @@ client.init(assets_prefix, fonts_prefix).then(async () => {
     generator.value = client
 }).catch((err:unknown) => {
     console.error('WASM init failed:', err)
+    report_error(err, 'WASM init failed')
     // The worker fetches the same manifest — don't overwrite a more specific fonts error
     if (!init_error.value) {
         init_error.value = t('app.error_wasm_failed')
