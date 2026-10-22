@@ -9,6 +9,7 @@ import {ref} from 'vue'
 import {list_patterns} from 'bookcover-web'
 import type {PatternDef} from 'bookcover-web'
 import {report_error} from '../error_report'
+import {svg_css_url} from '../svg_utils'
 
 export type {PatternDef}
 
@@ -58,7 +59,7 @@ export function get_preview_url(pattern:PatternDef | undefined, fill = '#ffffff'
     const svg = pattern_svgs.value[pattern.id]
     if (!svg)
         return ''
-    return 'url(\'data:image/svg+xml,' + encodeURIComponent(svg.replace(/currentColor/g, fill)) + '\')'
+    return svg_css_url(svg.replace(/currentColor/g, fill))
 }
 
 /** Return a CSS background-size string using tile_mm directly as pixels, preserving aspect ratio */
