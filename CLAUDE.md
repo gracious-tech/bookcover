@@ -121,8 +121,14 @@ tone it should read as. These live outside
 the top-level `assets/` tree — that tree is reserved for statically-served runtime assets (see
 above) — and, like the fonts/typst-wasm assets, are baked into the build rather than
 runtime-loaded: `.bin/gen_vector_bg_images` bundles them into the gitignored
-`generator/src/generated/vector_bg_images_data.ts` (a `Record<id, string>` of raw SVG text) before `tsc`
-runs — `.bin/build_generator` always runs it first, so no manual step is needed, but a design
+`generator/src/generated/` before `tsc` runs — one module per design
+(`vector_bg_images/<id>.ts`, its raw SVG text) plus `vector_bg_images_data.ts` (the id list and a
+dynamic-`import()` loader per design). Nothing imports a design module statically, so every
+bundler gives each design its own chunk: the metadata (`list_vector_backgrounds()`) costs only
+the ids, and an app downloads just the designs it renders, via
+`load_vector_background_svg(id)` + `recolor_vector_svg()`. Don't add a static import of a design
+module or an aggregate record of all SVGs, or every design lands in the importer's chunk again.
+`.bin/build_generator` always runs the codegen first, so no manual step is needed, but a design
 edit needs a rebuild (`.bin/build_generator` or `.bin/build_modules`) before it shows up.
 
 "Edit freely" holds only until a design ships, because a stored cover names it by id. A released
@@ -500,11 +506,14 @@ Full contract in that file's header.
   Two things make that work and are easy to undo by accident: every package here declares
   `"sideEffects": false` (without it, worker-only code like `build()`/`CoverGenerator` and its
   `bwip-js` dependency can't be dropped), and large payloads live off the barrel behind their
-  own subpath export (see `patterns_svg.ts`). The generator worker, the pattern SVGs and the
+  own subpath export (see `patterns_svg.ts`) or, for vector backgrounds, one lazy chunk per
+  design (see Build). The generator worker, the pattern SVGs, each vector background and the
   Tiptap editor stack are all separate chunks — check `npx vite build`'s chunk list before and
   after if you touch a barrel import, a dynamic `import()`, or a package's `exports`/
   `sideEffects`. `widget/vite.config.ts` also sets `resolve.dedupe` because
-  `@tiptap/starter-kit` nests its own `@tiptap/core`, which otherwise ships twice.
+  `@tiptap/starter-kit` nests its own `@tiptap/core`, which otherwise ships twice, and
+  `worker.format: 'es'`, because Vite's default `'iife'` worker can't code-split and would
+  inline every vector background into the generator worker.
 - **Font loading (web)**: the compiler is created lazily on the first `generate()` (never in
   `init()`, which only warms the base-font byte cache). Font bytes are fetched once per session
   into an in-memory cache keyed by URL and handed to typst.ts `loadFonts()` as blob URLs
@@ -614,7 +623,7 @@ consumers, but note that embeds every source into the maps (bookcover-core: 213 
 | `deploy_assets` | Sync assets/ to the public bucket; sections: static/fonts/typst |
 | `check_typst_published` | Assert the wasm version the widget requests exists in the bucket |
 | `gen_bg_thumbnails` | Generate 160x120 thumbnails for background images via sharp |
-| `gen_vector_bg_images` | Bundle generator/vector_bg_images/*.svg into generator/src/generated/vector_bg_images_data.ts |
+| `gen_vector_bg_images` | Bundle generator/vector_bg_images/*.svg into one lazy module per design under generator/src/generated/, plus vector_bg_images_data.ts (ids + loaders) |
 | `gen_typst_templates` | Bundle generator/typst/*.typ into generator/src/generated/templates_data.ts |
 | `fetch_preset_icons` | MAINTAINER-ONLY. Downloads preset_icons.ts's icon ids from Iconify into generator/preset_icon_svgs/ |
 | `gen_preset_icons` | Bundle generator/preset_icon_svgs/**/*.svg into generator/src/generated/preset_icons_svg_data.ts |

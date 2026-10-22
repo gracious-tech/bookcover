@@ -1,9 +1,16 @@
 // Widget-side vector background helpers — built on top of the generator's
 // list_vector_backgrounds()/generate_palette()
+//
+// Design METADATA (id/name/palette settings) loads with the app. Each design's SVG is its own
+// lazy chunk, fetched the first time a thumbnail asks for it (see get_preview_url below), so the
+// app starts with only the selected design and the rest arrive when the picker opens.
 
-import {list_vector_backgrounds, find_vector_background as find_any_vector_background, generate_palette}
-    from 'bookcover-web'
+import {ref} from 'vue'
+import {list_vector_backgrounds, find_vector_background as find_any_vector_background, generate_palette,
+    load_vector_background_svg, recolor_vector_svg} from 'bookcover-web'
 import type {VectorBackgroundDef} from 'bookcover-web'
+import {report_error} from '../error_report'
+import {svg_css_url} from '../svg_utils'
 
 export type {VectorBackgroundDef}
 
@@ -66,13 +73,44 @@ export function find_vector_background(id:string):VectorBackgroundDef | undefine
     return VECTOR_BACKGROUNDS.find(v => v.id === id) ?? find_any_vector_background(id)
 }
 
+// Each design's source SVG once loaded, keyed by id. Reactive so a thumbnail (blank meanwhile)
+// fills in when its SVG arrives
+const design_svgs = ref<Record<string, string>>({})
+
+// Each design's in-flight or finished load, so concurrent thumbnails share one rather than racing
+const loads = new Map<string, Promise<void>>()
+
+/** Load a design's SVG on demand. Safe to call repeatedly — each design is fetched once.
+ *  Callers don't need to await it: thumbnails render blank until it resolves and then fill in */
+export function load_design_svg(id:string):Promise<void> {
+    let load = loads.get(id)
+    if (!load) {
+        load = load_vector_background_svg(id).then(svg => {
+            if (svg) design_svgs.value = {...design_svgs.value, [id]: svg}
+        }).catch((error:unknown) => {
+            // Leave the thumbnail blank rather than breaking the picker — the design still
+            // applies to the cover itself, since the worker loads its SVG independently
+            console.error(`Failed to load vector background ${id}:`, error)
+            report_error(error, 'Failed to load vector background SVG')
+            loads.delete(id)
+        })
+        loads.set(id, load)
+    }
+    return load
+}
+
 /** Generate a CSS background-image data URL for the preview thumbnail, deriving the
- *  design's palette live from the given background color (hex or hsl() string). Designs are
- *  full-wrap (1275x900, front face is the rightmost 600px); callers show just the front face
- *  with a 2:3 thumbnail box plus background-size:cover and background-position:right. */
+ *  design's palette live from the given background color (hex or hsl() string). Blank until the
+ *  design's SVG has loaded, which this requests. Designs are full-wrap (1275x900, front face is
+ *  the rightmost 600px); callers show just the front face with a 2:3 thumbnail box plus
+ *  background-size:cover and background-position:right. */
 export function get_preview_url(design:VectorBackgroundDef | undefined, base_color:string):string {
     if (!design) return ''
+    const svg = design_svgs.value[design.id]
+    if (!svg) {
+        void load_design_svg(design.id)
+        return ''
+    }
     const palette = generate_palette(base_color, design.color_count, design.scheme)
-    const svg = design.render(palette)
-    return 'url(\'data:image/svg+xml,' + encodeURIComponent(svg) + '\')'
+    return svg_css_url(recolor_vector_svg(svg, palette))
 }

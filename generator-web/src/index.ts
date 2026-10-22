@@ -20,8 +20,9 @@ export type {BundledFont, CjkVariant, CustomFont} from 'typst-fonts'
 export {font_file_url} from 'typst-fonts/web'
 export {get_fonts, get_bundled_font} from 'typst-fonts'
 export {list_patterns, collect_fonts, collect_all_fonts, default_spine_title,
-    list_vector_backgrounds, find_vector_background, list_builtin_icons,
-    find_builtin_icon, icon_categories, suggested_icons, generate_palette, cover_schema} from 'bookcover-core'
+    list_vector_backgrounds, find_vector_background, load_vector_background_svg, recolor_vector_svg,
+    list_builtin_icons, find_builtin_icon, icon_categories, suggested_icons, generate_palette,
+    cover_schema} from 'bookcover-core'
 export type {IconCategory} from 'bookcover-core'
 export {tinted_contrast_text, pick_vivid_tint, synthesize_fill, blend_regions, region_hex,
     all_image_regions, analyze_pixel_regions, get_builtin_bg, get_builtin_bg_regions,

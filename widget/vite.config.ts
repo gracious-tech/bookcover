@@ -32,6 +32,12 @@ export default defineConfig({
     server: {
         port: 5301,
     },
+    // The generator worker is a module worker (see generator_client.ts), so build it as ES too —
+    // Vite's default 'iife' can't code-split, and would inline every lazily-imported vector
+    // background design into the worker instead of leaving each in its own chunk
+    worker: {
+        format: 'es',
+    },
     // @tiptap/starter-kit nests its own copy of @tiptap/core, so without this the bundle
     // ships two identical copies of it (and of the prosemirror packages underneath)
     resolve: {

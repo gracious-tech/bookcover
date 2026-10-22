@@ -5,9 +5,13 @@
 
 import {createHash} from 'node:crypto'
 import {describe, it, expect} from 'vitest'
-import {list_vector_backgrounds, find_vector_background, PLACEHOLDER_COLORS, RETIRED_VECTOR_BACKGROUNDS,
-    slot_tones} from '../src/vector_backgrounds.js'
-import {VECTOR_BG_IMAGE_SVGS} from '../src/generated/vector_bg_images_data.js'
+import {list_vector_backgrounds, find_vector_background, load_vector_background_svg, recolor_vector_svg,
+    PLACEHOLDER_COLORS, RETIRED_VECTOR_BACKGROUNDS, slot_tones} from '../src/vector_backgrounds.js'
+import {VECTOR_BG_IDS} from '../src/generated/vector_bg_images_data.js'
+
+// Every design's source SVG, keyed by id — each is lazy-loaded on its own, so load them all here
+const VECTOR_BG_IMAGE_SVGS:Record<string, string> = Object.fromEntries(await Promise.all(
+    VECTOR_BG_IDS.map(async id => [id, await load_vector_background_svg(id) ?? ''])))
 
 const BASES = [PLACEHOLDER_COLORS[0], PLACEHOLDER_COLORS[3], PLACEHOLDER_COLORS[6]]
 const HEX_RE = /#[0-9a-f]{6}(?![0-9a-f])/gi
@@ -27,6 +31,19 @@ function painted_hexes(svg:string):string[] {
         .replace(/<sodipodi:namedview\b[\s\S]*?(?:\/>|<\/sodipodi:namedview>)/g, '')
         .match(HEX_RE) ?? []
 }
+
+describe('vector background loading', () => {
+
+    it('loads a source SVG for every design id', () => {
+        for (const id of VECTOR_BG_IDS) {
+            expect(VECTOR_BG_IMAGE_SVGS[id], id).toMatch(/^(?:<\?xml[^>]*>\s*)?<svg\b/)
+        }
+    })
+
+    it('resolves an unknown id to undefined rather than throwing', async () => {
+        await expect(load_vector_background_svg('no-such-design')).resolves.toBeUndefined()
+    })
+})
 
 describe('vector background placeholders', () => {
 
@@ -54,7 +71,7 @@ describe('vector background placeholders', () => {
         const palette = ['#112233', '#445566', '#778899']
         const tones = [...palette.flatMap(slot_tones), ...FIXED_COLORS]
         for (const design of list_vector_backgrounds()) {
-            for (const hex of painted_hexes(design.render(palette))) {
+            for (const hex of painted_hexes(recolor_vector_svg(VECTOR_BG_IMAGE_SVGS[design.id], palette))) {
                 expect(tones, design.id).toContain(hex.toLowerCase())
             }
         }
@@ -94,7 +111,8 @@ describe('superseded vector backgrounds', () => {
     it('still resolve by id, under the same display name as their newest version', () => {
         for (const id of superseded) {
             const design = find_vector_background(id)
-            expect(design?.render(['#112233', '#445566', '#778899']), id).toContain('#112233')
+            expect(recolor_vector_svg(VECTOR_BG_IMAGE_SVGS[id], ['#112233', '#445566', '#778899']), id)
+                .toContain('#112233')
             expect(design?.name, id).toBe(list_vector_backgrounds().find(c => base_name(c.id) === base_name(id))?.name)
         }
     })

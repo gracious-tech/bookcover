@@ -15,7 +15,7 @@ import type {Templates, ImageInput} from './build_files.js'
 import {DEFAULT_TEMPLATES} from './generated/templates_data.js'
 import {resolve_icon} from './icon_cache.js'
 import {find_pattern_svg} from './patterns_svg.js'
-import {find_vector_background} from './vector_backgrounds.js'
+import {find_vector_background, load_vector_background_svg, recolor_vector_svg} from './vector_backgrounds.js'
 import type {FrameImageFn} from './frame.js'
 import {resolve_fallback_chain, cjk_segments, cjk_family, font_style} from 'typst-fonts'
 import type {CjkVariant, FontStyle} from 'typst-fonts'
@@ -34,7 +34,9 @@ export {DEFAULT_TEMPLATES} from './generated/templates_data.js'
 // 'bookcover-core/patterns-svg' subpath instead
 export {list_patterns, find_pattern} from './patterns.js'
 export type {PatternDef, PatternId} from './patterns.js'
-export {list_vector_backgrounds, find_vector_background} from './vector_backgrounds.js'
+// Each vector background's SVG loads lazily, one chunk per design (see vector_backgrounds.ts)
+export {list_vector_backgrounds, find_vector_background, load_vector_background_svg,
+    recolor_vector_svg} from './vector_backgrounds.js'
 export {list_builtin_icons, find_builtin_icon} from './builtin_icons.js'
 // Preset icon metadata only — same split as patterns above. The SVG payload is behind
 // 'bookcover-core/preset-icons-svg'
@@ -242,9 +244,10 @@ export async function build(
     let vector_image:ImageInput | undefined
     if (!image && schema_resolved.bg_vector_id) {
         const design = find_vector_background(schema_resolved.bg_vector_id)
-        if (design) {
+        const svg = await load_vector_background_svg(schema_resolved.bg_vector_id)
+        if (design && svg) {
             const palette = generate_palette(colors.front_background, design.color_count, design.scheme)
-            vector_image = {data: encoder.encode(design.render(palette)), ext: '.svg', is_vector: true}
+            vector_image = {data: encoder.encode(recolor_vector_svg(svg, palette)), ext: '.svg', is_vector: true}
         } else {
             warn_unknown('bg_vector_id', schema_resolved.bg_vector_id)
         }

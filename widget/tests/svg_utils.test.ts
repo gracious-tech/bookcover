@@ -3,7 +3,7 @@ import {describe, it, expect, vi} from 'vitest'
 
 import {svg_data_url, svg_css_url, contrast_color, debounce, make_zoom_wheel_handler,
     ZOOM_MIN, ZOOM_MAX, ZOOM_SENS} from '../src/svg_utils'
-import {VECTOR_BACKGROUNDS, get_preview_url} from '../src/services/vector_backgrounds'
+import {VECTOR_BACKGROUNDS, get_preview_url, load_design_svg} from '../src/services/vector_backgrounds'
 
 
 describe('svg_data_url', () => {
@@ -31,9 +31,12 @@ describe('svg_css_url', () => {
         expect(decodeURIComponent(body(url).split(',')[1])).toBe('<svg><!-- the vine\'s colour --></svg>')
     })
 
-    it('gives every vector background a thumbnail url with no stray quote', () => {
+    it('gives every vector background a thumbnail url with no stray quote', async () => {
+        await Promise.all(VECTOR_BACKGROUNDS.map(design => load_design_svg(design.id)))
         for (const design of VECTOR_BACKGROUNDS) {
-            expect(body(get_preview_url(design, '#336699')), design.id).not.toContain('\'')
+            const url = get_preview_url(design, '#336699')
+            expect(url, design.id).toMatch(/^url\('data:image\/svg\+xml,/)
+            expect(body(url), design.id).not.toContain('\'')
         }
     })
 })
