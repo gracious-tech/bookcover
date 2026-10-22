@@ -154,15 +154,15 @@ div(class="flex flex-col gap-1")
                             :style="{color: bg_color_preview_contrast}"
                         ) {{ t('common.auto') }}
                     div(class="flex flex-col gap-[6px]")
-                        div(v-for="row in primary_swatch_rows" :key="row[0]" class="flex items-center gap-[6px]")
+                        div(v-for="row in primary_swatch_rows" :key="row[0].value" class="flex items-center gap-[6px]")
                             button(
-                                v-for="color in row"
-                                :key="color"
+                                v-for="swatch in row"
+                                :key="swatch.value"
                                 type="button"
-                                class="w-[24px] h-[24px] rounded-full border-2 p-0 cursor-pointer shrink-0 transition-transform duration-100 hover:scale-[1.15] outline-offset-2 shadow-[inset_0_0_0_1px_var(--ui-border-accented)]"
-                                :class="form.bg_color === color ? 'border-(--ui-text)' : 'border-transparent'"
-                                :style="{background: color}"
-                                @click="form.bg_color = color"
+                                class="w-[24px] h-[24px] rounded-full border-2 p-0 cursor-pointer shrink-0 transition-transform duration-100 hover:scale-[1.15] outline-offset-2"
+                                :class="form.bg_color === swatch.value ? 'border-(--ui-text)' : 'border-transparent'"
+                                :style="{background: swatch.display}"
+                                @click="form.bg_color = swatch.value"
                             )
 
                 div(class="grid gap-1.5" style="grid-template-columns: repeat(3, 1fr)")
@@ -309,15 +309,15 @@ div(class="flex flex-col gap-1")
             ) {{ t('common.auto') }}
 
         div(class="flex flex-col gap-[6px]")
-            div(v-for="row in primary_swatch_rows" :key="row[0]" class="flex items-center gap-[6px]")
+            div(v-for="row in primary_swatch_rows" :key="row[0].value" class="flex items-center gap-[6px]")
                 button(
-                    v-for="color in row"
-                    :key="color"
+                    v-for="swatch in row"
+                    :key="swatch.value"
                     type="button"
-                    class="w-[24px] h-[24px] rounded-full border-2 p-0 cursor-pointer shrink-0 transition-transform duration-100 hover:scale-[1.15] outline-offset-2 shadow-[inset_0_0_0_1px_var(--ui-border-accented)]"
-                    :class="form.bg_color === color ? 'border-(--ui-text)' : 'border-transparent'"
-                    :style="{background: color}"
-                    @click="form.bg_color = color"
+                    class="w-[24px] h-[24px] rounded-full border-2 p-0 cursor-pointer shrink-0 transition-transform duration-100 hover:scale-[1.15] outline-offset-2"
+                    :class="form.bg_color === swatch.value ? 'border-(--ui-text)' : 'border-transparent'"
+                    :style="{background: swatch.display}"
+                    @click="form.bg_color = swatch.value"
                 )
 
         //- Reset to auto (complements the background image, white if none) — disabled once
@@ -963,10 +963,23 @@ const ICON_MODES: {value:FormState['icon_mode']}[] = [
 // Preset primary swatches, weighted light since most covers here are upbeat Christian books.
 // Columns pair by hue: neutral, warm neutral, red, orange, green, teal, blue, purple.
 // Row 0 = light tints; row 1 = muted mid-tones, except near-black and navy (the classic Bible
-// colors). All muted enough to stay within CMYK gamut
-const primary_swatch_rows = [
-    ['#ffffff', '#f4eedf', '#f3d9d3', '#f6dcc0', '#dbe6d0', '#d3e6e3', '#d8e2f0', '#e3dbee'],
-    ['#22252a', '#b08860', '#c47f73', '#d4a052', '#86a07c', '#5c9592', '#1f2f50', '#8e7aa6'],
+// colors). All muted enough to stay within CMYK gamut. `value` is what the cover gets;
+// `display` is what the swatch paints — the light tints are near-invisible against the UI at
+// their true value, so they show a darker, more saturated variant of the same hue (~13% less
+// lightness) and the bg color preview beside them shows the true color once picked
+const primary_swatch_rows:{value:string, display:string}[][] = [
+    [
+        {value: '#ffffff', display: '#e4e2de'},
+        {value: '#f4eedf', display: '#e7d6aa'},
+        {value: '#f3d9d3', display: '#eaa99a'},
+        {value: '#f6dcc0', display: '#f5bc7e'},
+        {value: '#dbe6d0', display: '#bad2a2'},
+        {value: '#d3e6e3', display: '#a6d1ca'},
+        {value: '#d8e2f0', display: '#a4bee2'},
+        {value: '#e3dbee', display: '#bfabdc'},
+    ],
+    ['#22252a', '#b08860', '#c47f73', '#d4a052', '#86a07c', '#5c9592', '#1f2f50', '#8e7aa6']
+        .map(value => ({value, display: value})),
 ]
 
 // Debounce timer for bg_color input — emit only after 2s of no changes
