@@ -6,13 +6,16 @@
 // manifest data produced some other way (e.g. an existing hosted font collection).
 //
 // Usage: typst-fonts-download --fonts <dir> [--config <config.json>] [--remove-overlaps]
+//        typst-fonts-download --fonts <dir> --check
 //   --fonts <dir>        Directory to download font binaries + write manifest.json into
 //   --config <path>      JSON file: {noto_group?, curated?: [{family, group, style}]}
 //   --remove-overlaps    Merge overlapping glyph contours (needs python3 with fonttools and
 //                        skia-pathops) so the fonts print without gaps on even-odd RIPs
+//   --check              Download nothing; fail unless every file in <dir> is reachable by
+//                        Typst under the family it's listed as (run before publishing)
 
 import {readFile} from 'node:fs/promises'
-import {run_download} from './run.js'
+import {run_download, run_check} from './run.js'
 import type {FontsConfig} from './types.js'
 
 function read_arg(flag:string):string | undefined {
@@ -28,7 +31,9 @@ if (process.argv.includes('--help') || process.argv.includes('-h')) {
         + ' (default ./fonts)\n'
         + '  --config <path>      JSON file: {noto_group?, curated?: [{family, group, style}]}\n'
         + '  --remove-overlaps    Merge overlapping glyph contours for print (needs python3 with'
-        + ' fonttools + skia-pathops)')
+        + ' fonttools + skia-pathops)\n'
+        + '  --check              Download nothing; fail unless every file is reachable by its'
+        + ' listed family')
     process.exit(0)
 }
 
@@ -39,4 +44,9 @@ const config:FontsConfig | undefined = config_path
     : undefined
 const remove_overlaps = process.argv.includes('--remove-overlaps')
 
-await run_download({fonts_dir, config, remove_overlaps})
+// Either just check an existing tree, or download (which ends with the same check)
+if (process.argv.includes('--check')) {
+    await run_check(fonts_dir)
+} else {
+    await run_download({fonts_dir, config, remove_overlaps})
+}

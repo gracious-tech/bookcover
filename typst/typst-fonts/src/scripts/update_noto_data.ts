@@ -62,6 +62,14 @@ const SCRIPT_KEY_OVERRIDES:Record<string, string[]> = {
     'latin-greek-cyrillic': ['Latin', 'Greek', 'Cyrillic'],
 }
 
+// Families listed under a different name than state.json's, because Typst can never resolve
+// the upstream one: Typst trims separated style words off family names ("Noto Sans Old Italic"
+// -> "Noto Sans Old"), so any family ending in one is unreachable. The downloader renames the
+// files' own family to match (see download/names.ts), and its name check fails on any new case.
+const FAMILY_RENAMES:Record<string, string> = {
+    'Noto Sans Old Italic': 'Noto Sans OldItalic',
+}
+
 // Convert a state.json script key (kebab-case) to Unicode Script property name(s)
 // ('Old_Hungarian', 'Meetei_Mayek', ...); returns [] for keys that should be skipped.
 function script_names(key:string):string[] {
@@ -70,7 +78,8 @@ function script_names(key:string):string[] {
     return [key.split('-').map(w => w[0]!.toUpperCase() + w.slice(1)).join('_')]
 }
 
-// Select the desired font files from state.json paths for a given family.
+// Select the desired font files from state.json paths for a given family (its state.json name,
+// which the filenames follow).
 // Prefers unhinted OTF; falls back to unhinted TTF. Only Regular and Bold, non-variable.
 function select_files(family_name:string, raw_files:string[]):string[] {
     const base = family_name.replace(/\s+/g, '')
@@ -108,8 +117,9 @@ const serif_by_script = new Map<string, Set<string>>()
 for (const [script, script_data] of Object.entries(state)) {
     if (!script_data?.families) continue
 
-    for (const [family_name, family_data] of Object.entries(script_data.families)) {
+    for (const [state_name, family_data] of Object.entries(script_data.families)) {
         if (!family_data?.files?.length || !family_data.latest_release) continue
+        const family_name = FAMILY_RENAMES[state_name] ?? state_name
 
         const is_sans = family_name.startsWith('Noto Sans') && !EXCLUDE.test(family_name)
         const is_serif = family_name.startsWith('Noto Serif') && !EXCLUDE.test(family_name)
@@ -123,7 +133,7 @@ for (const [script, script_data] of Object.entries(state)) {
         // Deduplicate: only process each family name once
         if (family_map.has(family_name)) continue
 
-        const selected = select_files(family_name, family_data.files)
+        const selected = select_files(state_name, family_data.files)
         const has_regular = selected.some(f => f.includes('-Regular.'))
         if (!has_regular) {
             process.stdout.write(`  Warning: no Regular file found for "${family_name}"\n`)

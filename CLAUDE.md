@@ -64,7 +64,11 @@ populates `assets/fonts/` (gitignored) via the `typst-fonts-download` CLI with
 white gaps on even-odd RIPs like Lulu's; needs python3 + `pip install fonttools skia-pathops`,
 pinned in `deploy_assets.yml`), and
 `.bin/deploy_assets fonts` syncs that tree to the public assets bucket at
-`https://assets.paper.bible/fonts`. Font manifests are runtime-loaded, not baked into the
+`https://assets.paper.bible/fonts`. Both fail unless every file's own family name, as Typst
+reads it (name ID 1 with style words trimmed, NOT ID 16), equals the family it's listed under.
+Typst never consults our manifests and only warns before substituting a font, so a mismatch is
+otherwise silent. The download renames mere respellings (Google's "Merriweather 24pt" cut,
+Noto's abbreviated legacy names) to fix them; see `typst-fonts`'s README. Font manifests are runtime-loaded, not baked into the
 build, so `typst-fonts`'s `init_fonts()`/`load_fonts_dir()`/`load_fonts_prefix()` need real
 manifest data to resolve against: the widget loads `/generator_assets/fonts/manifest.json` in
 dev (served by its own vite server — see `widget/vite_plugin_assets.ts`, which also sets the

@@ -41,10 +41,10 @@ const NAME_PREFERENCE = [
     {platform_id: 1, name_id: 1},
 ]
 
-// Decode a name record's string: Windows platform is UTF-16BE, Mac platform single-byte
+// Decode a name record's string: Unicode/Windows platforms are UTF-16BE, Mac single-byte
 function decode_name(view:DataView, start:number, length:number, platform_id:number):string {
     const chars:number[] = []
-    if (platform_id === 3) {
+    if (platform_id === 0 || platform_id === 3) {
         for (let j = 0; j < length; j += 2) {
             chars.push(view.getUint16(start + j))
         }
@@ -94,6 +94,108 @@ export function parse_font_family(data:Uint8Array):string | null {
         // Malformed font file
     }
     return null
+}
+
+/** One decoded record from a font's name table */
+export interface NameRecord {
+    platform_id:number
+    encoding_id:number
+    name_id:number
+    value:string
+}
+
+// Every record in a TTF/OTF file's name table, in table order. Empty for anything that isn't
+// a single-font sfnt file or has no name table.
+export function read_name_records(data:Uint8Array):NameRecord[] {
+    const records:NameRecord[] = []
+    try {
+        const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
+        const name_offset = find_table(view, 'name')
+        if (!name_offset)
+            return records
+
+        // Each 12-byte record points into the string storage that follows the record array
+        const count = view.getUint16(name_offset + 2)
+        const string_storage = name_offset + view.getUint16(name_offset + 4)
+        for (let i = 0; i < count; i++) {
+            const rec = name_offset + 6 + i * 12
+            const platform_id = view.getUint16(rec)
+            records.push({
+                platform_id,
+                encoding_id: view.getUint16(rec + 2),
+                name_id: view.getUint16(rec + 6),
+                value: decode_name(view, string_storage + view.getUint16(rec + 10),
+                    view.getUint16(rec + 8), platform_id),
+            })
+        }
+    } catch {
+        // Malformed font file
+    }
+    return records
+}
+
+// Style words Typst trims off the end of a family name, plus the separators and modifiers it
+// allows before them. Copied from typographic_family() in typst-library's text/font/book.rs
+// (typst 0.14) — order matters, since the first matching suffix wins.
+const TRIM_SEPARATORS = [' ', '-', '_']
+const TRIM_MODIFIERS = ['extra', 'ext', 'ex', 'x', 'semi', 'sem', 'sm', 'demi', 'dem', 'ultra']
+const TRIM_SUFFIXES = [
+    'normal', 'italic', 'oblique', 'slanted',
+    'thin', 'th', 'hairline', 'light', 'lt', 'regular', 'medium', 'med',
+    'md', 'bold', 'bd', 'demi', 'extb', 'black', 'blk', 'bk', 'heavy',
+    'narrow', 'condensed', 'cond', 'cn', 'cd', 'compressed', 'expanded', 'exp',
+]
+
+// Port of Typst's typographic_family(): repeatedly trims separated style suffixes
+// ("Foo SemiBold" -> "Foo"). A suffix only goes when a separator precedes it, so
+// "Noto Sans Old Italic" becomes "Noto Sans Old" but "Noto Sans OldItalic" survives.
+function trim_style_suffixes(name:string):string {
+    const family = name.trim().replace(/^\.+/, '')
+    // ASCII-only lowercasing, as Rust's to_ascii_lowercase, so lengths line up with family
+    const lower = family.replace(/[A-Z]/g, c => c.toLowerCase())
+    let len = Infinity
+    let trimmed = lower
+
+    while (trimmed.length < len) {
+        len = trimmed.length
+
+        // Strip any run of style suffixes
+        let t = trimmed
+        let shortened = false
+        for (let suffix = TRIM_SUFFIXES.find(s => t.endsWith(s)); suffix;
+            suffix = TRIM_SUFFIXES.find(s => t.endsWith(s))) {
+            t = t.slice(0, -suffix.length)
+            shortened = true
+        }
+        if (!shortened)
+            break
+
+        // Only commit the trim when a separator precedes it
+        if (TRIM_SEPARATORS.includes(t.at(-1) ?? '')) {
+            t = t.slice(0, -1)
+            trimmed = t
+        }
+
+        // Also take a modifier ("Semi"Bold), but only when it's separated too
+        const modifier = TRIM_MODIFIERS.find(m => t.endsWith(m))
+        const rest = modifier ? t.slice(0, -modifier.length) : ''
+        if (modifier && TRIM_SEPARATORS.includes(rest.at(-1) ?? '')) {
+            trimmed = rest.slice(0, -1)
+        }
+    }
+    return family.slice(0, len)
+}
+
+// The family Typst itself files a font under — what `#text(font: ...)` must equal (Typst
+// compares case-insensitively) to reach it. This is NOT parse_font_family()'s answer: Typst
+// ignores the typographic family (ID 16) and takes the legacy family (ID 1) from the first
+// record it can decode, in table order, then trims style words off the end. Typst also keeps a
+// small exception table keyed by PostScript name for a few mislabelled fonts, not mirrored here.
+export function typst_family(data:Uint8Array):string | null {
+    const record = read_name_records(data).find(r => r.name_id === 1
+        && (r.platform_id === 0 || (r.platform_id === 3 && r.encoding_id <= 1)
+            || (r.platform_id === 1 && r.encoding_id === 0)))
+    return record ? trim_style_suffixes(record.value) : null
 }
 
 // Parse serif/sans classification from a font's OS/2 table — sFamilyClass first, then

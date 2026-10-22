@@ -580,7 +580,7 @@
             ]
         },
         {
-            "family": "Noto Sans Old Italic",
+            "family": "Noto Sans OldItalic",
             "files": [
                 "NotoSansOldItalic-Regular.otf"
             ]
@@ -1759,7 +1759,7 @@
             ]
         },
         {
-            "family": "Noto Sans Old Italic",
+            "family": "Noto Sans OldItalic",
             "files": [
                 "NotoSansOldItalic-Regular.otf"
             ]
@@ -2452,7 +2452,7 @@
             "serif": null
         },
         "Old_Italic": {
-            "sans": "Noto Sans Old Italic",
+            "sans": "Noto Sans OldItalic",
             "serif": null
         },
         "Old_North_Arabian": {

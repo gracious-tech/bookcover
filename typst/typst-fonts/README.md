@@ -74,6 +74,26 @@ Noto Serif/Sans base and curated files (the `_noto/` fallbacks are upstream CFF 
 already clean), runs over files already on disk as well as new ones, leaves clean files
 byte-for-byte untouched, and fails if any overlap survives the merge.
 
+### Family names
+
+Typst resolves `#text(font: "X")` against the family it reads from the font file itself, never
+from a manifest. That's name ID 1, the legacy family, not the typographic family (ID 16), with
+separated style words trimmed off the end ("Foo SemiBold" -> "Foo"). If a file's family differs
+from the one it's listed under, Typst can't reach it, and it only warns ("unknown font family")
+before substituting another font. Upstream files drift in a few ways: Google Fonts'
+optical-size cuts are named "Merriweather 24pt", and some Noto files abbreviate ID 1
+("Noto Sans EgyptHiero") or space it differently ("Noto Sans PhagsPa").
+
+So every download ends by renaming any file whose family is only a respelling of its listed one.
+That covers spacing, an optical-size suffix, or an ID 16 that already matches. The new name goes
+into the family, full-name and PostScript name records. No other byte changes, so already-correct
+files stay untouched. Then the download fails if any file is still unreachable, before
+`manifest.json` is written. To re-run that check on an existing tree, e.g. before publishing it:
+
+```bash
+npx typst-fonts-download --fonts ./fonts --check
+```
+
 ## Resolving fonts for rendering
 
 ```ts

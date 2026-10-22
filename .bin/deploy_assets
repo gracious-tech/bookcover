@@ -73,13 +73,29 @@ deploy_fonts(){
         return
     fi
 
+    # Refuse to publish a file Typst can't reach: it resolves a family by the name inside the
+    # file, never our manifests, and only warns before substituting another font. download_fonts
+    # ends with the same check; this catches a tree changed since.
+    local cli=typst/typst-fonts/dist/download/cli.js
+    if [ ! -f "$cli" ]; then
+        echo "typst-fonts isn't built — run .bin/build_typst-fonts first" >&2
+        exit 1
+    fi
+    node "$cli" --fonts assets/fonts --check
+
     # Font filenames carry no version or hash (NotoSerifSC-Bold.otf), and download_fonts
     # re-fetches from upstream, so bytes CAN change under a name — hence a day rather than
     # immutable. Content-addressing the filenames is the clean fix and would let this go to a
     # year. No compression here: these are already-compressed sfnt (the largest,
     # NotoSerifSC-Bold at 11.5MB, only reaches 86% under gzip and 75% under brotli).
+    #
+    # The excluded _noto/ dirs are names older typst-fonts releases still request, kept in the
+    # bucket (neither uploaded nor deleted) because their font fetch throws on a 404:
+    #   Noto Sans Old Italic — now Noto Sans OldItalic (typst-fonts 0.1.4), as Typst trims
+    #   " Italic" off family names and so could never resolve the old one
     aws s3 sync assets/fonts "s3://$BUCKET/fonts" \
         --delete --exclude 'manifest.json' \
+        --exclude '_noto/Noto Sans Old Italic/*' \
         --cache-control 'public, max-age=86400'
 
     # The manifest points at every other file here, so it needs to turn over faster than they
