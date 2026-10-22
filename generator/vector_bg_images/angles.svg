@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 1275 900"
+   version="1.1"
+   id="svg5"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs5" />
+  <g
+     id="facets">
+    <polygon
+       points="1275,900 1275,600 945,900"
+       fill="#6e79ac"
+       id="polygon1" />
+    <polygon
+       points="1275,600 1275,450 945,900 1050,900"
+       fill="#be89b3"
+       id="polygon2" />
+    <path
+       id="polygon3"
+       style="fill:#76538e"
+       d="M 1050,900 1275,450 701.54278,944.16789 Z" />
+  </g>
+  <g
+     transform="matrix(-1,0,0,1,1275,0)"
+     id="g5">
+    <path
+       id="polygon4"
+       style="fill:#be89b3"
+       d="m 1275,450 -330,450 393.8606,45.13448 z" />
+    <path
+       id="polygon5"
+       style="fill:#76538e"
+       d="M 1050,900 1275,450 892.61206,932.13203 Z" />
+  </g>
+</svg>

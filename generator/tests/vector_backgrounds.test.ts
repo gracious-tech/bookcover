@@ -6,7 +6,8 @@
 import {createHash} from 'node:crypto'
 import {describe, it, expect} from 'vitest'
 import {list_vector_backgrounds, find_vector_background, load_vector_background_svg, recolor_vector_svg,
-    PLACEHOLDER_COLORS, RETIRED_VECTOR_BACKGROUNDS, slot_tones} from '../src/vector_backgrounds.js'
+    PLACEHOLDER_COLORS, RENAMED_VECTOR_BACKGROUNDS, RETIRED_VECTOR_BACKGROUNDS, slot_tones}
+    from '../src/vector_backgrounds.js'
 import {VECTOR_BG_IDS} from '../src/generated/vector_bg_images_data.js'
 
 // Every design's source SVG, keyed by id — each is lazy-loaded on its own, so load them all here
@@ -95,6 +96,12 @@ describe('superseded vector backgrounds', () => {
         for (const id of RETIRED_VECTOR_BACKGROUNDS) {
             expect(VECTOR_BG_IMAGE_SVGS, id).toHaveProperty(id)
             expect(listed, id).not.toContain(id)
+        }
+    })
+
+    it('renames each retired design to one the picker offers', () => {
+        for (const [old_id, new_id] of Object.entries(RENAMED_VECTOR_BACKGROUNDS)) {
+            expect(listed, old_id).toContain(new_id)
         }
     })
 

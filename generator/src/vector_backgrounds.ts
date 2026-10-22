@@ -98,9 +98,34 @@ const ALL_VECTOR_BACKGROUNDS:VectorBackgroundDef[] = VECTOR_BG_IDS.map(id => ({
     scheme: DEFAULT_SCHEME,
 }))
 
-// Designs dropped from pickers with no replacement. Their files stay, so stored covers naming
-// them still render; deleting one instead would break those covers
-export const RETIRED_VECTOR_BACKGROUNDS = ['plus-marks-scatter', 'broken-frame', 'grid-dots', 'feathers']
+// Published designs whose successor lives under a new, plainer name, mapped to that name. The
+// old id is retired rather than superseded, since a version suffix can't bridge two names
+export const RENAMED_VECTOR_BACKGROUNDS:Record<string, string> = {
+    'arch-doorway': 'doorway',
+    'aurora-ribbons': 'ribbons',
+    'big-leaf-cluster': 'big-leaves',
+    'checkerboard-diamond': 'diamond-band',
+    'chevron-stack': 'stripes',
+    'coin-stacks': 'money',
+    'confetti-triangles': 'confetti',
+    'facet-corner': 'angles',
+    'kite-trio': 'kites',
+    'labyrinth-lines': 'labyrinth',
+    'lighthouse-beacon': 'lighthouse',
+    'orbit-rings': 'solar-system',
+    'sailboat-silhouette': 'boat',
+    'stacked-bars': 'horizontal-bars',
+    'staircase': 'vertical-bars',
+    'star-scatter': 'shining-stars',
+    'teardrop-cluster': 'falling-leaves',
+}
+
+// Designs dropped from pickers, outright or in favour of a renamed successor. Their files stay,
+// so stored covers naming them still render; deleting one instead would break those covers
+export const RETIRED_VECTOR_BACKGROUNDS = [
+    'plus-marks-scatter', 'broken-frame', 'grid-dots', 'feathers',
+    ...Object.keys(RENAMED_VECTOR_BACKGROUNDS),
+]
 
 // Each design's newest version, keyed by base name, retired designs left out
 const newest = new Map<string, string>()
