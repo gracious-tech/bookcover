@@ -121,6 +121,7 @@ div(class="flex flex-col gap-1")
                         type="button"
                         class="aspect-4/3 rounded border-2 overflow-hidden cursor-pointer touch-manipulation transition-transform duration-100 hover:scale-[1.05]"
                         :class="form.bg_image_builtin === bg ? 'border-(--ui-text)' : 'border-transparent'"
+                        :data-bg-builtin="bg"
                         @mouseenter="prefetch_bg(bg)"
                         @mouseleave="cancel_prefetch_bg()"
                         @click="select_suggested_bg(bg)"
@@ -162,6 +163,7 @@ div(class="flex flex-col gap-1")
                                 class="w-[24px] h-[24px] rounded-full border-2 p-0 cursor-pointer shrink-0 transition-transform duration-100 hover:scale-[1.15] outline-offset-2 border-[#666666] dark:border-[#999999]"
                                 :class="form.bg_color === swatch.value ? 'outline-2 outline-solid outline-(--ui-text)' : ''"
                                 :style="{background: swatch.display}"
+                                :data-swatch="swatch.value"
                                 @click="form.bg_color = swatch.value"
                             )
 
@@ -317,6 +319,7 @@ div(class="flex flex-col gap-1")
                     class="w-[24px] h-[24px] rounded-full border-2 p-0 cursor-pointer shrink-0 transition-transform duration-100 hover:scale-[1.15] outline-offset-2 border-[#666666] dark:border-[#999999]"
                     :class="form.bg_color === swatch.value ? 'outline-2 outline-solid outline-(--ui-text)' : ''"
                     :style="{background: swatch.display}"
+                    :data-swatch="swatch.value"
                     @click="form.bg_color = swatch.value"
                 )
 

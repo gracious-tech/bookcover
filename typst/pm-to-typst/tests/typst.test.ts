@@ -167,4 +167,14 @@ describe('unknown node types', () => {
     it('renders an empty document with no content array', () => {
         expect(pm_to_typst({type: 'doc'})).toBe('')
     })
+
+    it('falls back for a node with no type at all', () => {
+        expect(pm_to_typst(doc({content: [text('untyped')]}))).toBe('untyped')
+    })
+
+    it('renders a stray list item outside its list as its blocks', () => {
+        // Normally render_list() walks items itself; a bare listItem still keeps its text
+        expect(pm_to_typst(doc(node('listItem', para(text('a')), para(text('b'))))))
+            .toBe('a\n\nb')
+    })
 })

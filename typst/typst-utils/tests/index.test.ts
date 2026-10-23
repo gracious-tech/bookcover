@@ -1,12 +1,29 @@
 
 import {describe, it, expect} from 'vitest'
 
-import {escape_typst, escape_typst_postfix, typst_inline} from '../src/index.js'
+import {escape_typst, escape_typst_str, escape_typst_postfix, typst_inline} from '../src/index.js'
+
+// escape_typst_str: only backslashes and double quotes need escaping inside a string literal
+describe('escape_typst_str', () => {
+    it('escapes backslashes before quotes, so an escaped quote stays escaped', () => {
+        expect(escape_typst_str('say "hi" \\ bye')).toBe('say \\"hi\\" \\\\ bye')
+    })
+    it('leaves markup characters alone, since a string literal has no markup', () => {
+        expect(escape_typst_str('#[*_]$')).toBe('#[*_]$')
+    })
+})
 
 // escape_typst: line-start heading marker is now escaped
 describe('escape_typst', () => {
     it('escapes a line-start heading marker', () => {
         expect(escape_typst('= not a heading')).toBe('\\= not a heading')
+    })
+    it('escapes every content-mode special character', () => {
+        const specials = [...'\\#[]$*_`<>@~/+-=']
+        expect(escape_typst(specials.join(''))).toBe(specials.map(c => '\\' + c).join(''))
+    })
+    it('leaves plain text and punctuation Typst ignores untouched', () => {
+        expect(escape_typst('Hello, world! (1.0) "quoted"')).toBe('Hello, world! (1.0) "quoted"')
     })
 })
 

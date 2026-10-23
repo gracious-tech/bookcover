@@ -6,10 +6,11 @@
 // up here as a diff. A DELIBERATE change to one is a RENDER_VERSION bump (see defaults.ts) —
 // update the snapshot and bump the version together.
 
-import {describe, it, expect, beforeAll} from 'vitest'
+import {describe, it, expect, beforeAll, vi} from 'vitest'
 
-import {build} from '../src/index.js'
-import {make_schema, init_test_fonts} from './helpers.js'
+import {build, resolve_colors} from '../src/index.js'
+import type {FrameImageFn} from '../src/frame.js'
+import {make_schema, make_dims, init_test_fonts} from './helpers.js'
 import type {CoverSchema} from '../src/schema.js'
 
 const decoder = new TextDecoder()
@@ -305,5 +306,97 @@ describe('build derivations', () => {
         const width = parseFloat(binding(data, 'blurb_width')!)
         const content = parseFloat(binding(data, 'back_content_w')!)
         expect(width).toBeLessThanOrEqual(content)
+    })
+})
+
+
+describe('build background processing', () => {
+
+    // A stand-in JPEG and the PNG a frame function hands back for it
+    const JPEG = {data: new Uint8Array([0xff, 0xd8, 0xff]), ext: '.jpg'}
+    const FRAMED = new Uint8Array([0x89, 0x50, 0x4e, 0x47])
+    const FRAME_DATA = new Blob(['frame'])
+
+    /** A frame function that records its inputs and returns FRAMED as a PNG */
+    function make_frame_fn() {
+        return vi.fn<FrameImageFn>(async () => new Blob([FRAMED], {type: 'image/png'}))
+    }
+
+    it('frames a painted background, at 300 DPI over the painted area', async () => {
+        const frame_fn = make_frame_fn()
+        const schema = make_schema({bg_image_coverage: 'painted'})
+        const {files} = await build(schema, JPEG, frame_fn, FRAME_DATA)
+        expect(frame_fn).toHaveBeenCalledTimes(1)
+        const [src, frame, bg, width, height] = frame_fn.mock.calls[0]
+        expect(src.type).toBe('image/jpeg')
+        expect(new Uint8Array(await src.arrayBuffer())).toEqual(JPEG.data)
+        expect(frame).toBe(FRAME_DATA)
+        expect(bg).toBe(resolve_colors(schema, undefined).front_background)
+        // 15mm margins either side, and half the face's height (see cover.typ painted_h)
+        const dims = make_dims()
+        expect(width).toBe(Math.round((dims.cover_face_width.toNumber() - 30) / 25.4 * 300))
+        expect(height).toBe(Math.round(dims.cover_face_height.toNumber() * 0.5 / 25.4 * 300))
+        // The framed PNG replaces the original
+        expect(files.get('background.png')).toEqual(FRAMED)
+        expect(files.has('background.jpg')).toBe(false)
+    })
+
+    it('passes a PNG source to the frame function as a PNG', async () => {
+        const frame_fn = make_frame_fn()
+        const png = {data: FRAMED, ext: '.png'}
+        await build(make_schema({bg_image_coverage: 'painted'}), png, frame_fn, FRAME_DATA)
+        expect(frame_fn.mock.calls[0][0].type).toBe('image/png')
+    })
+
+    it('embeds a painted background unframed when no frame function is injected', async () => {
+        const {files} = await build(make_schema({bg_image_coverage: 'painted'}), JPEG)
+        expect(files.get('background.jpg')).toEqual(JPEG.data)
+    })
+
+    it('only frames the painted coverage', async () => {
+        const frame_fn = make_frame_fn()
+        const {files} = await build(make_schema({bg_image_coverage: 'full'}), JPEG, frame_fn, FRAME_DATA)
+        expect(frame_fn).not.toHaveBeenCalled()
+        expect(files.get('background.jpg')).toEqual(JPEG.data)
+    })
+
+    it('never frames a generated vector background', async () => {
+        const frame_fn = make_frame_fn()
+        const schema = make_schema({bg_image_coverage: 'painted', bg_vector_id: 'big-leaf-cluster'})
+        const {files} = await build(schema, undefined, frame_fn, FRAME_DATA)
+        expect(frame_fn).not.toHaveBeenCalled()
+        expect(files.has('background.svg')).toBe(true)
+    })
+
+    it('prefers a supplied photo over a vector background id', async () => {
+        const {files} = await build(make_schema({bg_vector_id: 'big-leaf-cluster'}), JPEG)
+        expect(files.has('background.svg')).toBe(false)
+        expect(files.get('background.jpg')).toEqual(JPEG.data)
+    })
+
+    it('tiles a raw SVG pattern, taking its aspect ratio from its own size', async () => {
+        const pattern = '<svg width="20" height="10"><path fill="currentColor"/></svg>'
+        const {files} = await build(make_schema({pattern, pattern_tile_mm: 40,
+            pattern_color: 'hsl(10deg, 50%, 50%)'}))
+        expect(decoder.decode(files.get('pattern.svg'))).toContain('fill="hsl(10, 50%, 50%)"')
+        const data = decoder.decode(files.get('_data.typ'))
+        expect(binding(data, 'pattern_tile_w')).toBe('40.0000mm')
+        expect(binding(data, 'pattern_tile_h')).toBe('20.0000mm')
+    })
+
+    it('treats a raw SVG pattern with no size as square', async () => {
+        const {files} = await build(make_schema({pattern: '<svg><path/></svg>', pattern_tile_mm: 30}))
+        const data = decoder.decode(files.get('_data.typ'))
+        expect(binding(data, 'pattern_tile_h')).toBe('30.0000mm')
+    })
+})
+
+
+describe('build print options', () => {
+
+    it('turns on the home-print margin only when asked', async () => {
+        expect(binding(await build_data(make_schema()), 'home_print')).toBe('false')
+        expect(binding(await build_data(make_schema({home_print_margin: true})), 'home_print'))
+            .toBe('true')
     })
 })

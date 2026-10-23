@@ -33,7 +33,8 @@
     ],
     "scripts": {
         "build": "tsc",
-        "dev": "tsc --watch"
+        "dev": "tsc --watch",
+        "test": "vitest run"
     },
     "dependencies": {
         "@myriaddreamin/typst-ts-renderer": "0.7.0",

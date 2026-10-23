@@ -12,6 +12,7 @@ import os from 'node:os'
 import path from 'node:path'
 import {execFile} from 'node:child_process'
 import {promisify} from 'node:util'
+import sharp from 'sharp'
 
 import {generate} from '../src/index.js'
 import {resolve_dimensions, calculate_pixel_crop_regions, build, build_schema, cover_schema,
@@ -244,10 +245,42 @@ describe.skipIf(!have_typst || !have_fonts)('splitting a rendered cover', () => 
             }
         })
 
-    it('leaves a PDF unsplit into separate panel files', {timeout: RENDER_TIMEOUT}, async () => {
-        // PDF panels are one file per panel with a CropBox, written alongside the full cover
-        const result = await render('split.pdf', {split: true})
-        expect(fsSync.existsSync(result.output_path)).toBe(true)
+    it('writes a CropBox-cropped PDF per panel beside the full cover',
+        {timeout: RENDER_TIMEOUT}, async () => {
+            const result = await render('split.pdf', {split: true})
+            expect(fsSync.existsSync(result.output_path)).toBe(true)
+            const {front, back, spine} = result.split_paths!
+            expect([front, back, spine]).toEqual(['front', 'back', 'spine']
+                .map(label => path.join(work_dir, `split_${label}.pdf`)))
+            for (const file of [front, back, spine!]) {
+                const pdf = await fs.readFile(file, 'latin1')
+                expect(pdf.startsWith('%PDF-'), file).toBe(true)
+                expect(pdf, file).toContain('/CropBox')
+            }
+        })
+
+    it('leaves out the spine panel for a cover without a spine', {timeout: RENDER_TIMEOUT},
+        async () => {
+            // A saddle-stitched booklet has no spine for a panel to come from
+            const schema = {...SCHEMA, service_id: 'lulu', binding_type: 'paperback_stitch',
+                size_id: 'digest', page_count: 32, ink_type: 'bw', paper_type: 'white'}
+            const result = await render('nospine.svg', {schema, format: 'svg', split: true})
+            expect(result.split_paths?.spine).toBeUndefined()
+            expect(fsSync.existsSync(path.join(work_dir, 'nospine_spine.svg'))).toBe(false)
+        })
+})
+
+
+describe.skipIf(!have_typst || !have_fonts)('rendering a background image', () => {
+
+    it('embeds a background.png found in the input dir', {timeout: RENDER_TIMEOUT}, async () => {
+        const input_path = path.join(work_dir, 'input_with_image')
+        await fs.mkdir(input_path, {recursive: true})
+        const png = await sharp({create: {width: 64, height: 96, channels: 3,
+            background: {r: 200, g: 40, b: 40}}}).png().toBuffer()
+        await fs.writeFile(path.join(input_path, 'background.png'), png)
+        const result = await render('with_image.svg', {format: 'svg', input_path})
+        expect(await fs.readFile(result.output_path, 'utf8')).toContain('data:image/png;base64,')
     })
 })
 
