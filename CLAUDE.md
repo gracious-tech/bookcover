@@ -202,8 +202,9 @@ format) only show up there; that build loads fonts and the typst wasm from
 Extra arguments pass through to `playwright test` (e.g. `-g thumbnail`); with a build already in
 place, `cd widget && npx playwright test` skips the rebuild. Tests wait for the preview pane's
 `data-preview-state="ready"` rather than timing, and find elements by role/label or a
-`data-*` attribute (e.g. the vector picker's `data-vector-id`). It isn't part of `.bin/test`
-or CI.
+`data-*` attribute (e.g. the vector picker's `data-vector-id`). It isn't part of `.bin/test`,
+but CI runs both before every deploy (see Deployment). The Vue components have no unit tests —
+these browser tests are their only coverage, so UI changes need a spec here.
 
 `.bin/test_examples` is the separate manual check: it builds `generator` and `generator-node`,
 then generates PDF/SVG/PNG files in the project root from a sample schema for visual
@@ -244,8 +245,11 @@ AWS keys in repository secrets. The role ARN goes in the `AWS_DEPLOY_ROLE` repos
 
 What deploys when follows straight from what's in git:
 
-- `.github/workflows/deploy.yml` runs on push to main and deploys the widget, the site and
-  `deploy_assets static` — the committed part of the tree. This is what keeps a newly added
+- `.github/workflows/test.yml` runs `.bin/test` and `.bin/test_e2e` on pull requests, and
+  `deploy.yml` calls it first, so a failing unit or browser test blocks the deploy. CI has no
+  fonts tree or typst CLI, so the suites that need them skip themselves there.
+- `.github/workflows/deploy.yml` runs on push to main and, once the tests pass, deploys the
+  widget, the site and `deploy_assets static` — the committed part of the tree. This is what keeps a newly added
   background from shipping in the widget before it exists in the bucket. The widget goes
   first so the site never points its iframe at a build that isn't live.
 - `.github/workflows/deploy_assets.yml` is `workflow_dispatch` only, for the `fonts` and

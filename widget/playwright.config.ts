@@ -14,6 +14,11 @@ export default defineConfig({
     timeout: 120_000,
     expect: {timeout: 90_000},
     fullyParallel: true,
+    // In CI (where these gate deploys, see .github/workflows/test.yml) a stray test.only fails
+    // the run, and one retry absorbs a network blip on the assets bucket. Playwright still
+    // reports a test that only passed on retry as flaky
+    forbidOnly: !!process.env['CI'],
+    retries: process.env['CI'] ? 1 : 0,
     reporter: 'list',
     use: {
         baseURL: `http://localhost:${PORT}`,

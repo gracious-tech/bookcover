@@ -1,0 +1,43 @@
+name: Test
+
+# Every package's unit suite (.bin/test) plus the widget's Playwright browser tests against the
+# production build (.bin/test_e2e). Runs on pull requests, and deploy.yml calls it so nothing
+# deploys unless both pass.
+#
+# Neither the fonts tree nor the typst CLI is in the checkout, so generator-node's render suite
+# and the few browser tests that upload a real font skip themselves here. The browser tests do
+# need network: a production build loads fonts and the typst wasm from assets.paper.bible.
+
+on:
+    pull_request:
+    workflow_call:
+
+permissions:
+    contents: read
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+
+            - name: Setup Node
+              uses: actions/setup-node@v5
+              with:
+                  node-version: '25'
+                  cache: npm
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Unit tests
+              run: .bin/test
+
+            # With its system libraries, which test_e2e's own install step doesn't fetch
+            - name: Install Playwright Chromium
+              working-directory: widget
+              run: npx playwright install --with-deps chromium
+
+            - name: Browser tests
+              run: .bin/test_e2e

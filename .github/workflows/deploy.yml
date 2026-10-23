@@ -24,7 +24,12 @@ env:
     STACK: paper-cover
 
 jobs:
+    # Unit and browser tests (test.yml); a failure stops the deploy
+    test:
+        uses: ./.github/workflows/test.yml
+
     deploy:
+        needs: test
         runs-on: ubuntu-latest
         steps:
             - name: Checkout
