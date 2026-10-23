@@ -3,6 +3,12 @@
 // InitMessage in reply to the widget's 'ready' message; the widget reports edits back with
 // WidgetMessage, and may send further HostMessages afterwards.
 //
+// The widget waits 300ms for the InitMessage before mounting with its demo cover, so a host
+// that never sends one still gets a working editor. A later InitMessage is still applied in full
+// (preset, background, fonts, config, locale), replacing the demo cover, so a host should answer
+// promptly but loses nothing when it can't. Until the InitMessage arrives the widget sends
+// nothing but 'ready' and error reports: no 'data' from the demo cover ever reaches a host.
+//
 // Binaries are never part of the stored record. The background image and custom font bytes
 // travel as separate structured-clone fields beside the pure-JSON form values, so hosts persist
 // `data` as-is (e.g. to Firestore) and own the storage and identity of the binaries themselves.

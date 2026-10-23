@@ -6,8 +6,8 @@
 // bytes ride as structured-clone fields beside the pure-JSON form values — see WidgetMessage's
 // doc comment for the send policy.
 
-import {ref, watch, toRaw} from 'vue'
-import {warn_unknown} from 'bookcover-web'
+import {ref, watch, toRaw, nextTick} from 'vue'
+import {warn_unknown, make_blank_form_values} from 'bookcover-web'
 import type {EmbedFormState, HostMessage, WidgetMessage, BgSuggestion} from 'bookcover-web'
 import type {CustomFont} from 'typst-fonts'
 import type {FormState} from './form_state'
@@ -15,6 +15,7 @@ import {add_custom_fonts, custom_font_families} from './fonts'
 import {adopt_bg_image, is_builtin_bg} from './services/backgrounds'
 import {debounce} from './svg_utils'
 import {set_error_report_origin} from './error_report'
+import {resolve_initial_locale} from './i18n'
 
 // Swaps the primary export button into a "Finished" signal instead of a PDF download
 export const finished_mode = ref(false)
@@ -47,8 +48,12 @@ let pending_fonts:CustomFont[] | undefined
 // The live form, captured by init_embed so messages arriving after mount can act on it
 let current_form:FormState | null = null
 
-/** Post a message to the parent frame, once its origin is known (falls back to '*' for 'ready') */
+/** Post a message to the parent frame, once its origin is known. Only 'ready' goes out before
+ *  that (to '*'): anything else would describe the demo cover the widget mounts with when no
+ *  init has arrived yet, which a host could mistake for the user's edits to its own record */
 function post(msg:WidgetMessage):void {
+    if (parent_origin === null && msg.type !== 'ready')
+        return
     window.parent.postMessage(msg, parent_origin ?? '*')
 }
 
@@ -166,6 +171,14 @@ let baseline_bg:File | null = null
 let baseline_builtin:string | null = null
 let baseline_fonts:CustomFont[] = []
 
+/** Snapshot the post-preset state as the Finished button's "no edits yet" baseline */
+function set_baseline(form:FormState):void {
+    baseline_json = JSON.stringify(serialize_form(form))
+    baseline_bg = form.bg_image
+    baseline_builtin = form.bg_image_builtin
+    baseline_fonts = raw_fonts()
+}
+
 /** Whether the user has edited anything since the parent's preset was applied */
 export function is_form_dirty(form:FormState):boolean {
     if (baseline_json === null)
@@ -243,6 +256,40 @@ function on_init(msg:Extract<HostMessage, {type: 'init'}>):void {
     if (msg.preset || msg.bg_image !== undefined || msg.bg_image_builtin) embed_seeded.value = true
 }
 
+/** Catch up with an 'init' that arrived after wait_for_embed_init's fallback let the app mount.
+ *  A busy host page or a slow device can answer 'ready' that late, and dropping its preset would
+ *  show the demo cover in place of the host's record. main.ts resolved the locale without it,
+ *  so that's applied here; the form values are applied here only if init_embed has already run
+ *  — before then, init_embed applies them itself, exactly as for a timely init */
+async function on_late_init(msg:Extract<HostMessage, {type: 'init'}>):Promise<void> {
+    // Its catalog may need fetching, which the form values below needn't wait for
+    if (msg.locale !== undefined)
+        void resolve_initial_locale(msg.locale)
+    if (!current_form)
+        return
+    const form = current_form
+
+    // A seeded form starts from the blank base, not the demo one (see App.vue)
+    if (embed_seeded.value)
+        Object.assign(form, make_blank_form_values())
+    apply_preset(form)
+
+    // The app's watchers are live now, unlike for a timely init, and some react to the preset
+    // by overwriting other preset fields (SizeSection resets the size when service_id changes).
+    // Let them run, then reassert the preset; what they do then only resets invalid values
+    await nextTick()
+    if (pending_preset)
+        Object.assign(form, pending_preset)
+    await nextTick()
+
+    // The preset is the host's own record, so it's the new baseline and isn't echoed back
+    set_baseline(form)
+    last_sent_json = baseline_json
+    last_sent_bg = baseline_bg
+    last_sent_builtin = baseline_builtin
+    last_sent_fonts = baseline_fonts
+}
+
 /** Wait for the parent's 'init' message before the app mounts, so form fields set by a preset
  *  are never clobbered by child-component watchers (e.g. SizeSection resetting dependent size
  *  fields) that would already be live if the app mounted first. Falls back to a short timeout
@@ -275,6 +322,9 @@ export function wait_for_embed_init():Promise<void> {
                 parent_origin = event.origin
                 set_error_report_origin(event.origin)
                 on_init(msg)
+                // Past the fallback the app is already mounting, so it has to catch up
+                if (done)
+                    void on_late_init(msg)
                 finish()
                 return
             }
@@ -303,12 +353,7 @@ export function init_embed(form:FormState):void {
     current_form = form
 
     apply_preset(form)
-
-    // Snapshot the post-preset state as the Finished button's "no edits yet" baseline
-    baseline_json = JSON.stringify(serialize_form(form))
-    baseline_bg = form.bg_image
-    baseline_builtin = form.bg_image_builtin
-    baseline_fonts = raw_fonts()
+    set_baseline(form)
 
     // Live change notifications, deduped so unrelated re-renders don't spam the parent.
     // Font bytes are expensive to structured-clone, so they're only included when changed

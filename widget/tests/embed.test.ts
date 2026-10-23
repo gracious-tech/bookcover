@@ -1,6 +1,6 @@
 
 import {describe, it, expect, vi, beforeEach, afterEach} from 'vitest'
-import {nextTick} from 'vue'
+import {nextTick, watch} from 'vue'
 import type {CustomFont} from 'typst-fonts'
 import type {FormState} from '../src/form_state'
 
@@ -9,6 +9,10 @@ vi.mock('../src/assets', () => ({assets_prefix: 'https://assets.test/'}))
 
 // Preview @font-face registration needs a DOM; the font store itself is what's under test
 vi.mock('typst-fonts/web', () => ({register_custom_font_preview: vi.fn(async () => {})}))
+
+// Switching locale loads catalogs and touches <html>; only whether a late init asks for it matters
+const {resolve_initial_locale} = vi.hoisted(() => ({resolve_initial_locale: vi.fn(async () => {})}))
+vi.mock('../src/i18n', () => ({resolve_initial_locale}))
 
 // The origin the stand-in host sends from
 const HOST = 'https://host.example'
@@ -40,8 +44,8 @@ async function load(standalone = false){
     const embed = await import('../src/embed')
     const fonts = await import('../src/fonts')
     const backgrounds = await import('../src/services/backgrounds')
-    const {make_blank_form} = await import('../src/form_state')
-    return {...embed, ...fonts, ...backgrounds, make_blank_form}
+    const {make_blank_form, make_form} = await import('../src/form_state')
+    return {...embed, ...fonts, ...backgrounds, make_blank_form, make_form}
 }
 
 /** Deliver a message to the widget as if posted by `source` from `origin` */
@@ -516,5 +520,108 @@ describe('background suggestions', () => {
         select_bg_suggestion('s1')
         send({type: 'bg_suggestion_resolved', id: 's1', bg_image: new File([], 'x.jpg')})
         expect(failed_suggestion_id.value).toBe('s1')
+    })
+})
+
+
+describe('an init that arrives after the 300ms fallback', () => {
+
+    /** Load, let the fallback mount the app with no init yet, and start init_embed on the form
+     *  App.vue would have made then (the demo one) */
+    async function mount_without_init(){
+        const loaded = await load()
+        const waiting = loaded.wait_for_embed_init()
+        vi.advanceTimersByTime(300)
+        await waiting
+        const form = loaded.make_form()
+        loaded.init_embed(form)
+        return {...loaded, form}
+    }
+
+    /** Let on_late_init's awaits and the watchers between them all run */
+    async function settle():Promise<void> {
+        for (let i = 0; i < 5; i++)
+            await nextTick()
+    }
+
+    it('sends the host nothing but ready while no init has arrived', async () => {
+        const {form} = await mount_without_init()
+        form.title1 = 'Demo edit'
+        await flush_changes()
+        expect(posted.map(p => p.msg.type)).toEqual(['ready'])
+    })
+
+    it('replaces the demo cover with the preset, on the blank base', async () => {
+        const {form, embed_seeded, is_form_dirty} = await mount_without_init()
+        send({type: 'init', preset: {title1: 'Host title'}})
+        await settle()
+        expect(embed_seeded.value).toBe(true)
+        expect(form.title1).toBe('Host title')
+        // Demo-only values are gone, as they would be on a timely seeded init
+        expect(form.title2).toBe('')
+        expect(form.bg_vector_id).toBeNull()
+        // The host's own record is the baseline, and isn't echoed back to it
+        expect(is_form_dirty(form)).toBe(false)
+        await flush_changes()
+        expect(posted_of('data')).toEqual([])
+    })
+
+    it('reasserts preset fields a live watcher overwrote in reaction to the preset', async () => {
+        const {form} = await mount_without_init()
+        // Stand-in for SizeSection, which resets the size whenever the service changes
+        watch(() => form.service_id, () => { form.size_id = 'reset_by_watcher' })
+        send({type: 'init', preset: {service_id: 'kdp', size_id: 'host_size'}})
+        await settle()
+        expect(form.service_id).toBe('kdp')
+        expect(form.size_id).toBe('host_size')
+    })
+
+    it('applies a background sent beside the preset', async () => {
+        const {form} = await mount_without_init()
+        send({type: 'init', preset: {title1: 'T'}, bg_image_builtin: 'beach.jpg', bg_image: null})
+        await settle()
+        expect(form.bg_image_builtin).toBe('beach.jpg')
+        expect(form.bg_image).toBeNull()
+    })
+
+    it('keeps the demo cover for an init that seeds nothing', async () => {
+        const {form, embed_seeded} = await mount_without_init()
+        send({type: 'init', finished_mode: true})
+        await settle()
+        expect(embed_seeded.value).toBe(false)
+        expect(form.title2).toBe('Book Cover')
+    })
+
+    it('switches to the locale the late init names', async () => {
+        resolve_initial_locale.mockClear()
+        await mount_without_init()
+        send({type: 'init', locale: 'de'})
+        await settle()
+        expect(resolve_initial_locale).toHaveBeenCalledWith('de')
+    })
+
+    it('reports edits after it, to the host origin', async () => {
+        const {form} = await mount_without_init()
+        send({type: 'init', preset: {title1: 'Host title'}})
+        await settle()
+        form.title1 = 'User edit'
+        await flush_changes()
+        const data = posted_of('data')
+        expect(data).toHaveLength(1)
+        expect(data[0]!.origin).toBe(HOST)
+        expect((data[0]!.msg['data'] as FormState).title1).toBe('User edit')
+    })
+
+    it('is applied by init_embed as usual if it beats the app setup', async () => {
+        const {wait_for_embed_init, init_embed, make_blank_form, embed_seeded} = await load()
+        const waiting = wait_for_embed_init()
+        vi.advanceTimersByTime(300)
+        await waiting
+        // Arrives while main.ts is still resolving the locale, before App.vue's setup
+        send({type: 'init', preset: {title1: 'Host title'}})
+        expect(embed_seeded.value).toBe(true)
+        const form = make_blank_form()
+        init_embed(form)
+        expect(form.title1).toBe('Host title')
     })
 })

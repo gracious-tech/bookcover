@@ -27,6 +27,8 @@ interface HostConfig {
     seed_font?:{family:string, style:'serif' | 'sans'}
     // How to answer 'bg_suggestion_selected': with /fixture.jpg, with null, or not at all
     resolve?:'file' | 'null' | 'never'
+    // Answer 'ready' only after this long, as a busy host page or slow device would
+    init_delay_ms?:number
 }
 
 /** A message as the host recorded it — Files and byte arrays reduced to comparable summaries */
@@ -36,7 +38,8 @@ interface Received {
 }
 
 /** The host page: builds its InitMessage (Files included) BEFORE creating the iframe, so the init
- *  can be answered synchronously and always beats the widget's 300ms no-init fallback */
+ *  can be answered at once (or after `init_delay_ms`, to test an init that misses the widget's
+ *  300ms no-init fallback) */
 function host_html(config:HostConfig):string {
     return `<!doctype html>
 <html><head><meta charset="utf-8"><title>Host</title>
@@ -77,7 +80,10 @@ window.addEventListener('message', async event => {
     if (event.source !== frame.contentWindow) return
     const msg = event.data
     window.received.push({origin: event.origin, msg: summarise(msg)})
-    if (msg.type === 'ready') window.post(init)
+    if (msg.type === 'ready' && CONFIG.init_delay_ms)
+        setTimeout(() => window.post(init), CONFIG.init_delay_ms)
+    else if (msg.type === 'ready')
+        window.post(init)
     if (msg.type === 'bg_suggestion_selected' && CONFIG.resolve === 'file')
         window.post({type: 'bg_suggestion_resolved', id: msg.id,
             bg_image: await fixture('fixture.jpg', 'image/jpeg')})
@@ -343,4 +349,22 @@ test('a blank embedded blurb never loads the editor stack', async ({page}) => {
     const frame = await open_host(page, {init: {preset: {title1: 'Blank blurb'}}})
     await wait_ready(frame)
     expect([...log.chunks].filter(chunk => chunk.startsWith('BlurbEditorModal'))).toEqual([])
+})
+
+test('an init that misses the 300ms fallback still seeds the form', async ({page}) => {
+    // The widget mounts with the demo cover first, and its size watchers are live by then
+    const frame = await open_host(page, {init_delay_ms: 1500, init: {
+        preset: {title1: 'Late Title', service_id: 'kdp', size_id: 'digest'},
+    }})
+    await expect(frame.getByPlaceholder('Line 1…')).toHaveValue('Late Title')
+    await wait_ready(frame)
+    // Nothing describing the demo cover reached the host, and the preset isn't echoed back
+    expect(await received(page, 'data')).toEqual([])
+
+    // The first edit reports the preset on the blank base, its size intact despite the
+    // service change that makes SizeSection reset the size
+    await frame.getByPlaceholder('Line 1…').fill('Late Title Edited')
+    const data = (await next_message(page, 'data'))['data'] as Record<string, unknown>
+    expect(data).toMatchObject({title1: 'Late Title Edited', title2: '', service_id: 'kdp',
+        size_id: 'digest'})
 })
