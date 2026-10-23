@@ -99,10 +99,11 @@ div(class="flex flex-col gap-1")
             class="cursor-pointer flex-1 rounded-md border border-default px-3 py-2 text-[13px] leading-relaxed hover:border-accented transition-colors select-none bg-default"
             role="button"
             :aria-label="t('content.blurb_edit_aria')"
-            @click="is_blurb_open = true"
+            @pointerenter="load_blurb_editor()"
+            @click="open_blurb_editor()"
         )
             div(
-                v-if="form.blurb"
+                v-if="blurb_plain.trim()"
                 class="line-clamp-4 text-default [&_strong]:font-bold [&_em]:italic [&_h1]:text-[15px] [&_h1]:font-bold [&_h2]:text-[14px] [&_h2]:font-bold [&_:where(p,h1,h2,ul,ol,blockquote)]:m-0 [&_ul]:list-disc [&_ol]:list-decimal [&_:where(ul,ol)]:ps-4 [&_blockquote]:ps-2 [&_blockquote]:border-s-2 [&_blockquote]:border-default [&_hr]:my-1 [&_:where(p,h1,h2)]:[unicode-bidi:plaintext]"
                 v-html="blurb_preview_html"
             )
@@ -126,7 +127,8 @@ div(class="flex flex-col gap-1")
                     :preview_text="blurb_plain"
                 )
 
-BlurbEditorModal(v-model:open="is_blurb_open")
+//- Mounted on first open only, so the Tiptap stack never loads for a cover that's never edited
+BlurbEditorModal(v-if="blurb_editor_mounted" v-model:open="is_blurb_open")
 
 </template>
 
@@ -143,7 +145,8 @@ import {render_blurb_html} from '../../blurb_html'
 import {coloris_popover_content} from '../../coloris'
 // Loaded on demand — the editor pulls in the whole Tiptap stack, which nothing needs until
 // the modal is actually opened
-const BlurbEditorModal = defineAsyncComponent(() => import('./BlurbEditorModal.vue'))
+const load_blurb_editor = () => import('./BlurbEditorModal.vue')
+const BlurbEditorModal = defineAsyncComponent(load_blurb_editor)
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
 import FontStyleOptions from './FontStyleOptions.vue'
 // @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
@@ -197,8 +200,17 @@ function limit_subtitle(e:KeyboardEvent):void {
         e.preventDefault()
 }
 
-// Controls the blurb editor modal
+// Controls the blurb editor modal, which stays mounted once first opened (hovering the preview
+// starts loading its chunk early)
 const is_blurb_open = ref(false)
+const blurb_editor_mounted = ref(false)
+
+/** Open the blurb editor, mounting it the first time */
+// @ts-ignore TS6133 — used in Pug template; Volar can't trace Pug bindings
+function open_blurb_editor():void {
+    blurb_editor_mounted.value = true
+    is_blurb_open.value = true
+}
 
 // Controls the title, subtitle, author, and blurb style popovers
 const title_style_open = ref([false, false, false])

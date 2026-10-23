@@ -179,10 +179,8 @@ test('the spine colour picker recolours the spine', async ({page}) => {
         .toHaveCSS('background-color', 'rgb(170, 17, 0)')
 })
 
-// FIXME(app bug): color_palette.ts feeds blurb_bg_color's 'auto'/'none' sentinels through
-// hex_override_to_hsl() as if they were hex, so whenever the blurb has text the picker's "Chosen"
-// group offers a broken "hsl(NaNdeg, NaN%, NaN%)" swatch
-test.fixme('the colour picker offers only real colours as swatches', async ({page}) => {
+// blurb_bg_color's 'auto' sentinel must never reach the picker as a "hsl(NaN…)" swatch
+test('the colour picker offers only real colours as swatches', async ({page}) => {
     await open_widget(page)
     await page.getByText('Spine color', {exact: true}).locator('..').locator('input[data-coloris]').click()
     const swatches = page.locator('#clr-swatches button')

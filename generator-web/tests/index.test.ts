@@ -412,14 +412,14 @@ describe('output formats', () => {
             {pixelPerPt:number, backgroundColor:string}
         expect(render_opts.pixelPerPt).toBeCloseTo(300 / 72)
         expect(render_opts.backgroundColor).toBe('#ffffff')
+        // The renderer never sizes the canvas, so it must already match the page: the full spread
+        const px = (mm:number) => Math.round(mm / 25.4 * 300)
         expect(await as_text(result.data as Uint8Array)).toBe(
-            `image/png:${Math.round(864.5 * 300 / 72)}x${Math.round(648 * 300 / 72)}`)
+            `image/png:${px(DIMS.cover_total_width.toNumber())}x${px(DIMS.cover_total_height.toNumber())}`)
     })
 
-    // BUG: compile_png() calls document.createElement('canvas') directly instead of make_canvas(),
-    // so PNG output throws a ReferenceError inside a Web Worker (where the widget runs the
-    // generator), although every other canvas path here falls back to OffscreenCanvas
-    it.skip('renders PNG inside a worker, where there is no document', async () => {
+    // A worker has no document, so PNG output must render on an OffscreenCanvas
+    it('renders PNG inside a worker, where there is no document', async () => {
         const gen = await make_generator()
         const result = await gen.generate({schema: SCHEMA, format: 'png'})
         expect(await as_text(result.data as Uint8Array)).toMatch(/^image\/png:/)

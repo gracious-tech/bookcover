@@ -438,7 +438,7 @@ export class CoverGenerator {
     }
 
     /** Compile to vector format, then render as PNG via offscreen canvas */
-    private async compile_png(ppi:number):Promise<Uint8Array> {
+    private async compile_png(ppi:number, dims:GetDimensionsResult):Promise<Uint8Array> {
         this.assert_renderer('PNG')
         const result = await this.compiler.compile({
             mainFilePath: '/cover.typ',
@@ -448,24 +448,29 @@ export class CoverGenerator {
             throw_compile_error(result.diagnostics)
         }
 
-        // Render to a canvas at the desired PPI (typst uses 72pt/inch)
-        const scale = ppi / 72
-        const canvas = document.createElement('canvas')
+        // Render at the desired PPI (typst uses 72pt/inch). The renderer draws into a 2D context
+        // (it panics on a canvas element) and never sizes the canvas, so size it to the page here
+        // — the full cover spread. An OffscreenCanvas context works too, which is all a worker has
+        const px_per_mm = ppi / 25.4
+        const canvas = make_canvas(
+            Math.round(dims.cover_total_width.toNumber() * px_per_mm),
+            Math.round(dims.cover_total_height.toNumber() * px_per_mm))
+        const ctx = (canvas as HTMLCanvasElement).getContext('2d')
+        if (!ctx) {
+            throw new Error('[generator-web] PNG output needs a 2D canvas context')
+        }
 
         await this.renderer!.renderCanvas({
             artifactContent: result.result!,
             format: 'vector',
-            canvas,
+            canvas: ctx,
             pageOffset: 0,
-            pixelPerPt: scale,
+            pixelPerPt: ppi / 72,
             backgroundColor: '#ffffff',
         })
 
         // Extract PNG from canvas
-        const blob = await new Promise<Blob>((resolve) => {
-            canvas.toBlob((b) => resolve(b!), 'image/png')
-        })
-        return new Uint8Array(await blob.arrayBuffer())
+        return canvas_png_bytes(canvas)
     }
 
     /** Throw if the renderer was not initialised */
@@ -478,10 +483,11 @@ export class CoverGenerator {
     }
 
     /** Run the compiler (and, for svg/png, the renderer) for the requested output format */
-    private async compile_format(format:OutputFormat, ppi:number):Promise<Uint8Array | string> {
+    private async compile_format(format:OutputFormat, ppi:number,
+        dims:GetDimensionsResult):Promise<Uint8Array | string> {
         if (format === 'pdf') return this.compile_pdf()
         if (format === 'svg') return this.compile_svg()
-        return this.compile_png(ppi)
+        return this.compile_png(ppi, dims)
     }
 
     /** Generate a book cover using this instance's compiler and renderer */
@@ -572,14 +578,14 @@ export class CoverGenerator {
         // transparently instead of hard-failing the whole session.
         let data:Uint8Array | string
         try {
-            data = await this.compile_format(format, ppi)
+            data = await this.compile_format(format, ppi, dims)
         }
         catch (error) {
             if (!(error instanceof RangeError)) throw error
             await this.reinit_compiler(this.font_urls_for(needed_fonts), options.custom_fonts)
             if (format !== 'pdf') await this.reinit_renderer()
             this.load_files(files)
-            data = await this.compile_format(format, ppi)
+            data = await this.compile_format(format, ppi, dims)
         }
 
         const result:GenerateResult = {data}

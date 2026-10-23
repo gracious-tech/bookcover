@@ -337,11 +337,8 @@ test('seeded custom fonts are offered and returned', async ({page}) => {
     ])
 })
 
-// FIXME(app bug): ContentSection.vue renders BlurbEditorModal (a defineAsyncComponent) at all
-// times, so its chunk — and the Tiptap stack it imports — loads on every mount, even for a
-// blank blurb with the modal closed; CLAUDE.md says the editor stack loads only once a blurb has
-// text or the modal opens
-test.fixme('a blank embedded blurb never loads the editor stack', async ({page}) => {
+// The editor stack loads only once a blurb has text or the modal opens (see CLAUDE.md)
+test('a blank embedded blurb never loads the editor stack', async ({page}) => {
     const log = watch(page)
     const frame = await open_host(page, {init: {preset: {title1: 'Blank blurb'}}})
     await wait_ready(frame)

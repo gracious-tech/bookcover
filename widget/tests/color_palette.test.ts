@@ -55,6 +55,15 @@ describe('chosen colors', () => {
         await settle({title1_color: null, title2_color: null})
         expect(groups().chosen).not.toContain('hsl(0deg, 100%, 50%)')
     })
+
+    it('never treats the blurb background\'s auto sentinel as a chosen color', async () => {
+        const blurb = {type: 'doc', content: [{type: 'paragraph', content: [{type: 'text', text: 'Blurb'}]}]}
+        await settle({blurb: blurb as FormState['blurb'], blurb_bg_color: 'auto'})
+        expect(groups().chosen.filter(color => color.includes('NaN'))).toEqual([])
+        // The blurb background's derived value is still offered, as an auto color
+        expect(groups().auto.length).toBeGreaterThan(0)
+        await settle({blurb: make_blank_form_values().blurb})
+    })
 })
 
 

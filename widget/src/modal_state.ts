@@ -8,6 +8,9 @@ export const modal_open_count = ref(0)
 
 /** Call inside a full-screen modal's setup() to register it with the modal tracker. */
 export function use_modal_tracking(open:Ref<boolean>):void {
+    // A modal mounted only once first opened (see ContentSection's blurb editor) starts open
+    if (open.value)
+        modal_open_count.value++
     watch(open, (is_open) => {
         if (is_open)
             modal_open_count.value++

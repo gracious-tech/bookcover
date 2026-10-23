@@ -72,14 +72,15 @@ export async function default_compile(args:CompileArgs):Promise<{result:Uint8Arr
     return {result: args.format === 'pdf' ? FAKE_PDF : FAKE_VECTOR}
 }
 
-/** Create a fake renderer: renderSvg returns FAKE_SVG, renderCanvas sizes the canvas it's given */
+/** Create a fake renderer: renderSvg returns FAKE_SVG, and renderCanvas, like the real one,
+ *  only accepts a 2D context (it panics on a canvas element) and leaves the canvas size alone */
 export function make_fake_renderer():FakeRenderer {
     return {
         init: vi.fn(async () => {}),
         renderSvg: vi.fn(async () => FAKE_SVG),
-        renderCanvas: vi.fn(async (opts:{canvas:FakeCanvas, pixelPerPt:number}) => {
-            opts.canvas.width = Math.round(864.5 * opts.pixelPerPt)
-            opts.canvas.height = Math.round(648 * opts.pixelPerPt)
+        renderCanvas: vi.fn(async (opts:{canvas:unknown}) => {
+            if (!(opts.canvas instanceof FakeContext2D))
+                throw new Error('RuntimeError: unreachable (canvas must be a 2D context)')
         }),
     }
 }

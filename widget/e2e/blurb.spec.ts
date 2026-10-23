@@ -25,6 +25,14 @@ async function close_editor(page:Page):Promise<void> {
     await expect(page.getByRole('dialog')).toBeHidden()
 }
 
+/** Click a toolbar button, then wait for the editor to take focus back. The click moves focus to
+ *  the button and Tiptap only refocuses the editor on the next animation frame, so typing any
+ *  sooner (a loaded machine delays that frame) lands outside the node the command just made */
+async function click_tool(page:Page, surface:Locator, name:string):Promise<void> {
+    await page.getByRole('dialog').getByRole('button', {name}).click()
+    await expect(surface).toBeFocused()
+}
+
 /** Replace the editor's whole content with typed text */
 async function retype(surface:Locator, text:string):Promise<void> {
     await surface.click()
@@ -68,15 +76,14 @@ test('regeneration is deferred while the editor is open', async ({page}) => {
 test('toolbar formatting becomes rich text in the sidebar preview', async ({page}) => {
     await open_widget(page)
     const surface = await open_editor(page)
-    const dialog = page.getByRole('dialog')
     await retype(surface, 'Heading text')
-    await dialog.getByRole('button', {name: 'Heading 1'}).click()
+    await click_tool(page, surface, 'Heading 1')
     await surface.press('End')
     await surface.press('Enter')
-    await dialog.getByRole('button', {name: 'Bold'}).click()
+    await click_tool(page, surface, 'Bold')
     await surface.pressSequentially('bold words')
     await surface.press('Enter')
-    await dialog.getByRole('button', {name: 'Bullet list'}).click()
+    await click_tool(page, surface, 'Bullet list')
     await surface.pressSequentially('a list item')
 
     // The editor's own DOM
@@ -99,17 +106,16 @@ test('an emptied blurb leaves the back cover without one', async ({page}) => {
     await surface.press('ControlOrMeta+a')
     await surface.press('Delete')
     await close_editor(page)
-    await expect(sidebar_preview(page)).toHaveText('')
+    await expect(sidebar_preview(page)).toHaveText('Click to add a back blurb…')
     const after = await wait_for_new_cover(page, before)
     // Less on the cover, so a smaller SVG
     expect(after.length).toBeLessThan(before.length)
     await wait_ready(page)
 })
 
-// FIXME(app bug): ContentSection.vue shows the preview with v-if="form.blurb", but an empty blurb
-// is still a ProseMirror doc (one empty paragraph — see the blank form), which is truthy, so
-// this placeholder can never appear
-test.fixme('an emptied blurb shows the click-to-add placeholder', async ({page}) => {
+// An empty blurb is still a ProseMirror doc (one empty paragraph), so the placeholder must key
+// off its text, not the doc
+test('an emptied blurb shows the click-to-add placeholder', async ({page}) => {
     await open_widget(page)
     const surface = await open_editor(page)
     await surface.click()

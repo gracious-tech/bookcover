@@ -116,10 +116,11 @@ export function init_color_palette_cache(form:FormState):void {
 
         // Form fields store hex, resolve_colors() returns hsl(Xdeg, Y%, Z%) strings — normalize
         // everything to that one hsl format before dedup, or the same color in different string
-        // forms (e.g. an explicit hex matching an auto-derived hsl) won't be recognized as equal
+        // forms (e.g. an explicit hex matching an auto-derived hsl) won't be recognized as equal.
+        // blurb_bg_color's 'auto' sentinel isn't a color, its derived value is listed under auto
         const explicit = active_fields
             .map(spec => form[spec.form_key])
-            .filter((value):value is string => typeof value === 'string')
+            .filter((value):value is string => typeof value === 'string' && value !== 'auto')
             .map(hex => hex_override_to_hsl(hex))
             .filter((value):value is string => value !== null)
 

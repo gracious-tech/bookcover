@@ -35,9 +35,12 @@ describe('use_modal_tracking', () => {
         expect(modal_open_count.value).toBe(0)
     })
 
-    it('ignores a modal that starts open, counting only changes', async () => {
+    it('counts a modal that mounts already open, until it closes', async () => {
         modal_open_count.value = 0
-        use_modal_tracking(ref(true))
+        const open = ref(true)
+        use_modal_tracking(open)
+        expect(modal_open_count.value).toBe(1)
+        open.value = false
         await nextTick()
         expect(modal_open_count.value).toBe(0)
     })
