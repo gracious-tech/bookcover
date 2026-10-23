@@ -174,10 +174,13 @@ Type-check a package: `cd <package> && npx tsc --noEmit`
 
 ### Tests
 
-Every package has a vitest suite, in `<pkg>/tests/`. `.bin/test` runs them all in dependency
-order; a single package is `cd <pkg> && npx vitest run` (each has a `test` script too). The
-suites are pure and need no build, network, or assets — except `generator-node`'s, which
-renders with the real `typst` binary and fonts tree and skips itself when either is missing.
+Every package has a vitest suite, in `<pkg>/tests/`. `.bin/test` runs `.bin/build_modules`
+(~2s) and then every suite in dependency order. Packages import their workspace siblings through
+the siblings' built `dist/`, so on a fresh checkout a single package's suite
+(`cd <pkg> && npx vitest run`, or its `test` script) needs a `.bin/build_modules` first, and
+after editing a dependency it needs that package rebuilt. The suites need no network or assets,
+except `generator-node`'s, which renders with the real `typst` binary and fonts tree and skips
+itself when either is missing.
 
 - `generator/tests/build.test.ts` holds GOLDEN SNAPSHOTS of the generated `_data.typ`
   (`tests/__snapshots__/`, committed). They are the regression net for render determinism: a

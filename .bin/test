@@ -5,10 +5,10 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-# generator's suite builds the schema from its baked-in codegen, so make sure it exists
-"$ROOT/.bin/gen_vector_bg_images"
-"$ROOT/.bin/gen_icon_svgs"
-"$ROOT/.bin/gen_typst_templates"
+# Packages import their workspace siblings through those siblings' dist/ (package.json exports),
+# so a fresh checkout can't resolve them until built. This also runs generator's codegen, which
+# its suite reads directly. tsc is the native TypeScript 7 compiler, so it takes ~2s
+"$ROOT/.bin/build_modules"
 
 # Every package with a suite, in dependency order. generator-node renders with the real typst
 # binary and fonts tree and skips itself when either is missing (see its tests/render.test.ts)
