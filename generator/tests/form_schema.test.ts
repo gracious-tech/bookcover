@@ -294,3 +294,84 @@ describe('build_schema patterns and fonts', () => {
             .toEqual({family: 'Playfair Display'})
     })
 })
+
+
+describe('build_schema typst_substitutions', () => {
+
+    const BLOCK = '#[© 2026 *Host*\n\nSecond paragraph];'
+    const subs = {'AUTO-COPYRIGHT': BLOCK}
+
+    /** The blurb markup for a document, rendered with the given substitutions */
+    function blurb_with(doc:object, typst_substitutions?:Record<string, string>) {
+        return build_schema(make_form({blurb: doc}), undefined, {typst_substitutions})['blurb']
+    }
+
+    /** A paragraph from [text, mark?] pieces */
+    function para(...pieces:[string, string?][]) {
+        return {type: 'paragraph', content: pieces.map(([text, mark]) => ({type: 'text', text,
+            ...mark ? {marks: [{type: mark}]} : {}}))}
+    }
+
+    it('replaces a marker that is the whole paragraph', () => {
+        expect(blurb_with(blurb_doc('AUTO-COPYRIGHT'), subs)).toBe(BLOCK)
+    })
+
+    it('replaces a marker inside other text, escaping only the text around it', () => {
+        expect(blurb_with(blurb_doc('See: AUTO-COPYRIGHT (end-note)'), subs))
+            .toBe(`See: ${BLOCK} (end\\-note)`)
+    })
+
+    it('replaces every occurrence', () => {
+        expect(blurb_with(blurb_doc('AUTO-COPYRIGHT and AUTO-COPYRIGHT'), subs))
+            .toBe(`${BLOCK} and ${BLOCK}`)
+    })
+
+    it('replaces each of several markers, the longest first when one contains another', () => {
+        const typst = blurb_with(blurb_doc('MARK MARK-LONG'), {'MARK': 'a', 'MARK-LONG': 'b'})
+        expect(typst).toBe('a b')
+    })
+
+    it('leaves a blurb without the marker exactly as it renders with no map', () => {
+        const doc = blurb_doc('No marker - here [1]')
+        expect(blurb_with(doc, subs)).toBe(blurb_with(doc))
+        expect(blurb_with(doc)).toBe('No marker \\- here \\[1\\]')
+    })
+
+    it('changes nothing for an empty or missing map, or an empty marker', () => {
+        const doc = blurb_doc('AUTO-COPYRIGHT')
+        expect(blurb_with(doc, {})).toBe('AUTO\\-COPYRIGHT')
+        expect(blurb_with(doc, undefined)).toBe('AUTO\\-COPYRIGHT')
+        expect(blurb_with(doc, {'': 'x'})).toBe('AUTO\\-COPYRIGHT')
+    })
+
+    it('matches a marker as typed, whatever escaping its characters need', () => {
+        expect(blurb_with(blurb_doc('[*MARK*]'), {'[*MARK*]': 'ok'})).toBe('ok')
+    })
+
+    it('replaces a marker styled as a whole, inside the mark', () => {
+        expect(blurb_with({type: 'doc', content: [para(['AUTO-COPYRIGHT', 'bold'])]}, subs))
+            .toBe(`*${BLOCK}*`)
+    })
+
+    it('leaves a marker the user styled only part of', () => {
+        const doc = {type: 'doc', content: [para(['AUTO', 'bold'], ['-COPYRIGHT'])]}
+        expect(blurb_with(doc, subs)).toBe('*AUTO*\\-COPYRIGHT')
+    })
+
+    it('leaves a marker inside inline code', () => {
+        const doc = {type: 'doc', content: [para(['AUTO-COPYRIGHT', 'code'])]}
+        expect(blurb_with(doc, subs)).toBe('#raw("AUTO-COPYRIGHT");')
+    })
+
+    it('never changes the form', () => {
+        const form = make_form({blurb: blurb_doc('AUTO-COPYRIGHT')})
+        const before = structuredClone(form)
+        build_schema(form, undefined, {typst_substitutions: subs})
+        expect(form).toEqual(before)
+    })
+
+    it('leaves every other field as it renders with no map', () => {
+        const form = make_form({title1: 'AUTO-COPYRIGHT', blurb: blurb_doc('x')})
+        expect(build_schema(form, undefined, {typst_substitutions: subs})).toEqual(build_schema(form))
+    })
+})

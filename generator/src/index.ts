@@ -54,7 +54,7 @@ export {SCHEMA_VERSION, RENDER_VERSION, SCHEMA_DEFAULTS, FORM_DEFAULTS} from './
 export {warn_unknown} from './utils.js'
 export {build_schema, curly_quotes, parse_font_family, normalize_font_family,
     font_families_in_form} from './form_schema.js'
-export type {CustomFontStyle} from './form_schema.js'
+export type {CustomFontStyle, BuildSchemaOptions} from './form_schema.js'
 export {analyze_pixel_regions, get_builtin_bg, get_builtin_bg_regions,
     BG_PREVIEW_DIR} from './image_regions.js'
 export type {BuiltinBg} from './generated/builtin_bg_regions.js'

@@ -208,7 +208,7 @@ import type {SizeId} from 'printing-services'
 import {
     FORM_KEY, IS_MOBILE_KEY, FULL_SVG_KEY, GENERATOR_KEY, INIT_ERROR_KEY, PREVIEW_EXPORTS_KEY,
 } from '../../form_state'
-import {build_schema} from '../../schema'
+import {build_schema, has_typst_substitutions} from '../../schema'
 import {read_render_image} from '../../services/backgrounds'
 import {all_custom_font_bytes} from '../../fonts'
 import {image_regions} from '../../image_regions_cache'
@@ -453,6 +453,10 @@ async function run_generate():Promise<void> {
         // Everything the render depends on is read before the image fetch below, so a background
         // picked mid-fetch can't pair with this render's image (the queued re-run picks it up)
         const schema = build_schema(form)
+        // The markers as typed, to fall back on if the host's substitutions fail to compile —
+        // only when one actually replaced something, or any other failure would be blamed on it
+        const as_typed = has_typst_substitutions() ? build_schema(form, false) : null
+        const unsubstituted = as_typed && as_typed['blurb'] !== schema['blurb'] ? as_typed : null
         const dims = compute_cover_dims(form)
         const image_builtin = form.bg_image_builtin ?? undefined
         const regions = toRaw(image_regions.value)
@@ -464,8 +468,8 @@ async function run_generate():Promise<void> {
         const img = await read_render_image(form, 'preview')
 
         // Generate SVG with split panels (needed for 3D renderer and split view)
-        const result = await generator.value!.generate({
-            schema,
+        const generate_svg = (render_schema:Record<string, unknown>) => generator.value!.generate({
+            schema: render_schema,
             image: img,
             image_builtin,
             image_max_dpi: PREVIEW_DPI,
@@ -473,6 +477,21 @@ async function run_generate():Promise<void> {
             format: 'svg',
             split: true,
         })
+        let result:Awaited<ReturnType<typeof generate_svg>>
+        try {
+            result = await generate_svg(schema)
+        }
+        catch (err:unknown) {
+            // A validation error has nothing to do with the substitutions, so it isn't retried
+            if (!unsubstituted || (err instanceof Error && err.name === 'ZodError'))
+                throw err
+            // The host's Typst broke the compile: tell the host, and show the markers as typed
+            // rather than a stuck preview
+            console.error(err)
+            report_error(err, 'Preview failed to compile with the host\'s typst_substitutions, '
+                + 'so it was rendered without them')
+            result = await generate_svg(unsubstituted)
+        }
 
         if (!result.split)
             throw new Error('[3D preview] SVG split result missing')

@@ -212,6 +212,50 @@ describe.skipIf(!have_typst || !have_fonts)('blurb text straight after an embedd
 })
 
 
+// The host's replacement as a host like Paper Bible writes it: one #[…]; block with blank lines,
+// a direction of its own and escaped content (see BuildSchemaOptions.typst_substitutions)
+const SUBSTITUTION = '#[#set text(dir: ltr)\nCopyright \\(c\\) 2026 _Host_\n\nLicensed 版权所有\n];'
+const SUBSTITUTED_TEXT = 'Copyright (c) 2026 Host\n\nLicensed 版权所有'
+
+describe.skipIf(!have_typst || !have_fonts)('a multi-paragraph typst substitution', () => {
+
+    const para = (...content:object[]) => ({type: 'paragraph', content})
+    const text = (value:string, mark?:string) => ({type: 'text', text: value,
+        ...mark ? {marks: [{type: mark}]} : {}})
+    const marker = (mark?:string) => text('AUTO-COPYRIGHT', mark)
+
+    // Each case puts the marker in a context a bare newline in the replacement would break
+    const CASES:[string, object, string][] = [
+        ['alone in its paragraph', para(marker()), SUBSTITUTED_TEXT],
+        // The newline before the block's `]` is a space, as anywhere in markup
+        ['inside text, then (', para(text('See '), marker(), text('(below)')),
+            `See ${SUBSTITUTED_TEXT} (below)`],
+        ['inside bold', para(marker('bold')), SUBSTITUTED_TEXT],
+        ['inside italic', para(marker('italic')), SUBSTITUTED_TEXT],
+        ['in a list item', {type: 'bulletList', content: [
+            {type: 'listItem', content: [para(marker())]}]}, SUBSTITUTED_TEXT],
+        ['in a heading', {type: 'heading', attrs: {level: 2}, content: [marker()]},
+            SUBSTITUTED_TEXT],
+        ['in a quote', {type: 'blockquote', content: [para(marker())]}, SUBSTITUTED_TEXT],
+        ['in an RTL paragraph', para(text('שלום '), marker()), `שלום ${SUBSTITUTED_TEXT}`],
+    ]
+
+    for (const [name, block, expected] of CASES) {
+        it(`renders the marker ${name}`, {timeout: RENDER_TIMEOUT}, async () => {
+            const form = {...make_blank_form_values(), blurb: {type: 'doc', content: [block]}}
+            const blurb = build_schema(form, undefined,
+                {typst_substitutions: {'AUTO-COPYRIGHT': SUBSTITUTION}})['blurb']
+            const schema = {...SCHEMA, blurb}
+            const slug = name.replace(/\W+/g, '_')
+            const result = await render(`subst_${slug}.pdf`, {schema})
+            expect((await fs.stat(result.output_path)).size).toBeGreaterThan(1000)
+            const rendered = await blurb_text(schema, path.join(work_dir, `subst_probe_${slug}`))
+            expect(rendered.trim()).toBe(expected)
+        })
+    }
+})
+
+
 describe.skipIf(!have_typst || !have_fonts)('splitting a rendered cover', () => {
 
     it('writes three SVG panels, each cropped to its own region',

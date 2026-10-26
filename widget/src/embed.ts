@@ -16,6 +16,7 @@ import {adopt_bg_image, is_builtin_bg} from './services/backgrounds'
 import {debounce} from './svg_utils'
 import {set_error_report_origin} from './error_report'
 import {resolve_initial_locale} from './i18n'
+import {set_typst_substitutions} from './schema'
 
 // Swaps the primary export button into a "Finished" signal instead of a PDF download
 export const finished_mode = ref(false)
@@ -137,6 +138,14 @@ function valid_suggestions(value:unknown):BgSuggestion[] {
     ))
 }
 
+/** Keep only the string -> string entries of a substitution map, with non-empty markers */
+function valid_substitutions(value:unknown):Record<string, string> {
+    if (!value || typeof value !== 'object' || Array.isArray(value))
+        return {}
+    return Object.fromEntries(Object.entries(value).filter(([marker, typst]) =>
+        marker !== '' && typeof typst === 'string'))
+}
+
 /** Serialize the reactive form into a JSON-safe, postMessage-able snapshot (background image
  *  excluded — it travels beside the record, as bytes or a built-in ID) */
 function serialize_form(form:FormState):EmbedFormState {
@@ -253,6 +262,8 @@ function on_init(msg:Extract<HostMessage, {type: 'init'}>):void {
     if (msg.custom_fonts) pending_fonts = msg.custom_fonts
     // Suggestions are just offers — they don't seed the form, so embed_seeded ignores them
     bg_suggestions.value = valid_suggestions(msg.bg_suggestions)
+    // Render-only, so it neither seeds the form nor waits for one
+    set_typst_substitutions(valid_substitutions(msg.typst_substitutions))
     if (msg.preset || msg.bg_image !== undefined || msg.bg_image_builtin) embed_seeded.value = true
 }
 

@@ -368,3 +368,51 @@ test('an init that misses the 300ms fallback still seeds the form', async ({page
     expect(data).toMatchObject({title1: 'Late Title Edited', title2: '', service_id: 'kdp',
         size_id: 'digest'})
 })
+
+
+// typst_substitutions: Typst a host supplies in place of a marker in the blurb, for the widget's
+// own renders only. Typst's SVG draws text as glyph outlines, so the replacement is a box in a
+// fill colour nothing else on the cover uses, which the print SVG names verbatim
+const MARKER_FILL = '#13579b'
+const MARKER_BLURB = {type: 'doc', content: [
+    {type: 'paragraph', content: [{type: 'text', text: 'AUTO-COPYRIGHT'}]},
+]}
+const MARKER_TYPST = `#[#box(width: 10mm, height: 4mm, fill: rgb("${MARKER_FILL}"))\n\nSecond];`
+
+test('typst substitutions reach the preview, and the record keeps the marker', async ({page}) => {
+    const frame = await open_host(page, {init: {
+        preset: {title1: 'Substituted', blurb: MARKER_BLURB},
+        finished_mode: true,
+        typst_substitutions: {'AUTO-COPYRIGHT': MARKER_TYPST},
+    }})
+    expect(await print_svg(frame)).toContain(`fill="${MARKER_FILL}"`)
+    // The editor shows the marker as typed
+    await expect(frame.getByRole('button', {name: 'Edit back blurb'})).toContainText('AUTO-COPYRIGHT')
+
+    await frame.getByRole('button', {name: 'Finished'}).click()
+    const finished = await next_message(page, 'finished')
+    expect((finished['data'] as Record<string, unknown>)['blurb']).toEqual(MARKER_BLURB)
+})
+
+test('typst substitutions from an init that misses the 300ms fallback still apply', async ({page}) => {
+    const frame = await open_host(page, {init_delay_ms: 1500, init: {
+        preset: {title1: 'Late Substituted', blurb: MARKER_BLURB},
+        typst_substitutions: {'AUTO-COPYRIGHT': MARKER_TYPST},
+    }})
+    await expect(frame.getByPlaceholder('Line 1…')).toHaveValue('Late Substituted')
+    await expect.poll(() => print_svg(frame), {message: 'substitution never rendered'})
+        .toContain(`fill="${MARKER_FILL}"`)
+})
+
+test('a substitution that breaks the compile falls back to the marker and is reported',
+    async ({page}) => {
+        const frame = await open_host(page, {init: {
+            preset: {title1: 'Broken Substitution', blurb: MARKER_BLURB},
+            typst_substitutions: {'AUTO-COPYRIGHT': '#[#no_such_function()];'},
+        }})
+        // The preview still renders, with the marker as typed rather than an error
+        await wait_ready(frame)
+        expect(await print_svg(frame)).not.toBe('')
+        const error = await next_message(page, 'error')
+        expect(error['message']).toContain('typst_substitutions')
+    })

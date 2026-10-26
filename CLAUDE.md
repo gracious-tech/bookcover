@@ -32,9 +32,15 @@ schema. The shared Tiptap schema lives in `widget/src/blurb_extensions.ts` (`blu
 = StarterKit with link disabled, so the cover stays link-free); both the editor
 (`BlurbEditorModal.vue`) and the sidebar previews (`ContentSection.vue`) build from that one
 list so what they parse never diverges. Tiptap stores the blurb as ProseMirror document JSON
-(`form.blurb`); the cover is rendered via `pm_to_typst()` (with curly-quote + escaping injected
-through the renderer's `text` extension point in `widget/src/schema.ts`), while the sidebar's
-HTML preview uses Tiptap's own `generateHTML`. Importing Tiptap costs ~370KB, so nothing on the
+(`form.blurb`); the cover is rendered via `pm_to_typst()` in `build_blurb()`
+(`generator/src/form_schema.ts`), which keeps pm-to-typst's own escaping and leaves quote curling
+to Typst's smartquote, while the sidebar's HTML preview uses Tiptap's own `generateHTML`.
+`build_blurb()` overrides the renderer's `text` extension point for one thing: `build_schema()`'s
+optional `typst_substitutions` (marker text -> trusted host Typst, matched as typed before
+escaping; rules on `BuildSchemaOptions`). Embed hosts send the map as
+`InitMessage.typst_substitutions`; the widget applies it to every render through its one
+`build_schema` wrapper (`widget/src/schema.ts`) and never to the form, and a preview whose
+substitutions fail to compile is retried without them and reported to the host. Importing Tiptap costs ~370KB, so nothing on the
 critical path may import it directly: `blurb_html.ts` wraps `generateHTML` behind a dynamic
 import (and `BlurbEditorModal` is a `defineAsyncComponent`), so the editor stack loads only once
 a blurb has text or the modal opens. Plain-text flattening runs far too early for that, so

@@ -30,7 +30,8 @@ export type {BuiltinBg} from 'bookcover-core'
 // Form state + form->schema conversion, so hosts can derive the renderable schema server-side
 export {make_blank_form_values, build_schema, curly_quotes,
     parse_font_family, find_pattern, derive_colors, hex_override_to_hsl} from 'bookcover-core'
-export type {FormState, EmbedFormState, CustomFontStyle, ImageRegions} from 'bookcover-core'
+export type {FormState, EmbedFormState, CustomFontStyle, BuildSchemaOptions, ImageRegions}
+    from 'bookcover-core'
 
 // Default assets root: the repo's top-level assets/ directory (typst templates in docs/,
 // fonts/, etc — the same tree deployed to the public assets bucket), resolved relative to the

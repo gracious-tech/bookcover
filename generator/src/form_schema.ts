@@ -1,8 +1,9 @@
 
 // Pure functions for building the cover generator schema from form state
 
-import {pm_to_typst} from 'pm-to-typst'
+import {pm_to_typst, typst_renderer} from 'pm-to-typst'
 import type {PmDoc, PmNode} from 'pm-to-typst'
+import {escape_typst} from 'typst-utils'
 import type {FontStyle} from 'typst-fonts'
 import type {EmbedFormState} from './form_state.js'
 import {hex_override_to_hsl} from './colors.js'
@@ -14,6 +15,28 @@ import {warn_unknown, text_dir} from './utils.js'
 export interface CustomFontStyle {
     family:string
     style:FontStyle
+}
+
+/** Options for build_schema beyond the form itself */
+export interface BuildSchemaOptions {
+    /**
+     * Typst markup to put in place of marker text in the blurb, keyed by marker — plain text
+     * exactly as the user sees it in the editor (e.g. 'AUTO-COPYRIGHT'). Every occurrence is
+     * replaced, including one inside other text; a marker the user styled only part of is split
+     * across text nodes and is NOT replaced, nor is one inside inline code. The form is never
+     * changed. Values are trusted, inserted verbatim, and must follow the rules below.
+     *
+     * - Multi-line markup must be wrapped in one `#[…];` block (the `;` ends the expression, so
+     *   text after the marker can't continue it), or the marker put alone in its own paragraph:
+     *   a bare newline would break a list item, heading, or bold/italic span around the marker.
+     * - Set your own direction (`#set text(dir: rtl)`) if the text needs it: the blurb's
+     *   direction per paragraph comes from the marker's text, which reads left-to-right.
+     * - Keep text as escaped content, not string literals: each CJK run in the blurb is wrapped
+     *   in a #text(font:) span after this, which would break a string literal around it.
+     * - Use no images or named fonts. The compile has no files beyond the cover's own, and
+     *   loads only the fonts the blurb's text (substitutions included) resolves to.
+     */
+    typst_substitutions?:Record<string, string>
 }
 
 /** Replace straight quotes with typographic curly quotes */
@@ -42,10 +65,20 @@ function pm_text(node:PmNode):string {
  * its own first strong letter, so an RTL paragraph gets RTL punctuation, list markers and
  * justified last line while its LTR neighbours are untouched. Blocks nested inside a list or
  * quote follow the enclosing block's direction.
+ * Marker text is replaced with its substitution (see BuildSchemaOptions) as each text node is
+ * rendered, so the marker is matched as the user typed it and only the text around it escaped.
  * Returns undefined when the blurb is empty.
  */
-function build_blurb(doc:PmDoc):string | undefined {
-    const typst = pm_to_typst(doc, {nodes: {
+function build_blurb(doc:PmDoc, substitutions:Record<string, string> = {}):string | undefined {
+    const marker_regex = substitution_regex(substitutions)
+    const typst = pm_to_typst(doc, {text: node => {
+        // Inline code is literal, so a marker inside it stays as typed
+        if (!marker_regex || (node.marks ?? []).some(mark => mark.type === 'code'))
+            return typst_renderer.text(node)
+        // Splitting on a capturing regex alternates text, marker, text, … (text may be empty)
+        return (node.text ?? '').split(marker_regex)
+            .map((piece, i) => i % 2 ? substitutions[piece] : escape_typst(piece)).join('')
+    }, nodes: {
         doc: (node, ctx) => (node.content ?? []).map(child => {
             const rendered = ctx.node(child)
             return text_dir(pm_text(child)) === 'rtl'
@@ -53,6 +86,16 @@ function build_blurb(doc:PmDoc):string | undefined {
         }).join('\n\n'),
     }})
     return typst.trim() ? typst : undefined
+}
+
+// One capturing regex matching any marker, longest first so a marker containing another wins.
+// Null when there is nothing to replace
+function substitution_regex(substitutions:Record<string, string>):RegExp | null {
+    const markers = Object.keys(substitutions).filter(marker => marker)
+        .sort((a, b) => b.length - a.length)
+    if (markers.length === 0)
+        return null
+    return new RegExp(`(${markers.map(m => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`)
 }
 
 /** Parse a font family name from user input. Accepts:
@@ -132,11 +175,13 @@ function build_font_config(
  *
  * custom_fonts supplies the sniffed serif/sans style of user-uploaded families (their bytes
  * travel separately to the compiler). Never reads a background image — that too is passed to
- * the generators out-of-band.
+ * the generators out-of-band. options.typst_substitutions replaces marker text in the blurb for
+ * this render only (see BuildSchemaOptions).
  */
 export function build_schema(
     form:EmbedFormState,
     custom_fonts?:CustomFontStyle[],
+    options:BuildSchemaOptions = {},
 ):Record<string, unknown> {
     const q = curly_quotes
 
@@ -225,7 +270,7 @@ export function build_schema(
         author_margin_bottom: form.author_margin_bottom,
 
         // An empty blurb stays absent — there is nothing to render, not a default to apply
-        blurb: build_blurb(form.blurb),
+        blurb: build_blurb(form.blurb, options.typst_substitutions),
         blurb_font: build_font_config(form.blurb_font, custom_fonts),
         blurb_size: form.blurb_size,
         blurb_color: hex_override_to_hsl(form.blurb_color) ?? undefined,

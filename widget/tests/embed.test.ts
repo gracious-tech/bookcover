@@ -44,8 +44,9 @@ async function load(standalone = false){
     const embed = await import('../src/embed')
     const fonts = await import('../src/fonts')
     const backgrounds = await import('../src/services/backgrounds')
+    const schema = await import('../src/schema')
     const {make_blank_form, make_form} = await import('../src/form_state')
-    return {...embed, ...fonts, ...backgrounds, make_blank_form, make_form}
+    return {...embed, ...fonts, ...backgrounds, ...schema, make_blank_form, make_form}
 }
 
 /** Deliver a message to the widget as if posted by `source` from `origin` */
@@ -53,6 +54,11 @@ function send(data:unknown, origin = HOST, source:unknown = parent):void {
     if (!on_message)
         throw new Error('No message listener installed')
     on_message({source, origin, data})
+}
+
+/** A blurb document of one paragraph */
+function blurb_doc(text:string){
+    return {type: 'doc', content: [{type: 'paragraph', content: [{type: 'text', text}]}]}
 }
 
 /** Messages posted so far of one type */
@@ -211,6 +217,30 @@ describe('wait_for_embed_init', () => {
         send({type: 'init', bg_suggestions: {id: 'a', url: 'https://h/a.jpg'}})
         expect(bg_suggestions.value).toEqual([])
     })
+
+    it('applies the typst substitutions to every render, keeping only well-formed entries',
+        async () => {
+            const {wait_for_embed_init, build_schema, has_typst_substitutions, make_blank_form} = await load()
+            void wait_for_embed_init()
+            send({type: 'init', typst_substitutions: {'AUTO-COPYRIGHT': '#[Host];', '': 'x', 'N': 5}})
+            expect(has_typst_substitutions()).toBe(true)
+            const form = Object.assign(make_blank_form(), {blurb: blurb_doc('AUTO-COPYRIGHT N')})
+            expect(build_schema(form)['blurb']).toBe('#[Host]; N')
+            // The fallback render shows the marker as typed
+            expect(build_schema(form, false)['blurb']).toBe('AUTO\\-COPYRIGHT N')
+        })
+
+    it('treats a missing or malformed substitution map as none', async () => {
+        for (const typst_substitutions of [undefined, ['AUTO-COPYRIGHT'], 'AUTO-COPYRIGHT', {}]) {
+            const {wait_for_embed_init, build_schema, has_typst_substitutions, make_blank_form} = await load()
+            void wait_for_embed_init()
+            send({type: 'init', typst_substitutions})
+            expect(has_typst_substitutions()).toBe(false)
+            const form = Object.assign(make_blank_form(), {blurb: blurb_doc('AUTO-COPYRIGHT')})
+            expect(build_schema(form)['blurb'])
+                .toBe('AUTO\\-COPYRIGHT')
+        }
+    })
 })
 
 
@@ -317,6 +347,17 @@ describe('init_embed — reporting changes', () => {
         expect(data['title1']).toBe('One')
         expect(data).not.toHaveProperty('bg_image')
         expect(data).not.toHaveProperty('bg_image_builtin')
+    })
+
+    it('reports the marker as typed, never its substitution', async () => {
+        const {form, build_schema} = await start({typst_substitutions: {'AUTO-COPYRIGHT': '#[Host];'}})
+        form.blurb = blurb_doc('AUTO-COPYRIGHT')
+        // A render in between must leave the form alone
+        expect(build_schema(form)['blurb']).toBe('#[Host];')
+        await flush_changes()
+        const data = posted_of('data')[0]?.msg['data'] as Record<string, unknown>
+        expect(data['blurb']).toEqual(blurb_doc('AUTO-COPYRIGHT'))
+        expect(form.blurb).toEqual(blurb_doc('AUTO-COPYRIGHT'))
     })
 
     it('sends a plain JSON-safe record, not the reactive form', async () => {

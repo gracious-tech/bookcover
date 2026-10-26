@@ -33,7 +33,8 @@ export type {RegionStats, ImageRegions, ResolvedColors, BuiltinBg} from 'bookcov
 export {make_blank_form_values, build_schema, curly_quotes,
     parse_font_family, find_pattern, derive_colors, hex_override_to_hsl, hex_to_hsl,
     is_dark_color, warn_unknown} from 'bookcover-core'
-export type {FormState, EmbedFormState, CustomFontStyle, DerivedColors} from 'bookcover-core'
+export type {FormState, EmbedFormState, CustomFontStyle, BuildSchemaOptions, DerivedColors}
+    from 'bookcover-core'
 
 // Dimension resolution, so hosts can locate cover panels (e.g. for background-image analysis)
 export {resolve_dimensions} from 'bookcover-core'

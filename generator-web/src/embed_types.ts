@@ -110,6 +110,23 @@ export interface InitMessage {
     // so the widget can add languages without a release of this package; an unsupported
     // language shows English. Absent uses the user's stored choice, then the browser's
     locale?: string
+    /** Typst markup to put in place of marker text in the cover's blurb, keyed by marker (plain
+     *  text exactly as the user sees it in the editor, e.g. 'AUTO-COPYRIGHT'), so the widget
+     *  shows what will actually print. Applied only when the widget renders (its previews and
+     *  its own PDF exports): the form is never changed, so the editor still shows the marker
+     *  and data/finished messages send it back untouched. The host applies the same map when
+     *  it renders final output, by passing it to build_schema() as `typst_substitutions`.
+     *
+     *  Values are trusted Typst from the host, inserted verbatim. They follow the rules on
+     *  BuildSchemaOptions.typst_substitutions in bookcover-core: wrap multi-line markup in one
+     *  `#[…];` block or put the marker alone in its own paragraph; set your own text direction;
+     *  keep text as escaped content rather than string literals; use no images or named fonts.
+     *  A marker the user styles only part of (bolding half of it, say) isn't replaced.
+     *
+     *  If a preview fails to compile with the substitutions, the widget reports it as an
+     *  'error' message and shows the preview without them, raw marker and all; a PDF export
+     *  fails instead. Absent or empty changes nothing. */
+    typst_substitutions?: Record<string, string>
 }
 
 /** Host -> widget. InitMessage is the first and must arrive before any other; later messages are
