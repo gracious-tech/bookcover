@@ -74,6 +74,15 @@ describe('check_bg_image_dpi', () => {
         expect(warning?.recommended_size).toBe(px_label(form, 300))
     })
 
+    it.each(COVERAGES)('accepts an image exactly the recommended size it shows (%s)', coverage => {
+        // The requirement is fractional; rounding it down for display mustn't leave it unmet
+        const form = make_form({bg_image_coverage: coverage})
+        const [w, h] = px_label(form, 300).slice(0, -2).split('×').map(Number)
+        expect(check_bg_image_dpi(form, w, h)).toBeNull()
+        const [w150, h150] = px_label(form, 150).slice(0, -2).split('×').map(Number)
+        expect(check_bg_image_dpi(form, w150, h150)?.level).toBe('low')
+    })
+
     it('judges by the thinnest axis, since cover fit stretches that one most', () => {
         const form = make_form({bg_image_coverage: 'full'})
         const [w, h] = px_at(form, 400)

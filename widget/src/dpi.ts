@@ -60,19 +60,27 @@ function position_target_mm(dims:CoverDims, coverage:FormState['bg_image_coverag
     return front_target_mm(dims)
 }
 
-/** Effective print DPI of pixel size (px_w, px_h) fit into a target box — the lower of the
- *  two axis DPIs, since that's the axis whose pixels get stretched thinnest under "cover" fit */
-function estimate_dpi(px_w:number, px_h:number, target_mm:TargetMm):number {
-    const width_in = target_mm.width / 25.4
-    const height_in = target_mm.height / 25.4
-    return Math.min(px_w / width_in, px_h / height_in)
+/** Whole pixel dimensions needed to hit a given DPI at the target box's physical size (mm).
+ *  Rounded, so the size the warning shows is exactly the size the check demands */
+function required_px(target_mm:TargetMm, dpi:number):{width:number, height:number} {
+    return {
+        width: Math.round(target_mm.width / 25.4 * dpi),
+        height: Math.round(target_mm.height / 25.4 * dpi),
+    }
 }
 
-/** Classify a DPI value into a warning tier */
-function dpi_level(dpi:number):DpiLevel {
-    if (dpi < VERY_LOW_DPI)
+/** Whether pixel size (px_w, px_h) reaches a DPI across a target box — on both axes, since
+ *  "cover" fit stretches the thinner axis most */
+function meets_dpi(px_w:number, px_h:number, target_mm:TargetMm, dpi:number):boolean {
+    const required = required_px(target_mm, dpi)
+    return px_w >= required.width && px_h >= required.height
+}
+
+/** Classify a pixel size fit into a target box into a warning tier */
+function dpi_level(px_w:number, px_h:number, target_mm:TargetMm):DpiLevel {
+    if (!meets_dpi(px_w, px_h, target_mm, VERY_LOW_DPI))
         return 'very_low'
-    if (dpi < LOW_DPI)
+    if (!meets_dpi(px_w, px_h, target_mm, LOW_DPI))
         return 'low'
     return 'ok'
 }
@@ -82,13 +90,10 @@ function format_px(width:number, height:number):string {
     return `${width}×${height}px`
 }
 
-/** Pixel dimensions needed to hit a given DPI at the target box's physical size (mm),
- *  formatted for display */
+/** Pixel dimensions needed to hit a given DPI at the target box, formatted for display */
 function format_recommended_px(target_mm:TargetMm, dpi:number):string {
-    return format_px(
-        Math.round(target_mm.width / 25.4 * dpi),
-        Math.round(target_mm.height / 25.4 * dpi),
-    )
+    const required = required_px(target_mm, dpi)
+    return format_px(required.width, required.height)
 }
 
 export interface BgImageDpiWarning {
@@ -110,8 +115,7 @@ export function check_bg_image_dpi(form:FormState, px_w:number, px_h:number):BgI
     const dims = compute_cover_dims(form)
     const coverage = form.bg_image_coverage
     const target_mm = position_target_mm(dims, coverage)
-    const dpi = estimate_dpi(px_w, px_h, target_mm)
-    const level = dpi_level(dpi)
+    const level = dpi_level(px_w, px_h, target_mm)
     if (level === 'ok')
         return null
 
@@ -119,8 +123,7 @@ export function check_bg_image_dpi(form:FormState, px_w:number, px_h:number):BgI
     let body = level === 'very_low' ? t('dpi_warning.body_very_low') : t('dpi_warning.body_low')
 
     if (level === 'very_low' && (coverage === 'full' || coverage === 'front')) {
-        const feature_dpi = estimate_dpi(px_w, px_h, feature_target_mm(dims))
-        if (dpi_level(feature_dpi) !== 'very_low')
+        if (meets_dpi(px_w, px_h, feature_target_mm(dims), VERY_LOW_DPI))
             body += t('dpi_warning.body_front_suffix')
     }
 
