@@ -524,7 +524,13 @@ div(class="flex flex-col gap-1")
                             class="flex-1 text-xs px-2 py-1.5 border border-default rounded-md bg-default outline-none min-w-0"
                             @input="on_custom_icon_input"
                         )
-                        UIcon(v-if="icon_id_status" :name="icon_id_status_icon" class="w-3.5 h-3.5 shrink-0" :class="icon_id_status_class")
+                        UIcon(
+                            v-if="icon_id_status"
+                            :name="icon_id_status_icon"
+                            class="w-3.5 h-3.5 shrink-0"
+                            :class="icon_id_status_class"
+                            :data-icon-status="icon_id_status"
+                        )
 
             //- Pinned under the title, stays in view while the groups/help below scroll —
             //- hidden on mobile since it duplicates the always-visible slider/swatch below

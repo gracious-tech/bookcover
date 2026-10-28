@@ -87,3 +87,29 @@ test('a file that is not a font is rejected with a message', async ({page}) => {
     await expect(modal.getByText('No new font families found in the uploaded files')).toBeVisible()
     await expect(modal).toBeVisible()
 })
+
+test('files dropped on the upload area are processed like chosen ones', async ({page}) => {
+    await open_widget(page)
+    await open_title_font_chooser(page)
+    await page.getByRole('button', {name: 'More', exact: true}).click()
+    const modal = upload_modal(page)
+    const zone = modal.locator('label').filter({hasText: 'Drop files here or click to browse'})
+    const files = await page.evaluateHandle(() => {
+        const transfer = new DataTransfer()
+        transfer.items.add(new File(['PK\u0003\u0004 truncated'], 'fonts.zip', {type: 'application/zip'}))
+        return transfer
+    })
+
+    // Dragging over the area highlights it, and leaving drops the highlight
+    await zone.dispatchEvent('dragenter', {dataTransfer: files})
+    await expect(zone).toHaveClass(/border-primary/)
+    await zone.dispatchEvent('dragleave', {dataTransfer: files})
+    await expect(zone).not.toHaveClass(/border-primary/)
+
+    // A zip that won't open holds no fonts, rather than being an error of its own
+    await zone.dispatchEvent('dragenter', {dataTransfer: files})
+    await zone.dispatchEvent('drop', {dataTransfer: files})
+    await expect(zone).not.toHaveClass(/border-primary/)
+    await expect(modal.getByText('No new font families found in the uploaded files')).toBeVisible()
+    await expect(modal).toBeVisible()
+})

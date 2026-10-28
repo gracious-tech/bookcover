@@ -103,6 +103,42 @@ test('choosing a binding re-renders the cover', async ({page}) => {
     expect(svg_size(after).height).toBeGreaterThan(svg_size(before).height)
 })
 
+test('a service that sizes the spine by ink and paper offers them, and drops ones that stop fitting',
+    async ({page}) => {
+        await open_widget(page)
+        let svg = await print_svg(page)
+        // Lulu's spine doesn't depend on either, so neither is offered
+        await expect(page.getByText('Ink type', {exact: true})).toBeHidden()
+        await choose(page, field(page, 'Printing service').getByRole('combobox'),
+            'Kindle Direct Publishing')
+        svg = await wait_for_new_cover(page, svg)
+        const ink = field(page, 'Ink type')
+        const paper = field(page, 'Paper type')
+        const white = svg_size(svg).width
+
+        // Cream paper is thicker, so the same pages make a wider spine
+        await paper.getByRole('button', {name: 'Cream paper', exact: true}).click()
+        svg = await wait_for_new_cover(page, svg)
+        const cream = svg_size(svg).width
+        expect(cream).toBeGreaterThan(white)
+
+        // Colour isn't printed on cream, so choosing it moves the paper back to white
+        await ink.getByRole('button', {name: 'Standard color interior', exact: true}).click()
+        svg = await wait_for_new_cover(page, svg)
+        await expect(paper.getByRole('button', {name: 'Cream paper', exact: true})).toBeDisabled()
+        expect(svg_size(svg).width).toBeLessThan(cream)
+
+        // Nor is standard colour offered in hardcover (which KDP's first size can't have), so that
+        // binding moves the ink to the first one it supports
+        await choose(page, trim_size(page).getByRole('combobox'), 'US Trade')
+        svg = await wait_for_new_cover(page, svg)
+        await field(page, 'Binding').getByRole('button', {name: 'Hardcover', exact: true}).click()
+        await wait_for_new_cover(page, svg)
+        await expect(ink.getByRole('button', {name: 'Standard color interior', exact: true}))
+            .toBeDisabled()
+        await expect(paper.getByRole('button', {name: 'Cream paper', exact: true})).toBeEnabled()
+    })
+
 test('a page count no binding supports shows an error instead of a cover', async ({page}) => {
     const log = watch(page)
     await open_widget(page)

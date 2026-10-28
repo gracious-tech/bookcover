@@ -130,6 +130,26 @@ export async function download(page:Page, trigger:Locator):Promise<{name:string,
     return {name: file.suggestedFilename(), bytes: Buffer.concat(parts)}
 }
 
+/** How many distinct colours a 2D canvas holds, sampled on a coarse grid — a blank canvas has 1 */
+export async function canvas_colours(canvas:Locator):Promise<number> {
+    return canvas.evaluate((el:HTMLCanvasElement) => {
+        const ctx = el.getContext('2d')
+        if (!ctx || !el.width || !el.height)
+            return 0
+        const data = ctx.getImageData(0, 0, el.width, el.height).data
+        const colours = new Set<number>()
+        const step_x = Math.max(1, Math.floor(el.width / 40))
+        const step_y = Math.max(1, Math.floor(el.height / 40))
+        for (let y = 0; y < el.height; y += step_y) {
+            for (let x = 0; x < el.width; x += step_x) {
+                const i = (y * el.width + x) * 4
+                colours.add((data[i]! << 16) | (data[i + 1]! << 8) | data[i + 2]!)
+            }
+        }
+        return colours.size
+    })
+}
+
 /** Whether a buffer starts with the given magic bytes */
 export function starts_with(bytes:Buffer, magic:Buffer):boolean {
     return bytes.subarray(0, magic.length).equals(magic)

@@ -1,9 +1,9 @@
-// Page-load behaviour of the production build: the app generating its demo cover, and which
+// Page-load behaviour of the production build: the app generating its demo cover, which
 // chunks/requests a load makes (lazy-loaded vector backgrounds, no Iconify API calls for curated
-// icons)
+// icons), and what it shows when the assets it starts from can't be loaded
 
 import {test, expect} from '@playwright/test'
-import {DEFAULT_DESIGN, watch, open_widget, print_svg} from './helpers'
+import {DEFAULT_DESIGN, watch, open_widget, print_svg, preview_area} from './helpers'
 
 test('generates the default cover with no errors or failed requests', async ({page}) => {
     const log = watch(page)
@@ -31,6 +31,24 @@ test('fetches the typst wasm and fonts from the assets bucket', async ({page}) =
     expect(log.urls.some(url => /^https:\/\/assets\.paper\.bible\/typst\/[^/]+\/.+\.wasm$/.test(url)))
         .toBe(true)
     expect(log.urls).toContain('https://assets.paper.bible/fonts/manifest.json')
+})
+
+test('a fonts server that fails says so instead of a cover', async ({page}) => {
+    // The worker fetches the manifest too, so route the whole context
+    await page.context().route('https://assets.paper.bible/fonts/manifest.json',
+        route => route.fulfill({status: 500}))
+    await page.goto('/')
+    await expect(preview_area(page)).toHaveAttribute('data-preview-state', 'error')
+    await expect(page.getByText('The fonts server is not working')).toBeVisible()
+    await expect(page.getByText('https://assets.paper.bible/fonts/manifest.json')).toBeVisible()
+})
+
+test('a typst wasm that fails to load says so instead of a cover', async ({page}) => {
+    await page.context().route(/^https:\/\/assets\.paper\.bible\/typst\/.+\.wasm$/,
+        route => route.fulfill({status: 404}))
+    await page.goto('/')
+    await expect(preview_area(page)).toHaveAttribute('data-preview-state', 'error')
+    await expect(page.getByText('Typst wasm failed to load.')).toBeVisible()
 })
 
 test('shows a thumbnail for every vector background in the picker', async ({page}) => {

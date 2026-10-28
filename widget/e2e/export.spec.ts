@@ -3,7 +3,8 @@
 
 import {test, expect} from '@playwright/test'
 import type {Page} from '@playwright/test'
-import {watch, open_widget, print_svg, wait_for_new_cover, download, starts_with, MAGIC} from './helpers'
+import {watch, open_widget, print_svg, wait_for_new_cover, download, starts_with, MAGIC,
+    canvas_colours} from './helpers'
 
 /** Switch the preview pane to one of its tabs by label */
 async function show_tab(page:Page, label:string):Promise<void> {
@@ -87,7 +88,8 @@ test('the 3D tab saves a PNG of the book', async ({page}) => {
 test('the Mockup tab saves a PNG of the photo composite', async ({page}) => {
     await open_widget(page)
     await show_tab(page, 'Mockup')
-    await expect(page.locator('canvas#photo-canvas')).toBeVisible()
+    // The canvas shows before the photo is composited onto it, and saving then saves it blank
+    await expect.poll(() => canvas_colours(page.locator('canvas#photo-canvas'))).toBeGreaterThan(50)
     const file = await download(page, page.getByRole('button', {name: 'Save Mockup'}))
     expect(file.name).toBe('cover_mockup.png')
     expect(starts_with(file.bytes, MAGIC.png)).toBe(true)
