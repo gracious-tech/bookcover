@@ -58,6 +58,8 @@ const ko:Messages = {
         image_dialog_title: '배경 선택',
         upload_button: '업로드',
         paste_button: '붙여넣기',
+        paste_unavailable: '클립보드를 읽을 수 없습니다. 대신 Ctrl+V(Mac에서는 ⌘V)를 눌러 붙여넣으세요.',
+        paste_no_image: '클립보드에 이미지가 없습니다.',
         remove_image_aria: '이미지 삭제',
         dpi_short_very_low: '해상도가 매우 낮음 - 교체 권장',
         dpi_short_low: '해상도가 낮음 - 흐릿할 수 있음',

@@ -233,17 +233,18 @@ test('pasting an image makes it the background, but not while typing in a field'
     await expect(page.getByRole('img', {name: 'Current background'})).toHaveAttribute('src', /^blob:/)
 })
 
-test('the Paste button adopts an image on the clipboard, and ignores text', async ({page, context}) => {
+test('the Paste button adopts an image on the clipboard, and says when there is none', async ({page, context}) => {
     const log = watch(page)
     await context.grantPermissions(['clipboard-read', 'clipboard-write'])
     await open_widget(page)
     const before = await print_svg(page)
     const paste = page.getByRole('button', {name: 'Paste', exact: true}).first()
+    const no_image = page.getByText('There is no image on the clipboard.')
 
     // Text on the clipboard isn't a background
     await page.evaluate(() => navigator.clipboard.writeText('just some words'))
     await paste.click()
-    await page.waitForTimeout(500)
+    await expect(no_image).toBeVisible()
     await expect(page.getByRole('img', {name: 'Current background'})).toHaveCount(0)
 
     // A picture big enough to print, so no resolution warning gets in the way
@@ -261,6 +262,29 @@ test('the Paste button adopts an image on the clipboard, and ignores text', asyn
     await paste.click()
     await wait_for_new_cover(page, before)
     await expect(page.getByRole('img', {name: 'Current background'})).toHaveAttribute('src', /^blob:/)
+    await expect(no_image).toBeHidden()
+    expect(log.errors).toEqual([])
+})
+
+test('a Paste the browser refuses points to Ctrl+V instead of failing silently', async ({page}) => {
+    // No clipboard-read permission granted, as when a user (or a host's iframe) denies it
+    const log = watch(page)
+    await open_widget(page)
+    await page.getByRole('button', {name: 'Paste', exact: true}).first().click()
+    const message = page.getByText("Can't read the clipboard.", {exact: false})
+    await expect(message).toBeVisible()
+
+    // The picker dialog covers the sidebar, so its own Paste button says so beside itself
+    await open_bg_picker(page)
+    await page.getByRole('button', {name: 'Paste', exact: true}).last().click()
+    await expect(message.last()).toBeVisible()
+    await close_picker(page)
+
+    // Ctrl+V, which needs no permission, still works and clears the message
+    await paste_image(page, repo_file(`assets/backgrounds/${BUILTIN}`).toString('base64'))
+    await expect(page.getByRole('img', {name: 'Current background'})).toHaveAttribute('src', /^blob:/)
+    await expect(message).toHaveCount(0)
+    // An expected refusal, so nothing is thrown for a host to file as a crash
     expect(log.errors).toEqual([])
 })
 

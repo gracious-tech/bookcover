@@ -55,6 +55,9 @@ div(class="flex flex-col gap-1")
             @click="clear_background()"
         )
 
+    //- Why Paste found nothing (no clipboard access, or no image on it)
+    p(v-if="paste_error" class="text-xs ms-1 mt-1 text-red-600 dark:text-red-400" role="status") {{ paste_error }}
+
     //- Inline resolution warning — short label, click opens the full-detail dialog
     button(
         v-if="bg_dpi_warning"
@@ -234,6 +237,8 @@ div(class="flex flex-col gap-1")
                 input(type="file" accept=".jpg,.jpeg,.png,.webp" class="sr-only" @change="on_image_change")
                 UButton(as="span" color="neutral" variant="outline" size="sm") {{ t('background.upload_button') }}
             UButton(type="button" color="neutral" variant="outline" size="sm" @click="on_paste_click") {{ t('background.paste_button') }}
+            //- The dialog covers the sidebar's own copy of this message
+            span(v-if="paste_error" class="text-xs ms-1 text-red-600 dark:text-red-400" role="status") {{ paste_error }}
 
 
 //- Background image coverage — hidden for vector backgrounds (always full-wrap, forced by the generator)
@@ -1018,10 +1023,26 @@ function image_from_clipboard(items:DataTransferItemList): File | null {
     return null
 }
 
-/** Paste button: read image from clipboard API */
+// Why the last Paste button click found nothing to paste, shown beside both Paste buttons
+const paste_error = ref<string | null>(null)
+
+// Any new background (from either Paste, Ctrl+V, an upload or the picker) clears the message
+watch(() => [form.bg_image, form.bg_image_builtin, form.bg_vector_id], () => { paste_error.value = null })
+
+/** Paste button: read image from clipboard API. The read is refused when the user (or the
+ *  browser, or an embedding host's iframe permissions) denies clipboard access, and isn't
+ *  there at all in some browsers — an expected outcome, so it's explained rather than reported,
+ *  pointing to Ctrl+V (on_global_paste below), which needs no permission */
 // @ts-ignore TS6133 — used in Pug template
 async function on_paste_click(): Promise<void> {
-    const items = await navigator.clipboard.read()
+    paste_error.value = null
+    let items:ClipboardItems
+    try {
+        items = await navigator.clipboard.read()
+    } catch {
+        paste_error.value = t('background.paste_unavailable')
+        return
+    }
     for (const item of items) {
         const image_type = item.types.find(t => t.startsWith('image/'))
         if (image_type) {
@@ -1031,6 +1052,7 @@ async function on_paste_click(): Promise<void> {
             return
         }
     }
+    paste_error.value = t('background.paste_no_image')
 }
 
 /** Global Ctrl+V handler — only applies when no image is set and no text input is focused */

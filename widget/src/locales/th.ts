@@ -58,6 +58,8 @@ const th:Messages = {
         image_dialog_title: 'เลือกพื้นหลัง',
         upload_button: 'อัปโหลด',
         paste_button: 'วาง',
+        paste_unavailable: 'อ่านคลิปบอร์ดไม่ได้ กด Ctrl+V (⌘V บน Mac) เพื่อวางแทน',
+        paste_no_image: 'ไม่มีภาพในคลิปบอร์ด',
         remove_image_aria: 'ลบภาพ',
         dpi_short_very_low: 'ความละเอียดต่ำมาก - ควรเปลี่ยน',
         dpi_short_low: 'ความละเอียดต่ำ - อาจดูไม่คมชัด',

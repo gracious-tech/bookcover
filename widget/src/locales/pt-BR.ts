@@ -59,6 +59,8 @@ const pt_br:Messages = {
         image_dialog_title: 'Escolha um fundo',
         upload_button: 'Enviar',
         paste_button: 'Colar',
+        paste_unavailable: 'Não é possível ler a área de transferência. Pressione Ctrl+V (⌘V no Mac) para colar.',
+        paste_no_image: 'Não há nenhuma imagem na área de transferência.',
         remove_image_aria: 'Remover imagem',
         dpi_short_very_low: 'Resolução muito baixa - convém trocar',
         dpi_short_low: 'Resolução baixa - pode ficar desfocada',

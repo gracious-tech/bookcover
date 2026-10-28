@@ -59,6 +59,8 @@ const id:Messages = {
         image_dialog_title: 'Pilih latar belakang',
         upload_button: 'Unggah',
         paste_button: 'Tempel',
+        paste_unavailable: 'Tidak dapat membaca papan klip. Tekan Ctrl+V (⌘V di Mac) untuk menempel.',
+        paste_no_image: 'Tidak ada gambar di papan klip.',
         remove_image_aria: 'Hapus gambar',
         dpi_short_very_low: 'Resolusi sangat rendah - sebaiknya diganti',
         dpi_short_low: 'Resolusi rendah - mungkin tampak buram',

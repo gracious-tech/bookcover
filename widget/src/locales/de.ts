@@ -2,7 +2,8 @@
 // German catalog — AI-translated from en.ts (see TRANSLATING.md). Native review: none yet.
 //
 // Style: formal Sie; buttons in the infinitive ("Speichern"); „“ quotes; decimal comma in
-// running text. Long compounds are kept out of the [max N] labels.
+// running text. Long compounds are kept out of the [max N] labels. Keyboard shortcuts use the
+// German key labels (Strg+V, not Ctrl+V).
 // Glossary: cover = Cover · front/back cover = Vorderseite/Rückseite · spine = Buchrücken
 // · blurb = Klappentext · trim size = Endformat · bleed = Beschnitt · binding = Bindung
 // · perfect bound = Klebebindung · saddle stitch = Rückstichheftung
@@ -59,6 +60,8 @@ const de:Messages = {
         image_dialog_title: 'Hintergrund wählen',
         upload_button: 'Hochladen',
         paste_button: 'Einfügen',
+        paste_unavailable: 'Die Zwischenablage kann nicht gelesen werden. Drücken Sie stattdessen Strg+V (⌘V auf dem Mac), um einzufügen.',
+        paste_no_image: 'In der Zwischenablage ist kein Bild.',
         remove_image_aria: 'Bild entfernen',
         dpi_short_very_low: 'Sehr geringe Auflösung - besser ersetzen',
         dpi_short_low: 'Geringe Auflösung - evtl. unscharf',

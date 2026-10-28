@@ -61,6 +61,8 @@ const ta:Messages = {
         image_dialog_title: 'பின்னணியைத் தேர்ந்தெடுக்கவும்',
         upload_button: 'பதிவேற்று',
         paste_button: 'ஒட்டு',
+        paste_unavailable: 'கிளிப்போர்டைப் படிக்க முடியவில்லை. அதற்குப் பதிலாக ஒட்ட Ctrl+V (Mac-இல் ⌘V) அழுத்தவும்.',
+        paste_no_image: 'கிளிப்போர்டில் படம் எதுவும் இல்லை.',
         remove_image_aria: 'படத்தை அகற்றவும்',
         dpi_short_very_low: 'தெளிவுத்திறன் மிகக் குறைவு - மாற்றவும்',
         dpi_short_low: 'தெளிவுத்திறன் குறைவு - மங்கலாகத் தெரியலாம்',

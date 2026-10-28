@@ -58,6 +58,8 @@ const tr:Messages = {
         image_dialog_title: 'Arka plan seçin',
         upload_button: 'Yükle',
         paste_button: 'Yapıştır',
+        paste_unavailable: "Pano okunamıyor. Bunun yerine yapıştırmak için Ctrl+V (Mac'te ⌘V) tuşlarına basın.",
+        paste_no_image: 'Panoda görsel yok.',
         remove_image_aria: 'Görseli kaldır',
         dpi_short_very_low: 'Çözünürlük çok düşük - değiştirilmeli',
         dpi_short_low: 'Çözünürlük düşük - bulanık görünebilir',

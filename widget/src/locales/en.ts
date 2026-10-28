@@ -78,6 +78,8 @@ const en = {
         upload_button: 'Upload',
         // button: paste an image from the clipboard [max 10]
         paste_button: 'Paste',
+        paste_unavailable: "Can't read the clipboard. Press Ctrl+V (⌘V on a Mac) to paste instead.",
+        paste_no_image: 'There is no image on the clipboard.',
         remove_image_aria: 'Remove image',
         dpi_short_very_low: 'Very low resolution - should change',
         dpi_short_low: 'Low resolution - may look soft',

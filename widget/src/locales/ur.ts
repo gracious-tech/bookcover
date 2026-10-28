@@ -60,6 +60,8 @@ const ur:Messages = {
         image_dialog_title: 'پس منظر منتخب کریں',
         upload_button: 'اپ لوڈ',
         paste_button: 'پیسٹ',
+        paste_unavailable: 'کلپ بورڈ نہیں پڑھا جا سکتا۔ اس کے بجائے پیسٹ کرنے کے لیے Ctrl+V (یا Mac پر Cmd+V) دبائیں۔',
+        paste_no_image: 'کلپ بورڈ پر کوئی تصویر نہیں ہے۔',
         remove_image_aria: 'تصویر ہٹائیں',
         dpi_short_very_low: 'ریزولوشن بہت کم - بدل دینی چاہیے',
         dpi_short_low: 'ریزولوشن کم - دھندلی لگ سکتی ہے',

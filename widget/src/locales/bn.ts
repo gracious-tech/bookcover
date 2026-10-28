@@ -60,6 +60,8 @@ const bn:Messages = {
         image_dialog_title: 'ব্যাকগ্রাউন্ড বেছে নিন',
         upload_button: 'আপলোড',
         paste_button: 'পেস্ট',
+        paste_unavailable: 'ক্লিপবোর্ড পড়া যাচ্ছে না। এর বদলে পেস্ট করতে Ctrl+V (Mac-এ ⌘V) চাপুন।',
+        paste_no_image: 'ক্লিপবোর্ডে কোনো ছবি নেই।',
         remove_image_aria: 'ছবি সরান',
         dpi_short_very_low: 'রেজোলিউশন খুব কম - বদলানো উচিত',
         dpi_short_low: 'রেজোলিউশন কম - ঝাপসা দেখাতে পারে',

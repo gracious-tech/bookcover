@@ -60,6 +60,8 @@ const mr:Messages = {
         image_dialog_title: 'पार्श्वभूमी निवडा',
         upload_button: 'अपलोड',
         paste_button: 'पेस्ट',
+        paste_unavailable: 'क्लिपबोर्ड वाचता येत नाही. त्याऐवजी पेस्ट करण्यासाठी Ctrl+V (Mac वर ⌘V) दाबा.',
+        paste_no_image: 'क्लिपबोर्डवर कोणतेही चित्र नाही.',
         remove_image_aria: 'चित्र काढा',
         dpi_short_very_low: 'रिझोल्यूशन खूप कमी - बदलावे',
         dpi_short_low: 'रिझोल्यूशन कमी - धूसर दिसू शकते',

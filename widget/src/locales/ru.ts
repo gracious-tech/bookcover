@@ -59,6 +59,8 @@ const ru:Messages = {
         image_dialog_title: 'Выберите фон',
         upload_button: 'Загрузить',
         paste_button: 'Вставить',
+        paste_unavailable: 'Не удаётся прочитать буфер обмена. Нажмите Ctrl+V (⌘V на Mac), чтобы вставить.',
+        paste_no_image: 'В буфере обмена нет изображения.',
         remove_image_aria: 'Удалить изображение',
         dpi_short_very_low: 'Очень низкое разрешение - лучше заменить',
         dpi_short_low: 'Низкое разрешение - может быть нечётким',

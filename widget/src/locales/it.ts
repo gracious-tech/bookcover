@@ -59,6 +59,8 @@ const it:Messages = {
         image_dialog_title: 'Scegli uno sfondo',
         upload_button: 'Carica',
         paste_button: 'Incolla',
+        paste_unavailable: 'Impossibile leggere gli appunti. Premi Ctrl+V (⌘V su Mac) per incollare.',
+        paste_no_image: 'Negli appunti non c’è nessuna immagine.',
         remove_image_aria: 'Rimuovi immagine',
         dpi_short_very_low: 'Risoluzione molto bassa - da sostituire',
         dpi_short_low: 'Risoluzione bassa - può risultare sfocata',

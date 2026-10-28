@@ -57,6 +57,8 @@ const vi:Messages = {
         image_dialog_title: 'Chọn ảnh nền',
         upload_button: 'Tải lên',
         paste_button: 'Dán',
+        paste_unavailable: 'Không thể đọc bảng nhớ tạm. Hãy nhấn Ctrl+V (⌘V trên Mac) để dán.',
+        paste_no_image: 'Không có ảnh nào trong bảng nhớ tạm.',
         remove_image_aria: 'Xóa ảnh',
         dpi_short_very_low: 'Độ phân giải rất thấp - nên đổi ảnh khác',
         dpi_short_low: 'Độ phân giải thấp - có thể bị mờ',

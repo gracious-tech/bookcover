@@ -60,6 +60,8 @@ const te:Messages = {
         image_dialog_title: 'నేపథ్యాన్ని ఎంచుకోండి',
         upload_button: 'అప్‌లోడ్',
         paste_button: 'పేస్ట్',
+        paste_unavailable: 'క్లిప్‌బోర్డ్‌ను చదవడం సాధ్యం కాదు. బదులుగా పేస్ట్ చేయడానికి Ctrl+V (Macలో ⌘V) నొక్కండి.',
+        paste_no_image: 'క్లిప్‌బోర్డ్‌లో చిత్రం ఏదీ లేదు.',
         remove_image_aria: 'చిత్రాన్ని తీసివేయండి',
         dpi_short_very_low: 'రిజల్యూషన్ చాలా తక్కువ - మార్చాలి',
         dpi_short_low: 'రిజల్యూషన్ తక్కువ - మసకగా కనిపించవచ్చు',

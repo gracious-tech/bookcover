@@ -58,6 +58,8 @@ const zh_hans:Messages = {
         image_dialog_title: '选择背景',
         upload_button: '上传',
         paste_button: '粘贴',
+        paste_unavailable: '无法读取剪贴板。请改用 Ctrl+V（Mac 上为 ⌘V）粘贴。',
+        paste_no_image: '剪贴板中没有图片。',
         remove_image_aria: '移除图片',
         dpi_short_very_low: '分辨率很低 - 建议更换',
         dpi_short_low: '分辨率较低 - 可能不够清晰',

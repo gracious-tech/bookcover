@@ -58,6 +58,8 @@ const ja:Messages = {
         image_dialog_title: '背景を選択',
         upload_button: 'アップロード',
         paste_button: '貼り付け',
+        paste_unavailable: 'クリップボードを読み取れません。代わりにCtrl+V（Macでは⌘V）で貼り付けてください。',
+        paste_no_image: 'クリップボードに画像がありません。',
         remove_image_aria: '画像を削除',
         dpi_short_very_low: '解像度がとても低い - 変更を推奨',
         dpi_short_low: '解像度が低い - ぼやける可能性あり',

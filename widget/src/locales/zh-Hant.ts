@@ -60,6 +60,8 @@ const zh_hant:Messages = {
         image_dialog_title: '選擇背景',
         upload_button: '上傳',
         paste_button: '貼上',
+        paste_unavailable: '無法讀取剪貼簿。請改按 Ctrl+V（Mac 上為 ⌘V）貼上。',
+        paste_no_image: '剪貼簿中沒有圖片。',
         remove_image_aria: '移除圖片',
         dpi_short_very_low: '解析度很低，建議更換',
         dpi_short_low: '解析度偏低，可能不夠清晰',

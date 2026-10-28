@@ -60,6 +60,8 @@ const fr:Messages = {
         image_dialog_title: 'Choisir un arrière-plan',
         upload_button: 'Importer',
         paste_button: 'Coller',
+        paste_unavailable: 'Impossible de lire le presse-papiers. Appuyez plutôt sur Ctrl+V (⌘V sur Mac) pour coller.',
+        paste_no_image: 'Le presse-papiers ne contient aucune image.',
         remove_image_aria: 'Supprimer l’image',
         dpi_short_very_low: 'Résolution très faible - à remplacer',
         dpi_short_low: 'Résolution faible - risque de flou',

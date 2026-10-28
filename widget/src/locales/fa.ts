@@ -59,6 +59,8 @@ const fa:Messages = {
         image_dialog_title: 'انتخاب پس‌زمینه',
         upload_button: 'بارگذاری',
         paste_button: 'جای‌گذاری',
+        paste_unavailable: 'خواندن کلیپ‌بورد ممکن نیست. به‌جای آن، برای جای‌گذاری Ctrl+V (یا Cmd+V در Mac) را فشار دهید.',
+        paste_no_image: 'هیچ تصویری در کلیپ‌بورد نیست.',
         remove_image_aria: 'حذف تصویر',
         dpi_short_very_low: 'وضوح بسیار پایین - بهتر است عوض شود',
         dpi_short_low: 'وضوح پایین - ممکن است تار به نظر برسد',

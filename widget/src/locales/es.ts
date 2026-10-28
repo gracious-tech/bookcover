@@ -59,6 +59,8 @@ const es:Messages = {
         image_dialog_title: 'Elige un fondo',
         upload_button: 'Subir',
         paste_button: 'Pegar',
+        paste_unavailable: 'No se puede leer el portapapeles. Pulsa Ctrl+V (⌘V en Mac) para pegar en su lugar.',
+        paste_no_image: 'No hay ninguna imagen en el portapapeles.',
         remove_image_aria: 'Quitar imagen',
         dpi_short_very_low: 'Resolución muy baja: conviene cambiarla',
         dpi_short_low: 'Resolución baja: puede verse borrosa',

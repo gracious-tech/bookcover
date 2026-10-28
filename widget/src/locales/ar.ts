@@ -60,6 +60,8 @@ const ar:Messages = {
         image_dialog_title: 'اختيار خلفية',
         upload_button: 'رفع',
         paste_button: 'لصق',
+        paste_unavailable: 'تعذّرت قراءة الحافظة. اضغط Ctrl+V (أو Cmd+V على Mac) للّصق بدلًا من ذلك.',
+        paste_no_image: 'لا توجد صورة في الحافظة.',
         remove_image_aria: 'إزالة الصورة',
         dpi_short_very_low: 'دقة منخفضة جدًا - يُنصح بتغييرها',
         dpi_short_low: 'دقة منخفضة - قد تبدو غير حادة',

@@ -60,6 +60,8 @@ const hi:Messages = {
         image_dialog_title: 'पृष्ठभूमि चुनें',
         upload_button: 'अपलोड',
         paste_button: 'पेस्ट',
+        paste_unavailable: 'क्लिपबोर्ड नहीं पढ़ा जा सकता। इसके बजाय पेस्ट करने के लिए Ctrl+V (Mac पर ⌘V) दबाएँ।',
+        paste_no_image: 'क्लिपबोर्ड पर कोई इमेज नहीं है।',
         remove_image_aria: 'इमेज हटाएँ',
         dpi_short_very_low: 'रिज़ॉल्यूशन बहुत कम - बदलना चाहिए',
         dpi_short_low: 'रिज़ॉल्यूशन कम - धुंधली दिख सकती है',
