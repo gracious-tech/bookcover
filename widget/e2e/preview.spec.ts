@@ -2,7 +2,7 @@
 // zoomed/rotated/panned by mouse, wheel and touch, plus the toolbar's dark-mode toggle and the
 // mobile layout's panel switcher
 
-import {test, expect} from '@playwright/test'
+import {test, expect} from './fixtures'
 import type {Page, Locator} from '@playwright/test'
 import {watch, open_widget, wait_ready, canvas_colours} from './helpers'
 

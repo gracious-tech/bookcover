@@ -3,7 +3,7 @@
 // worker would: PNG, which renders through the real typst.ts canvas renderer
 
 import {readdirSync} from 'node:fs'
-import {test, expect} from '@playwright/test'
+import {test, expect} from './fixtures'
 import {build_schema, cover_schema, make_blank_form_values, resolve_dimensions} from 'bookcover-web'
 import type {FormState} from '../src/form_state'
 

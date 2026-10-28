@@ -1,7 +1,7 @@
 // Saving and exporting from the preview toolbar: every tab's Save button and the PDF export
 // produce real files of the right type (checked by their magic bytes), not just a click
 
-import {test, expect} from '@playwright/test'
+import {test, expect} from './fixtures'
 import type {Page} from '@playwright/test'
 import {watch, open_widget, print_svg, wait_for_new_cover, download, starts_with, MAGIC,
     canvas_colours} from './helpers'

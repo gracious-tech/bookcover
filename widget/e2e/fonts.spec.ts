@@ -2,7 +2,7 @@
 // user-uploaded font joins the chooser and the cover
 
 import {existsSync} from 'node:fs'
-import {test, expect} from '@playwright/test'
+import {test, expect} from './fixtures'
 import type {Page, Locator} from '@playwright/test'
 import {watch, open_widget, print_svg, wait_for_new_cover, repo_url, repo_file} from './helpers'
 

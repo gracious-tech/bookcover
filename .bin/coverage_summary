@@ -1,0 +1,47 @@
+#!/usr/bin/env node
+
+// Prints one table of the coverage reports .bin/coverage wrote under coverage/ — each package's
+// vitest suite, then the widget's browser tests — from their istanbul json-summary files.
+// Lists whichever reports exist, so it also works after `.bin/coverage unit` or `e2e` alone
+
+import {existsSync, readFileSync, readdirSync, statSync} from 'fs'
+import {join, relative, dirname} from 'path'
+import {fileURLToPath} from 'url'
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+const out = join(root, 'coverage')
+const METRICS = ['lines', 'branches', 'functions']
+
+/** Every coverage-summary.json under a directory, deepest-first order not guaranteed */
+function find_summaries(dir) {
+    if (!existsSync(dir))
+        return []
+    return readdirSync(dir).flatMap(name => {
+        const path = join(dir, name)
+        if (statSync(path).isDirectory())
+            return find_summaries(path)
+        return name === 'coverage-summary.json' ? [path] : []
+    })
+}
+
+// One row per report: the package for a unit suite, a fixed label for the browser tests
+const rows = [
+    ...find_summaries(join(out, 'unit')).map(path => [relative(join(out, 'unit'), dirname(path)), path]),
+    ...find_summaries(join(out, 'e2e')).map(path => ['widget (browser tests)', path]),
+].map(([label, path]) => {
+    const {total} = JSON.parse(readFileSync(path, 'utf8'))
+    return [label, ...METRICS.map(metric => `${total[metric].pct}%`),
+        `${total.lines.covered}/${total.lines.total}`, relative(root, join(dirname(path), 'index.html'))]
+})
+
+if (!rows.length) {
+    console.log('No coverage reports yet — run .bin/coverage')
+    process.exit(0)
+}
+
+// Pad each column to its widest cell
+const table = [['', ...METRICS, 'lines covered', 'report'], ...rows]
+const widths = table[0].map((_, i) => Math.max(...table.map(row => row[i].length)))
+console.log()
+for (const row of table)
+    console.log(row.map((cell, i) => cell.padEnd(widths[i])).join('  ').trimEnd())

@@ -215,6 +215,20 @@ place, `cd widget && npx playwright test` skips the rebuild. Tests wait for the 
 but CI runs both before every deploy (see Deployment). The Vue components have no unit tests —
 these browser tests are their only coverage, so UI changes need a spec here.
 
+`.bin/coverage` measures code coverage (`unit`, `e2e`, or both by default) and prints one table;
+the reports, each with an `index.html` of uncovered lines, go to `coverage/` (gitignored). The
+unit half is each vitest suite with V8 coverage of its package's `src/`, minus what no suite is
+meant to test (its `EXCLUDE` map: codegen output, maintainer-only scripts, vendored Coloris).
+The e2e half is the browser suite's coverage of the widget's own modules — the only coverage
+the Vue components get. It builds a source-mapped copy of the widget into
+`coverage/widget_build/` (never `dist/`) and runs Playwright with `E2E_COVERAGE=1`, which
+`widget/e2e/coverage.ts` reads. That's why every spec imports `test` from `./fixtures`, not
+`@playwright/test`: the fixture records each page's Chromium JS coverage, and monocart maps it
+back to `src/`. The generator worker is not measured, since page coverage can't see into a
+worker. A new spec must import from `./fixtures` too, or its coverage goes uncounted. One that
+sets its own `launchOptions` must build its args with `chromium_args()`, or the embedded
+widget's cross-origin iframe is recorded in another process and never counted.
+
 `.bin/test_examples` is the separate manual check: it builds `generator` and `generator-node`,
 then generates PDF/SVG/PNG files in the project root from a sample schema for visual
 inspection (needs `assets/fonts/` populated — see Build). It asserts nothing.
@@ -644,6 +658,8 @@ consumers, but note that embeds every source into the maps (bookcover-core: 213 
 | `serve_site` | `vite` dev server in site/ |
 | `test` | Run every package's vitest suite in dependency order |
 | `test_e2e` | Build the widget and run its Playwright browser tests against the production build |
+| `coverage` | Measure unit (vitest) and/or browser-test (Playwright) coverage into coverage/ and print a summary |
+| `coverage_summary` | Print the table of whatever reports are in coverage/ (run by `coverage`) |
 | `test_examples` | Generate test covers (PDF/SVG/PNG) for visual inspection |
 | `setup_typst` | Download latest typst binary to .bin/ |
 | `download_fonts` | Populate assets/fonts/ from font_config.json (typst-fonts-download, overlaps merged — needs Python fonttools + skia-pathops) |

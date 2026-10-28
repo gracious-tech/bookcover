@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Measure code coverage: every package's vitest suite, then the widget's browser tests (whose
+# coverage of the Vue components no unit suite can give), and print one table of the results.
+# Reports land in coverage/ (gitignored) — each has an index.html to browse uncovered lines.
+#   .bin/coverage          both
+#   .bin/coverage unit     the vitest suites only
+#   .bin/coverage e2e      the browser tests only (needs network, like .bin/test_e2e)
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+OUT="$ROOT/coverage"
+WHICH="${1:-all}"
+
+# Same packages and order as .bin/test
+PACKAGES=(
+    typst/typst-utils
+    typst/typst-fonts
+    typst/pm-to-typst
+    generator
+    generator-node
+    generator-web
+    3d
+    widget
+    site
+)
+
+# Code each package's own src/ carries that no suite is meant to test: codegen output, the
+# maintainer-only data refresh scripts, and the vendored Coloris
+declare -A EXCLUDE=(
+    [generator]='src/generated/**'
+    [typst/typst-fonts]='src/scripts/**'
+    [widget]='src/vendor/**'
+)
+
+if [[ "$WHICH" == all || "$WHICH" == unit ]]; then
+    "$ROOT/.bin/build_modules"
+    rm -rf "$OUT/unit"
+    for package in "${PACKAGES[@]}"; do
+        echo
+        echo "==> $package"
+        cd "$ROOT/$package"
+        npx vitest run --coverage.enabled \
+            --coverage.include='src/**' \
+            ${EXCLUDE[$package]:+--coverage.exclude="${EXCLUDE[$package]}"} \
+            --coverage.reporter=json-summary --coverage.reporter=html \
+            --coverage.reportsDirectory="$OUT/unit/$package"
+    done
+fi
+
+if [[ "$WHICH" == all || "$WHICH" == e2e ]]; then
+    # A production build like .bin/test_e2e's, but with inline sourcemaps (so coverage maps back
+    # to src/) and in its own directory, so widget/dist never ships them
+    "$ROOT/.bin/build_web"
+    cd "$ROOT/widget"
+    npx vite build --sourcemap inline --outDir "$OUT/widget_build" --emptyOutDir
+    rm -rf "$OUT/e2e"
+    npx playwright install chromium
+    E2E_COVERAGE=1 npx playwright test
+fi
+
+"$ROOT/.bin/coverage_summary"

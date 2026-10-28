@@ -3,9 +3,10 @@
 // background-suggestion messages (see embed.ts, and embed_types.ts in generator-web)
 
 import {existsSync} from 'node:fs'
-import {test, expect} from '@playwright/test'
+import {test, expect} from './fixtures'
 import type {Page, FrameLocator} from '@playwright/test'
 import {watch, wait_ready, print_svg, wait_for_new_cover, repo_url, repo_file} from './helpers'
+import {chromium_args} from './coverage'
 import fr from '../src/locales/fr'
 
 // The fake host's origin, served entirely by page.route()
@@ -135,7 +136,7 @@ async function next_message(page:Page, type:string, after = 0):Promise<Received[
 // localhost; real hosts and the widget are both public, so they never meet this
 test.use({
     viewport: {width: 1400, height: 900},
-    launchOptions: {args: ['--disable-features=LocalNetworkAccessChecks']},
+    launchOptions: {args: chromium_args(['LocalNetworkAccessChecks'])},
 })
 
 test('a seeded form replaces the demo and the init config takes effect', async ({page}) => {

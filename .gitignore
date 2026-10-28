@@ -14,3 +14,6 @@ dist/
 # Playwright output
 /widget/test-results/
 /widget/playwright-report/
+
+# Coverage reports and the source-mapped widget build (.bin/coverage)
+/coverage/

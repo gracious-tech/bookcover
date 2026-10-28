@@ -1,7 +1,7 @@
 // The Book Size section: printing service, trim size, page count and binding all change the
 // rendered cover's physical dimensions (read off the print SVG's width/height, in pt)
 
-import {test, expect} from '@playwright/test'
+import {test, expect} from './fixtures'
 import type {Page, Locator} from '@playwright/test'
 import {watch, open_widget, print_svg, wait_for_new_cover, wait_ready, svg_size, field, choose,
     preview_area} from './helpers'

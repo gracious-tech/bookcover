@@ -2,7 +2,7 @@
 // chunks/requests a load makes (lazy-loaded vector backgrounds, no Iconify API calls for curated
 // icons), and what it shows when the assets it starts from can't be loaded
 
-import {test, expect} from '@playwright/test'
+import {test, expect} from './fixtures'
 import {DEFAULT_DESIGN, watch, open_widget, print_svg, preview_area} from './helpers'
 
 test('generates the default cover with no errors or failed requests', async ({page}) => {

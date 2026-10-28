@@ -1,7 +1,7 @@
 // The back blurb's WYSIWYG editor: a lazily-loaded Tiptap modal whose edits reach the sidebar's
 // preview and, once the modal closes, the cover (generation is deferred while it's open)
 
-import {test, expect} from '@playwright/test'
+import {test, expect} from './fixtures'
 import type {Page, Locator} from '@playwright/test'
 import {watch, open_widget, print_svg, wait_for_new_cover, wait_ready} from './helpers'
 

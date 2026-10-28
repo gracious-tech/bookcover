@@ -2,7 +2,7 @@
 // remembered), with <html lang/dir> following it — right-to-left for Arabic. Expected strings
 // come from the catalogs themselves, so a retranslation doesn't break these tests
 
-import {test, expect} from '@playwright/test'
+import {test, expect} from './fixtures'
 import type {Page} from '@playwright/test'
 import {watch, open_widget} from './helpers'
 import ar from '../src/locales/ar'

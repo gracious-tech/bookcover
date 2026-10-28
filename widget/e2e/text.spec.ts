@@ -1,7 +1,7 @@
 // The Cover Text section: editing the title lines, subtitle and author re-renders the cover, and
 // the per-field style popovers feed through to it
 
-import {test, expect} from '@playwright/test'
+import {test, expect} from './fixtures'
 import {watch, open_widget, print_svg, wait_for_new_cover} from './helpers'
 
 test('editing each text field re-renders the cover', async ({page}) => {

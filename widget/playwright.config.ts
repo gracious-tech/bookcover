@@ -5,8 +5,12 @@
 // typst wasm from https://assets.paper.bible in a production build, so these need network access.
 
 import {defineConfig, devices} from '@playwright/test'
+import {COVERAGE, COVERAGE_BUILD_DIR, chromium_args} from './e2e/coverage'
 
 const PORT = 5399
+
+// A coverage run (.bin/coverage, see e2e/coverage.ts) serves its own source-mapped build
+const PREVIEW_DIR = COVERAGE ? ` --outDir ${JSON.stringify(COVERAGE_BUILD_DIR)}` : ''
 
 export default defineConfig({
     testDir: 'e2e',
@@ -20,15 +24,17 @@ export default defineConfig({
     forbidOnly: !!process.env['CI'],
     retries: process.env['CI'] ? 1 : 0,
     reporter: 'list',
+    globalTeardown: './e2e/coverage.ts',
     use: {
         baseURL: `http://localhost:${PORT}`,
         locale: 'en-US',
+        launchOptions: {args: chromium_args()},
     },
     projects: [
         {name: 'chromium', use: {...devices['Desktop Chrome']}},
     ],
     webServer: {
-        command: `npx vite preview --port ${PORT} --strictPort`,
+        command: `npx vite preview --port ${PORT} --strictPort${PREVIEW_DIR}`,
         url: `http://localhost:${PORT}`,
         reuseExistingServer: false,
     },

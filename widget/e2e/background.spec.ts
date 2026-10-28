@@ -1,7 +1,7 @@
 // The Background section: colour, gradient, pattern, vector designs, built-in photos, uploads
 // and the front-cover icon — each one reaching the rendered cover
 
-import {test, expect} from '@playwright/test'
+import {test, expect} from './fixtures'
 import type {Page} from '@playwright/test'
 import {DEFAULT_DESIGN, watch, open_widget, print_svg, wait_for_new_cover, repo_file} from './helpers'
 

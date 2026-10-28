@@ -1,7 +1,7 @@
 // The Advanced section: hidden until asked for, its spine/ISBN/margin options reach the cover,
 // and Reset all blanks the form after confirmation
 
-import {test, expect} from '@playwright/test'
+import {test, expect} from './fixtures'
 import type {Page} from '@playwright/test'
 import {open_widget, print_svg, wait_for_new_cover, field} from './helpers'
 
