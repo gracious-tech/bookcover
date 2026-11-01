@@ -194,6 +194,10 @@ itself when either is missing.
   and bump `RENDER_VERSION` in the same commit (see Stored records below).
 - `generator/tests/invariants.test.ts` is property-based (fast-check): a random valid form
   always builds a valid schema, dimensions always compose, auto colors are always readable.
+  Contrast assertions must use its `as_color()`/`contrast_between()` helpers (`chroma.hsl()`),
+  never chroma's parse of an `hsl(...)` string: parsing rounds to 8-bit RGB while `design.ts`
+  doesn't, and near the white/near-black crossover that flips the expected winner (it flaked ~1
+  run in 6).
 - `generator/tests/helpers.ts` loads a stand-in font manifest via `init_fonts()` — anything
   touching `fonts.ts` or `build()` needs it, since `typst-fonts` throws until a loader runs
   and `generator` itself never loads one.
@@ -364,7 +368,9 @@ third parties, and a non-browser client has to decode `br` (`curl` needs `--comp
 - `icon_cache.ts` — Resolves an icon id to SVG with size/color stripping: `builtin:<id>` from
   `builtin_icons.ts`, a curated id from `preset_icons_svg.ts`, and anything else (a custom
   Iconify id a user typed) from a live `api.iconify.design` fetch — the ONLY runtime path in
-  this app that still calls that API
+  this app that still calls that API. There is deliberately no upload of a user's own SVG icon
+  (a decision, not a gap — someone wanting that much control can upload a background image);
+  don't add one without asking
 
 ### Typst templates (`generator/typst/`, baked in via `generator/src/generated/templates_data.ts`)
 
@@ -519,9 +525,8 @@ than the baked ones. `generate()` takes `image_builtin` (baked colors for whiche
 built-in is passed) and, on web, `image_max_dpi` (shrinks the image for fast previews, sampling
 colors from the original). The `backgrounds/previews/` directory became `previews_800/`, beside
 the new `previews_2700/`, and `rocket.jpg`/`bird.jpg` were re-encoded in place (same pixels to
-the eye, ~55% smaller). No stored record changed. paper.bible is the known consumer: it must send
-IDs to keep baked colours, and must move off `previews/` before the next `deploy_assets static`
-removes it from the bucket.
+the eye, ~55% smaller). No stored record changed. paper.bible is the known consumer: it sends
+IDs (`bg_image_builtin`) to keep baked colours and reads thumbnails from `previews_800/`.
 
 For backgrounds specifically, **the filename is the ID** — hosts path-join it to fetch bytes and
 slice its extension off for the MIME type, with no lookup table anywhere. The ID names the
@@ -626,6 +631,38 @@ Full contract in that file's header.
   everything material-symbols so only one collection is needed. NOTE: `clientBundle` on the
   Vue side needs `@nuxt/ui` > 4.9.0 — widget pins a pkg.pr.new commit build until the next
   release; swap back to a semver range when it ships.
+- **Borrow from paper_bible**: it's built on the same stack (typst.ts worker, `typst-fonts`,
+  Vue/Vite), and the generator worker here copies its `typst_worker.ts` design. Before designing
+  cross-cutting infra (workers, font handling, build scripts), check whether paper_bible already
+  solved it and mirror that, or ask.
+
+## Design guidelines
+
+For anyone choosing defaults, swatches or palettes, or drawing backgrounds, icons and patterns.
+
+- **Audience**: covers are mostly Christian books and Bibles (via paper.bible), and should lean
+  positive. Weight defaults and suggestions toward light and mid tones; offer only a few darks,
+  mainly the classic Bible ones (black, navy).
+- **No gray auto text**: an auto-derived text colour must never land on a gray or near-gray —
+  fall back to pure black/white instead (see the grayscale branch of `pick_vivid_tint()` in
+  `design.ts`). Mind the return types there: `auto_contrast_text()` returns an `hsl(...)` string,
+  `auto_contrast_hex()` and `pick_vivid_tint()` return hex, and feeding one where the other is
+  expected surfaces as malformed Typst in `_data.typ`.
+- **Solid colours only**: the vector backgrounds' no-transparency rule (see Build) applies to
+  anything drawn for a cover. Two heropatterns, `graph-paper` and `overcast`, still use
+  `opacity=".5"`.
+- **Drawing vector backgrounds**: draw designs made of discrete, regular objects (coins, gems,
+  bars, crosses, vines) with a script — one slot per object, back to front, seeded jitter for
+  charm. For organic scenes (hills, trees, towns), draft with a raster image model (GPT Image 2,
+  given our rendered SVG over its `#c8b0d8` placeholder bg as the reference, or the take the
+  user liked when tweaking; spell out specific requests in the prompt; ask for strictly flat,
+  solid colours), then trace each colour layer with potrace. Redraw focal geometry (crosses,
+  lanterns) as exact shapes, but never polygon-fit organic ones. Map traced colours to slots by
+  hue family split into dark/base/light bands, going by the real default palette
+  (`generate_palette('#c8b0d8')`: c1 purple, c2 blue, c3 pink), not the placeholder hexes. Render
+  over a vivid green to catch anything see-through. The user has rejected Recraft, LLM-written
+  SVG and VTracer for this, so don't re-propose them. Small changes to a chosen design are made
+  by editing the SVG directly, and once released it gets a new version (see Build).
 
 ## .bin/ scripts
 
@@ -652,7 +689,7 @@ consumers, but note that embeds every source into the maps (bookcover-core: 213 
 | `build_web` | typst helpers + generator + generator-web + 3d (no node) |
 | `build_site` | `vite build` in site/ |
 | `build_deploy` | npm ci all + full build incl. widget and site (for CI) |
-| `publish_modules` | Version-bump + build + npm publish the four cover packages |
+| `publish_modules` | Version-bump + build + npm publish the four cover packages; also re-points the widget's `bookcover-*` ranges, which must match or a registry install pulls a stale copy |
 | `publish_typst-utils` / `publish_typst-fonts` / `publish_pm-to-typst` | Build + test + npm publish one typst helper at its package.json version (bump it by hand first; typst-utils before pm-to-typst) |
 | `serve_widget` | `vite` dev server in widget/ |
 | `serve_site` | `vite` dev server in site/ |
@@ -693,6 +730,10 @@ consumers, but note that embeds every source into the maps (bookcover-core: 213 
   holds the Typst *templates* (`cover.typ`, `_helpers.typ` — codegen source, baked into the
   build, NOT under `assets/`, see Build), and the `typst` CLI binary itself (`.bin/setup_typst`).
 - **No semicolons**: All TypeScript uses no semicolons, snake_case for variables/functions.
+- **sharp on large images**: compositing a hand-built raw RGBA overlay onto a ~20MP image with
+  `composite()` blended inconsistently across the frame (small images were fine), and
+  `.stats()` after `.extract({top})` ignored the offset. When editing backgrounds, verify by
+  sampling raw pixels at several points, and do the alpha blend in a JS loop if in doubt.
 - **Patterns file**: `generator/src/patterns_svg.ts` is ~160K tokens — almost entirely inline
   SVG data strings. Don't try to read the whole file. Its sibling `patterns.ts` holds only the
   metadata and is safe to read in full.
