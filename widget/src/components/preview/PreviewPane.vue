@@ -209,6 +209,7 @@ import {
     FORM_KEY, IS_MOBILE_KEY, FULL_SVG_KEY, GENERATOR_KEY, INIT_ERROR_KEY, PREVIEW_EXPORTS_KEY,
 } from '../../form_state'
 import {build_schema, has_typst_substitutions} from '../../schema'
+import {WorkerFatalError, is_fetch_failure} from '../../generator_client'
 import {read_render_image} from '../../services/backgrounds'
 import {all_custom_font_bytes} from '../../fonts'
 import {image_regions} from '../../image_regions_cache'
@@ -482,8 +483,10 @@ async function run_generate():Promise<void> {
             result = await generate_svg(schema)
         }
         catch (err:unknown) {
-            // A validation error has nothing to do with the substitutions, so it isn't retried
-            if (!unsubstituted || (err instanceof Error && err.name === 'ZodError'))
+            // Only the compile itself can be the substitutions' fault: a validation error, the
+            // engine breaking (e.g. out of memory) or a failed download isn't retried without them
+            if (!unsubstituted || (err instanceof Error && err.name === 'ZodError')
+                    || err instanceof WorkerFatalError || is_fetch_failure(err))
                 throw err
             // The host's Typst broke the compile: tell the host, and show the markers as typed
             // rather than a stuck preview
