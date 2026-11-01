@@ -58,8 +58,7 @@ export default defineConfig({
             },
             // Bundle all UI icons locally (scan finds component usage; the ui.icons overrides
             // must be listed explicitly since auto-inclusion only trusts the default lucide
-            // collection) so nothing is fetched from the iconify API at runtime.
-            // NOTE: needs @nuxt/ui > 4.9.0 (pinned to a pkg.pr.new build until then)
+            // collection) so nothing is fetched from the iconify API at runtime
             icon: {
                 clientBundle: {
                     scan: true,

@@ -628,9 +628,10 @@ Full contract in that file's header.
   (from `@iconify-json/material-symbols`), and `widget/ui_icons.ts` holds Material
   replacements for Nuxt UI's default lucide icons, applied via `ui.icons` AND listed in
   `clientBundle.icons` (auto-inclusion only trusts the default lucide collection). Keep
-  everything material-symbols so only one collection is needed. NOTE: `clientBundle` on the
-  Vue side needs `@nuxt/ui` > 4.9.0 — widget pins a pkg.pr.new commit build until the next
-  release; swap back to a semver range when it ships.
+  everything material-symbols so only one collection is needed. `clientBundle` on the Vue side
+  needs `@nuxt/ui` 4.10+. Keep the widget's own `@tiptap/*` deps on the same version Nuxt UI
+  uses: a lagging one keeps an older `@tiptap/core` nested in `widget/node_modules`, and the
+  build fails with a missing export from `@tiptap/core`.
 - **Borrow from paper_bible**: it's built on the same stack (typst.ts worker, `typst-fonts`,
   Vue/Vite), and the generator worker here copies its `typst_worker.ts` design. Before designing
   cross-cutting infra (workers, font handling, build scripts), check whether paper_bible already
