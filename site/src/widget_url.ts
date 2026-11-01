@@ -1,6 +1,6 @@
 
 // Where the widget is served from. It has its own bucket, distribution and hostname (see the
-// Deployment section in CLAUDE.md), so this is a full cross-origin URL rather than a path.
+// Deployment section in AGENTS.md), so this is a full cross-origin URL rather than a path.
 
 // Production default — the site is cover.paper.bible, the widget is a sibling hostname
 const PROD_WIDGET_URL = 'https://cover-widget.paper.bible'

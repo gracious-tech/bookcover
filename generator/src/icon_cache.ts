@@ -8,7 +8,7 @@ import {find_preset_icon_svg} from './preset_icons_svg.js'
 // Module-level in-memory cache: iconify ID → raw SVG string
 const svg_cache = new Map<string, string>()
 
-// This package has no i18n/UI concerns (see repo CLAUDE.md — generator is pure TS core), so
+// This package has no i18n/UI concerns (see repo AGENTS.md — generator is pure TS core), so
 // errors reachable via user input (a mistyped icon field) carry a translation code + params
 // alongside a default English message; the widget translates at the point it catches them
 // (generator_client.ts / PreviewPane.vue), falling back to `message` for anything else.

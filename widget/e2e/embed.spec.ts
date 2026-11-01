@@ -344,7 +344,7 @@ test('seeded custom fonts are offered and returned', async ({page}) => {
     ])
 })
 
-// The editor stack loads only once a blurb has text or the modal opens (see CLAUDE.md)
+// The editor stack loads only once a blurb has text or the modal opens (see AGENTS.md)
 test('a blank embedded blurb never loads the editor stack', async ({page}) => {
     const log = watch(page)
     const frame = await open_host(page, {init: {preset: {title1: 'Blank blurb'}}})

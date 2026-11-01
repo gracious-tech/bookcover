@@ -1,5 +1,5 @@
 // make_blank_form_values() is the starting point for every new form, so it must be a complete
-// record (see "Absence means nothing" in CLAUDE.md) and never share mutable state between forms
+// record (see "Absence means nothing" in AGENTS.md) and never share mutable state between forms
 
 import {describe, it, expect} from 'vitest'
 

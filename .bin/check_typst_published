@@ -28,7 +28,7 @@ fail(){
     exit 1
 }
 
-# The pin is deliberately exact (see the render-determinism notes in CLAUDE.md), so the
+# The pin is deliberately exact (see the render-determinism notes in AGENTS.md), so the
 # dependency string is the version
 pinned="$(node -p "require('./generator-web/package.json').dependencies['@myriaddreamin/typst-ts-web-compiler']")"
 
