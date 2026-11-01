@@ -34,16 +34,21 @@ export type WorkerRequest = WorkerAction & {id:number}
 // Errors keep their name and Zod issues so the UI can still detect validation failures, plus
 // a translation code/params for errors originating in generator/ (e.g. IconCacheError), which
 // has no i18n of its own — the main thread translates using these at the point it's caught.
+// fatal = the error was a WASM trap (e.g. running out of memory), which leaves the compiler
+// unusable for good, so the client replaces this worker (see generator_client.ts)
 export type WorkerResponse =
     | {id:number, ok:true, result:GenerateResult|null}
     | {
         id:number, ok:false, error:string, error_name?:string, issues?:unknown[],
-        code?:string, params?:Record<string, unknown>,
+        code?:string, params?:Record<string, unknown>, fatal?:true,
     }
 
 
 // The generator instance, created by the 'init' action (null until then)
 let generator:CoverGenerator|null = null
+
+// Why the last init failed, given to later actions instead of a vaguer "used before init"
+let init_failure:unknown = null
 
 // Worker-side copy of uploaded custom font bytes — reusing the same Uint8Array references
 // across generates keeps the generator's identity-based font cache key stable, so the
@@ -57,16 +62,21 @@ let queue:Promise<void> = Promise.resolve()
 // Perform a single action, returning the result for generate actions
 async function handle_action(message:WorkerRequest):Promise<GenerateResult|null> {
     if (message.action === 'init'){
-        generator = await init_generator({
-            wasm_url,
-            renderer_wasm_url,
-            assets_prefix: message.assets_prefix,
-            fonts_prefix: message.fonts_prefix,
-        })
+        try {
+            generator = await init_generator({
+                wasm_url,
+                renderer_wasm_url,
+                assets_prefix: message.assets_prefix,
+                fonts_prefix: message.fonts_prefix,
+            })
+        } catch (error){
+            init_failure = error
+            throw error
+        }
         return null
     }
     if (!generator){
-        throw new Error('Generator worker used before init')
+        throw init_failure ?? new Error('Generator worker used before init')
     }
     if (message.action === 'set_custom_fonts'){
         custom_fonts = message.fonts
@@ -97,7 +107,18 @@ function error_response(id:number, error:unknown):WorkerResponse {
             response.params = (error as {params?:Record<string, unknown>}).params ?? {}
         }
     }
+    if (is_trap(error)){
+        response.fatal = true
+    }
     return response
+}
+
+
+// Whether an error is a WASM trap ('unreachable', 'memory access out of bounds' and the like) or
+// a stack overflow, either of which leaves the compiler's WASM instance unusable
+function is_trap(error:unknown):boolean {
+    return error instanceof WebAssembly.RuntimeError
+        || (error instanceof RangeError && /call stack/i.test(error.message))
 }
 
 

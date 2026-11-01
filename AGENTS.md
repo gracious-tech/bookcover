@@ -424,7 +424,12 @@ required fonts changes (tracked by `active_fonts` cache key). Renderer is init'd
   generation runs off the main thread) + the main-thread client that relays calls via
   id-tagged request/response messages (same pattern as paper_bible's `typst_worker.ts`).
   The worker keeps a snapshot of uploaded font bytes (`set_custom_fonts` action, re-sent on
-  upload) so `generate` options don't carry fonts and byte identity stays stable worker-side
+  upload) so `generate` options don't carry fonts and byte identity stays stable worker-side.
+  The worker is disposable: a WASM trap (flagged `fatal`) or a crash fails everything in flight
+  with `WorkerFatalError`, and the next call starts a fresh worker that's sent init and the fonts
+  again; `generate` retries once on it, and init retries a failed download. A `WorkerFatalError`
+  is the engine failing (usually memory), never the cover, so nothing should treat it as the
+  input's fault (e.g. the preview's `typst_substitutions` fallback skips it)
 - `components/sidebar/SidebarPanel.vue` — Four collapsible sections: Cover Text, Book Size,
   Background, Advanced
 - `components/preview/PreviewPane.vue` — Tab bar (Full/Split/3D/Photo/Print) + preview
