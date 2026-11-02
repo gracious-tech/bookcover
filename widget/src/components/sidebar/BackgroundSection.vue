@@ -42,7 +42,7 @@ div(class="flex flex-col gap-1")
         label(class="cursor-pointer")
             input(type="file" accept=".jpg,.jpeg,.png,.webp" class="sr-only" @change="on_image_change")
             UButton(as="span" color="neutral" variant="outline" size="sm") {{ t('background.upload_button') }}
-        UButton(type="button" color="neutral" variant="outline" size="sm" @click="on_paste_click") {{ t('background.paste_button') }}
+        UButton(v-if="can_paste" type="button" color="neutral" variant="outline" size="sm" @click="on_paste_click") {{ t('background.paste_button') }}
         UButton(
             v-if="has_active_bg"
             type="button"
@@ -236,7 +236,7 @@ div(class="flex flex-col gap-1")
             label(class="cursor-pointer")
                 input(type="file" accept=".jpg,.jpeg,.png,.webp" class="sr-only" @change="on_image_change")
                 UButton(as="span" color="neutral" variant="outline" size="sm") {{ t('background.upload_button') }}
-            UButton(type="button" color="neutral" variant="outline" size="sm" @click="on_paste_click") {{ t('background.paste_button') }}
+            UButton(v-if="can_paste" type="button" color="neutral" variant="outline" size="sm" @click="on_paste_click") {{ t('background.paste_button') }}
             //- The dialog covers the sidebar's own copy of this message
             span(v-if="paste_error" class="text-xs ms-1 text-red-600 dark:text-red-400" role="status") {{ paste_error }}
 
@@ -642,6 +642,7 @@ import {synthesize_fill, all_image_regions, VECTOR_BG_AUTO_COLOR, find_builtin_i
     get_builtin_bg} from 'bookcover-web'
 import {image_regions} from '../../image_regions_cache'
 import {contrast_color} from '../../svg_utils'
+import {clipboard_read_possible} from '../../clipboard'
 import ColorPicker from './ColorPicker.vue'
 import ColorSwatch from './ColorSwatch.vue'
 import LogSlider from '../LogSlider.vue'
@@ -1022,6 +1023,11 @@ function image_from_clipboard(items:DataTransferItemList): File | null {
     }
     return null
 }
+
+// Both Paste buttons are left out where the browser would refuse every click without asking the
+// user (Ctrl+V still works there). A page's policy can't change once loaded, so it's read once
+// @ts-ignore TS6133 — used in Pug template
+const can_paste = clipboard_read_possible()
 
 // Why the last Paste button click found nothing to paste, shown beside both Paste buttons
 const paste_error = ref<string | null>(null)

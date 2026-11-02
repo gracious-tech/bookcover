@@ -417,3 +417,31 @@ test('a substitution that breaks the compile falls back to the marker and is rep
         const error = await next_message(page, 'error')
         expect(error['message']).toContain('typst_substitutions')
     })
+
+test('Paste is left out only when the embedding page withholds clipboard access', async ({page}) => {
+    // Served from the widget's own origin rather than HOST: a frame under an http:// page isn't a
+    // secure context, so it has no clipboard API at all, whatever its policy says. A real host
+    // is https, which localhost stands in for
+    await page.route(`${WIDGET}/clipboard_host.html`, route => route.fulfill({
+        contentType: 'text/html',
+        body: `<!doctype html><body style="margin:0">
+            <iframe id="denied" allow="clipboard-read 'none'" src="/" style="width:1200px;height:800px"></iframe>
+            <iframe id="allowed" src="/" style="width:1200px;height:800px"></iframe></body>`,
+    }))
+    await page.goto(`${WIDGET}/clipboard_host.html`)
+    const denied = page.frameLocator('#denied')
+    const allowed = page.frameLocator('#allowed')
+    await wait_ready(denied)
+    await wait_ready(allowed)
+    for (const id of ['denied', 'allowed']){
+        const frame = await (await page.locator(`#${id}`).elementHandle())?.contentFrame()
+        expect(await frame?.evaluate(() => isSecureContext)).toBe(true)
+    }
+
+    // The policy forbids a read, so the browser would refuse every click without asking anyone
+    await expect(denied.getByText('Upload', {exact: true}).first()).toBeVisible()
+    await expect(denied.getByRole('button', {name: 'Paste', exact: true})).toHaveCount(0)
+
+    // Allowed, the browser may still ask the user, so the button stays
+    await expect(allowed.getByRole('button', {name: 'Paste', exact: true}).first()).toBeVisible()
+})
