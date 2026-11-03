@@ -591,7 +591,8 @@ Full contract in that file's header.
   raw PDF bytes; PNG splits use a crop callback (`sharp` on Node, Canvas API on web). For
   printing the faces separately, `generate()`'s `pdf_pages` option instead makes the PDF itself
   a front page and a back page, each with bleed all round and no spine (`split_pdf_pages()`) —
-  what the Parts tab's Export PDF downloads (its Save Images keeps the spine), and what hosts use for covers printed as separate sheets.
+  what the Parts tab's Front & Back PDF downloads (its Save Images keeps the spine), and what
+  hosts use for covers printed as separate sheets.
 - **Text direction (RTL)**: derived from content, never stored. `text_dir()` (`generator/src/
   utils.ts`) applies the Unicode first-strong rule (as HTML `dir="auto"`); `data_file.ts` emits
   a `*_dir` binding per field (per line for the subtitle) that `cover.typ` passes to `text(dir:)`,
