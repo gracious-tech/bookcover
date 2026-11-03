@@ -13,6 +13,7 @@ import path from 'node:path'
 import {execFile} from 'node:child_process'
 import {promisify} from 'node:util'
 import sharp from 'sharp'
+import {PDFDocument} from 'pdf-lib'
 
 import {generate} from '../src/index.js'
 import {resolve_dimensions, calculate_pixel_crop_regions, build, build_schema, cover_schema,
@@ -300,6 +301,26 @@ describe.skipIf(!have_typst || !have_fonts)('splitting a rendered cover', () => 
                 const pdf = await fs.readFile(file, 'latin1')
                 expect(pdf.startsWith('%PDF-'), file).toBe(true)
                 expect(pdf, file).toContain('/CropBox')
+            }
+        })
+
+    it('writes the front and back as two PDF pages, each with bleed all round, and no spine',
+        {timeout: RENDER_TIMEOUT}, async () => {
+            const to_pt = (mm:number) => mm / 25.4 * 72
+            const pdf = await PDFDocument.load(
+                await fs.readFile((await render('pages.pdf', {pdf_pages: true})).output_path))
+            const [front, back] = pdf.getPages().map(page => page.getMediaBox())
+            // The sample cover has a spine, which gets no page of its own
+            expect(dims.cover_has_spine).toBe(true)
+            expect(pdf.getPageCount()).toBe(2)
+            const bleed = dims.cover_bleed.toNumber()
+            expect(bleed).toBeGreaterThan(0)
+            for (const [box, region] of [[front, dims.cover_region_front],
+                    [back, dims.cover_region_back]] as const) {
+                expect(box?.x).toBeCloseTo(to_pt(region.x.toNumber() - bleed), 0)
+                expect(box?.y).toBeCloseTo(0, 0)
+                expect(box?.width).toBeCloseTo(to_pt(region.w.toNumber() + bleed * 2), 0)
+                expect(box?.height).toBeCloseTo(to_pt(region.h.toNumber() + bleed * 2), 0)
             }
         })
 

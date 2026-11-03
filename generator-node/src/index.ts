@@ -58,6 +58,9 @@ export interface GenerateOptions {
     ppi?:number
     // Whether to split the result into front/back/spine panels
     split?:boolean
+    // For PDF output: write the front and back as two pages (no spine), each with bleed all
+    // round, instead of the wraparound — for printing them separately
+    pdf_pages?:boolean
     // Root of the static assets tree, containing at least docs/ (the typst templates) and
     // fonts/ (default: the repo-local assets/ dir — see the README for how to obtain a copy)
     assets_dir?:string
@@ -380,6 +383,14 @@ export async function generate(options:GenerateOptions):Promise<GenerateResult> 
         }
 
         result.split_paths = split_paths
+    }
+
+    // Front and back pages, cut from the wraparound once any split above has used it. Loaded on
+    // demand, as it brings pdf-lib with it
+    if (options.pdf_pages && format === 'pdf') {
+        const {split_pdf_pages} = await import('bookcover-core/pdf-pages')
+        const pdf = new Uint8Array(await fs.readFile(options.output_path))
+        await fs.writeFile(options.output_path, await split_pdf_pages(pdf, dims))
     }
 
     return result

@@ -3,6 +3,7 @@
 
 import {test, expect} from './fixtures'
 import type {Page} from '@playwright/test'
+import {PDFDocument} from 'pdf-lib'
 import {watch, open_widget, print_svg, wait_for_new_cover, download, starts_with, MAGIC,
     canvas_colours} from './helpers'
 
@@ -68,13 +69,14 @@ test('the Parts tab saves each face as an SVG in a zip', async ({page}) => {
     expect(zip_names(file.bytes)).toEqual(['back.svg', 'front.svg', 'spine.svg'])
 })
 
-test('the Parts tab exports each face as a PDF in a zip', async ({page}) => {
+test('the Parts tab exports the front and back covers as a two-page PDF', async ({page}) => {
     await open_widget(page)
     await show_tab(page, 'Parts')
-    const file = await download(page, page.getByRole('button', {name: 'Export PDFs'}))
-    expect(file.name).toBe('cover_parts.zip')
-    expect(starts_with(file.bytes, MAGIC.zip)).toBe(true)
-    expect(zip_names(file.bytes)).toEqual(['back.pdf', 'front.pdf', 'spine.pdf'])
+    const file = await download(page, page.getByRole('button', {name: 'Front & Back PDF'}))
+    expect(file.name).toBe('cover_parts.pdf')
+    expect(starts_with(file.bytes, MAGIC.pdf)).toBe(true)
+    // Just the front and back, though the demo cover has a spine (Save Images keeps that)
+    expect((await PDFDocument.load(file.bytes)).getPageCount()).toBe(2)
 })
 
 test('the 3D tab saves a PNG of the book', async ({page}) => {

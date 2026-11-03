@@ -30,6 +30,7 @@ interface GenerateOptions {
     format?: 'pdf'|'svg'|'png'  // default: 'pdf'
     ppi?: number                 // PNG resolution, default: 144
     split?: boolean              // also write front/back/spine panel files
+    pdf_pages?: boolean          // PDF: front and back pages (no spine), bleed all round
     assets_dir?: string          // root of the assets tree (see "Assets" below)
     fonts_dir?: string           // fonts tree if kept elsewhere, default: <assets_dir>/fonts
     typst_path?: string          // typst CLI binary, default: 'typst' from $PATH

@@ -27,7 +27,7 @@ div(v-if="preview_exports" class="flex items-center gap-2")
         class="cursor-pointer"
         @click="on_finished"
     ) {{ t('preview.finished_button') }}
-    //- Export PDF (single), or Export PDFs in Parts view (split parts as zip)
+    //- Export PDF: the wraparound, or in Parts view the front and back as two pages
     UButton(
         v-else
         :size="is_mobile ? 'sm' : undefined"

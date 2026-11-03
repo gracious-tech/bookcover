@@ -105,6 +105,7 @@ interface GenerateOptions {
     format?: 'pdf'|'svg'|'png'   // default: 'pdf'
     ppi?: number                  // PNG resolution, default: 144
     split?: boolean               // include split panels in result
+    pdf_pages?: boolean           // PDF: front and back pages (no spine), bleed all round
     custom_fonts?: Uint8Array[]   // raw TTF bytes for custom fonts
 }
 

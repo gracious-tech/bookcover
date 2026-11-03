@@ -321,6 +321,9 @@ third parties, and a non-browser client has to decode `br` (`curl` needs `--comp
   pattern SVG, icon SVGs, barcode SVG, frame composites
 - `split.ts` — Splits a full-spread output into front/back/spine panels (SVG viewBox
   adjustment, PDF CropBox injection, PNG pixel cropping)
+- `pdf_pages.ts` — Re-cuts a wraparound PDF into a front page and a back page (no spine), each
+  with bleed all round, for `generate()`'s `pdf_pages` option. Brings pdf-lib, so it's off
+  the barrel behind the `bookcover-core/pdf-pages` subpath, which both wrappers import lazily
 - `fonts.ts` — Cover-schema-specific font resolution layered on top of the generic `typst-fonts`
   package (manifest lookup, Noto fallback resolution, CJK/script detection all live there now —
   see below). `collect_all_fonts()` is the source of truth for which font families a schema
@@ -585,7 +588,10 @@ Full contract in that file's header.
   built-in missing from the baked table falls back to sampling its preview copy (with a console
   warning), and `widget/tests/backgrounds.test.ts` fails on one.
 - **Split output**: SVG splits adjust the viewBox; PDF splits inject CropBox arrays into the
-  raw PDF bytes; PNG splits use a crop callback (`sharp` on Node, Canvas API on web).
+  raw PDF bytes; PNG splits use a crop callback (`sharp` on Node, Canvas API on web). For
+  printing the faces separately, `generate()`'s `pdf_pages` option instead makes the PDF itself
+  a front page and a back page, each with bleed all round and no spine (`split_pdf_pages()`) —
+  what the Parts tab's Export PDF downloads (its Save Images keeps the spine), and what hosts use for covers printed as separate sheets.
 - **Text direction (RTL)**: derived from content, never stored. `text_dir()` (`generator/src/
   utils.ts`) applies the Unicode first-strong rule (as HTML `dir="auto"`); `data_file.ts` emits
   a `*_dir` binding per field (per line for the subtitle) that `cover.typ` passes to `text(dir:)`,

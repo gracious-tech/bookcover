@@ -578,8 +578,8 @@ async function export_pdf():Promise<void> {
     }
 }
 
-/** Generate a full PDF, split into per-panel PDFs, and download as a zip */
-async function export_split_pdfs():Promise<void> {
+/** Generate a PDF of the front and back covers as two pages (no spine) and download it */
+async function export_parts_pdf():Promise<void> {
     if (!is_ready.value || is_exporting.value)
         return
     is_exporting.value = true
@@ -592,22 +592,17 @@ async function export_split_pdfs():Promise<void> {
         const regions = toRaw(image_regions.value)
         const img = await read_render_image(form, 'final')
         const result = await generator.value!.generate({
-            schema, image: img, image_builtin, image_regions: regions, format: 'pdf', split: true,
+            schema, image: img, image_builtin, image_regions: regions, format: 'pdf',
+            pdf_pages: true,
         })
-
-        const parts = result.split as {front:Uint8Array, back:Uint8Array, spine?:Uint8Array}
-        const files:Record<string, Uint8Array> = {
-            'front.pdf': parts.front,
-            'back.pdf': parts.back,
-        }
-        if (parts.spine) files['spine.pdf'] = parts.spine
-
-        trigger_download(new Blob([zipSync(files)], {type: 'application/zip'}), 'cover_parts.zip')
+        // .slice() produces Uint8Array<ArrayBuffer> (not ArrayBufferLike), satisfying BlobPart
+        trigger_download(new Blob([(result.data as Uint8Array).slice()], {type: 'application/pdf'}),
+            'cover_parts.pdf')
     }
     catch (err:unknown) {
         export_error.value = err instanceof Error ? err.message : String(err)
         console.error(err)
-        report_error(err, 'Split PDF export failed')
+        report_error(err, 'Parts PDF export failed')
     }
     finally {
         is_exporting.value = false
@@ -664,9 +659,9 @@ preview_exports.value = reactive({
     is_exporting,
     save_label,
     export_label: computed(() => view_mode.value === 'split'
-        ? t('preview.export_pdfs') : t('preview.export_pdf')),
+        ? t('preview.export_front_back_pdf') : t('preview.export_pdf')),
     save_image,
-    export_pdf: () => view_mode.value === 'split' ? export_split_pdfs() : export_pdf(),
+    export_pdf: () => view_mode.value === 'split' ? export_parts_pdf() : export_pdf(),
 })
 
 /** Handle background thumbnail click in photo mode */

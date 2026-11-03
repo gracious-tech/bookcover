@@ -25,6 +25,10 @@
             "types": "./dist/preset_icons_svg.d.ts",
             "default": "./dist/preset_icons_svg.js"
         },
+        "./pdf-pages": {
+            "types": "./dist/pdf_pages.d.ts",
+            "default": "./dist/pdf_pages.js"
+        },
         "./package.json": "./package.json"
     },
     "files": [
@@ -41,6 +45,7 @@
         "big.js": "^7.0.1",
         "bwip-js": "^4.9.0",
         "chroma-js": "^3.2.0",
+        "pdf-lib": "^1.17.1",
         "pm-to-typst": "^0.1.2",
         "printing-services": "^1.5.1",
         "typst-fonts": "^0.1.4",

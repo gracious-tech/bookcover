@@ -464,8 +464,9 @@ const en = {
         save_mockup: 'Save Mockup',
         save_images: 'Save Images',
         save_image: 'Save Image',
-        export_pdfs: 'Export PDFs',
         export_pdf: 'Export PDF',
+        // Parts tab's export: one PDF with the front cover and back cover as two pages (no spine)
+        export_front_back_pdf: 'Front & Back PDF',
         // embedded mode: done editing, return to the host app
         finished_button: 'Finished',
         finish_confirm_title: 'Save changes to cover?',

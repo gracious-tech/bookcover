@@ -81,6 +81,9 @@ export interface GenerateOptions {
     ppi?:number
     // Whether to split the result into front/back/spine panels
     split?:boolean
+    // For PDF output: return the front and back as two pages (no spine), each with bleed all
+    // round, instead of the wraparound — for printing them separately
+    pdf_pages?:boolean
     // Raw TTF bytes for user-uploaded custom fonts
     custom_fonts?:Uint8Array[]
     // Pre-sampled colors from the background image (see analyze_image_regions), for callers
@@ -91,7 +94,8 @@ export interface GenerateOptions {
 }
 
 export interface GenerateResult {
-    // The full cover data (PDF/PNG bytes, or SVG string)
+    // The full cover data (PDF/PNG bytes, or SVG string) — for a PDF with pdf_pages, the front
+    // and back pages instead
     data:Uint8Array | string
     // Split panel data (only present when split is true and format is svg/png)
     split?:SplitResult<Uint8Array> | SplitResult<string>
@@ -602,6 +606,13 @@ export class CoverGenerator {
             else {
                 result.split = await split_png(data as Uint8Array, dims, ppi, canvas_crop)
             }
+        }
+
+        // Front and back pages, cut from the wraparound once any split above has used it. Loaded on
+        // demand, as it brings pdf-lib with it
+        if (options.pdf_pages && format === 'pdf') {
+            const {split_pdf_pages} = await import('bookcover-core/pdf-pages')
+            result.data = await split_pdf_pages(data as Uint8Array, dims)
         }
 
         return result
